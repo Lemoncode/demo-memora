@@ -1,5 +1,27 @@
 {
+  "name": "memora",
+  "private": true,
+  "packageManager": "pnpm@10.19.0",
+  "engines": {
+    "node": ">=24.16.0 <25"
+  },
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "test": "turbo run test",
+    "typecheck": "turbo run typecheck",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "db:up": "docker compose up -d --wait",
+    "db:down": "docker compose down",
+    "db:reset": "docker compose down -v && docker compose up -d --wait",
+    "runner": "tsx --env-file-if-exists=.env console-runner/src/main.ts"
+  },
   "devDependencies": {
-    "@lemoncode/lemony": "^0.10.0"
+    "@lemoncode/lemony": "^0.10.0",
+    "prettier": "3.9.10",
+    "tsx": "4.23.15",
+    "turbo": "2.11.9",
+    "typescript": "7.0.2"
   }
 }

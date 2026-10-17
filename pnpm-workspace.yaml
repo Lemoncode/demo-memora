@@ -1,0 +1,10 @@
+packages:
+  - 'apps/*'
+  - 'packages/*'
+  - 'console-runner'
+
+# pnpm 10 blocks dependency build scripts by default; these two need theirs to
+# fetch/compile their native binaries (Vite's bundler and Tailwind's CSS engine).
+onlyBuiltDependencies:
+  - esbuild
+  - lightningcss

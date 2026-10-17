@@ -78,10 +78,13 @@ rollback:
 # reviews against a floor of the real run only (honest, but thin). The agent may
 # propose this list from your manifest at the approval gate — confirmed by a human
 # and added by hand (this block is the shape); no tool writes it for you.
-# gates:
-#   - lint
-#   - test
-#   - build
+# This project has no linter by explicit decision (Prettier only), so `typecheck`
+# carries the weight a linter would. All four are enforced by .github/workflows/ci.yml.
+gates:
+  - typecheck
+  - 'format:check'
+  - test
+  - build
 
 # Design tokens (the `design-tokens` verbs, and the token lines of `doctor` / `status`).
 # `scan_extensions`: the anti-hardcode scan inspects a built-in set of UI/style

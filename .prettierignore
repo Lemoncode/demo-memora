@@ -1,0 +1,27 @@
+# Vendor and generated paths are out of the format gate's scope (design decision D2):
+# formatting files we do not own would make `format:check` go red on an unrelated
+# `lemony update`.
+
+# Dependencies
+node_modules/
+
+# Harness (vendored — not ours to format)
+.claude/
+# ...and the harness files the installer drops outside .claude/: `lemony repair`
+# regenerates them, so formatting them would fail the gate on a vendor update.
+harness.config.schema.json
+docs/playbooks/README.md
+
+# Lockfile (pnpm owns its layout)
+pnpm-lock.yaml
+
+# Build outputs and caches
+dist/
+.output/
+.turbo/
+.tanstack/
+.vite/
+coverage/
+
+# Generated sources
+**/routeTree.gen.ts
