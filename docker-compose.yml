@@ -1,0 +1,33 @@
+# LOCAL DEVELOPMENT ONLY — no credentials.
+#
+# This MongoDB listens on localhost:27017 with authentication disabled, on purpose:
+# the point is that a fresh clone can run `pnpm db:up` with zero friction. Anyone who
+# can reach this port has full read/write access to every database in it.
+#
+# Never deploy this file, and never copy it to any environment that is reachable from
+# outside this machine. A remote environment needs its own compose/manifest with
+# credentials, TLS and a non-published port.
+#
+# The application database is `memora`; the canonical local URI is
+# mongodb://localhost:27017/memora (see .env.example). Mongo creates the database on
+# first write, so nothing here has to declare it.
+
+services:
+  mongo:
+    image: mongo:8
+    container_name: memora-mongo
+    ports:
+      - '27017:27017'
+    volumes:
+      # Named volume, so the data survives `pnpm db:down` (only `pnpm db:reset`
+      # removes it).
+      - memora-mongo-data:/data/db
+    healthcheck:
+      test: ['CMD', 'mongosh', '--quiet', '--eval', "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
+volumes:
+  memora-mongo-data:

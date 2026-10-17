@@ -12,3 +12,18 @@ node_modules
 .claude/state/tmp/
 .claude/.harness/snapshots/
 # END lemony
+
+# Local environment (see .env.example)
+.env
+
+# Build outputs
+dist/
+.output/
+.tanstack/
+.nitro/
+
+# Caches
+.turbo/
+.vite/
+coverage/
+*.tsbuildinfo

@@ -1,0 +1,51 @@
+name: CI
+
+# Runs on pull requests targeting `main` (D16): the harness merge gate reads the
+# check status of the PR, and the flow always merges through a PR.
+on:
+  pull_request:
+    branches: [main]
+
+# A new push to the same PR makes the previous run obsolete.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  gates:
+    name: Declared gates
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      # No `version:` input on purpose — the action reads the pnpm version from the
+      # root `packageManager` field, so CI and local can never drift (R54).
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v6
+
+      # Node comes from the committed .nvmrc, for the same reason (R54).
+      # `cache: pnpm` caches the pnpm store, and needs pnpm on PATH already.
+      - name: Set up Node
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      # The four declared gates (harness.config.yml `gates:`), each its own step so
+      # a red one is obvious. No `continue-on-error` anywhere: any non-zero exit
+      # fails the workflow (R53).
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Format check
+        run: pnpm format:check
+
+      - name: Test
+        run: pnpm test
+
+      - name: Build
+        run: pnpm build
