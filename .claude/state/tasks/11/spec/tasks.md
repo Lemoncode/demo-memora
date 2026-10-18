@@ -140,23 +140,23 @@ the vocabulary, the rationale says what it is.
 
 ## Group 5 — Dataset mock compartido y formateadores en español _(isolates the data contract Parts 2 and 3 inherit: once «Familia García» and the four circles are written here, every later screen reads them from this one place or contradicts itself)_
 
-- [ ] T17 — Write the API-shaped fixtures in `common/mock-data/`: the viewer (Sofía
+- [x] T17 — Write the API-shaped fixtures in `common/mock-data/`: the viewer (Sofía
       Martín) and the inviter (Lucas Vidal) with their avatars, the storage figures, the
       invitation with its ISO `expires_at` and state codes, and the **four circles with
       name and cover path only** — the deliberate crossing into Part 2's territory that
       the desktop rail consumes, and nothing else of Part 2 (R39, R48)
-- [ ] T18 — Add the demo-value fixture the `?estado=error` variants need, with the
+- [x] T18 — Add the demo-value fixture the `?estado=error` variants need, with the
       per-breakpoint values the design contract names. They live in the dataset rather
       than in markup, so no credential-shaped literal sits in a component (R49, R69)
-- [ ] T19 — Build and unit-test `formatLongDate`: «24 de octubre», Spanish month names,
+- [x] T19 — Build and unit-test `formatLongDate`: «24 de octubre», Spanish month names,
       no year (R43, R97)
-- [ ] T20 — Build and unit-test `formatStorageUsage`: «3,1 GB de 5 GB usados · plan
+- [x] T20 — Build and unit-test `formatStorageUsage`: «3,1 GB de 5 GB usados · plan
       Gratis» with the Spanish decimal comma, plus the percentage the `Progress` bar takes
       (R43, R97)
 
 ## Group 6 — Assets del diseño _(one task, and it earns its own group: downloading binaries is the least reversible thing in this part — once the bytes are in git history, trimming them is a rewrite — and the damage class is repository weight, which the risk vocabulary does not name)_
 
-- [ ] T21 — Download from the canvas **only** the assets this part's artboards reference —
+- [x] T21 — Download from the canvas **only** the assets this part's artboards reference —
       the login collage, `Login-D`'s mosaic, `Register-D`'s own seven images, the invite
       avatar, the four circle covers and the wordmark — to `apps/web/public/mock/` and
       `apps/web/public/brand/`, so neither build, test nor CI depends on the network. Report

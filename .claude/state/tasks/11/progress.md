@@ -7,14 +7,22 @@
 
 ## Active
 
-**Status**: implementing — **Grupos 3 y 4** (biblioteca de componentes), paso 3 de 8,
-step-by-step, auto-commit **off** (save-points en el índice de git, cero commits).
+**Status**: implementing — **Grupos 5 y 6** (dataset mock compartido, formateadores en
+español y assets del diseño), paso 4 de 8, step-by-step, auto-commit **off** (save-points en el
+índice de git, cero commits).
 
-**Active subtask**: ninguna — **Grupos 3 y 4 completos (T9–T12, T46, T13–T16)**, tras la
-**iteración 2 del fix-loop** (review REJECT: dos puntos bloqueantes, los dos reales y los dos
-arreglados y medidos). Los siete gates en verde, el camino real ejercitado en Chrome contra el
-build de producción, todo en el índice y sin commitear, a la espera del checkpoint humano. El
-Grupo 5 no se ha empezado.
+**Active subtask**: ninguna — **Grupos 5 y 6 completos (T17–T20, T21)**, a la primera, sin
+discoveries. Los siete gates en verde con la caché de turbo saltada, `pnpm audit` limpio, y el
+camino real ejercitado contra el build de producción en un puerto libre explícito: los 17 assets
+servidos en local con 200 y el `content-length` del origen, y las fixtures atravesando los
+formateadores de verdad. 186 tests (16 nuevos). Todo en el índice y **sin commitear**, a la espera
+del checkpoint humano. El **Grupo 7 no se ha empezado**.
+
+Este paso no renderiza nada: son datos y bytes. `/` sigue devolviendo `null` hasta T26 (Grupo 8).
+El informe de peso de los assets — 1,79 MiB en 17 ficheros, con el tamaño de dibujo de cada uno y
+cuáles son desproporcionados — está en la sección «Grupos 5 y 6» de abajo, y es material del
+checkpoint: **no he redimensionado ni recomprimido nada**, porque eso es decisión del humano y el
+momento de tomarla es ahora, antes del primer commit.
 
 Group 1 (T1–T5) is done, reviewed over three rounds and committed at `6ea1697`; its record
 below is kept verbatim.
@@ -972,6 +980,301 @@ No se tocan, por indicación expresa: que `Progress` convierta un `value` ausent
 diez primitivos no lleven spec (es lo que pide la lista de ficheros de `design.md`, y es
 pregunta para el humano); y R35, que se sigue honrando como está escrita mientras no cambie.
 
+## Grupos 5 y 6 — dataset mock, formateadores y assets del diseño (T17–T21), paso 4/8
+
+Cinco tareas, las cinco en verde. Auto-commit **off**: save-point en el índice tras cada tarea
+verde, cero commits, cero pushes. **Nada de este paso renderiza** — son datos y bytes; `/` sigue
+devolviendo `null` hasta T26, y ni una pantalla ni una ruta se han construido.
+
+**Preflight de TDD.** Playbooks aplicables: **ninguno** — `docs/playbooks/` solo contiene el
+`README.md` del harness y no hay capa global (`paths.playbooks_global` sin declarar). Entorno de
+test: **node** (`@vitest-environment node`) en los cuatro ficheros de spec nuevos, porque son
+fixtures y funciones puras sin DOM; la config de vitest tiene jsdom por defecto, así que cada uno
+lo declara explícitamente.
+
+Suite: **170 → 186** tests en `@memora/web` (16 nuevos, 10 ficheros). Los siete gates en verde con
+la caché de turbo saltada (`--force`), `pnpm audit --audit-level=moderate` sin vulnerabilidades, y
+cobertura **N/A**: no hay provider `@vitest/coverage-*` instalado en el repo.
+
+### T17 — las fixtures en forma de respuesta de API
+
+Cinco ficheros en `apps/web/src/common/mock-data/`, `snake_case` y fechas ISO (R39). Un ciclo
+rojo→verde de verdad: el spec de los círculos existía antes que el fichero.
+
+- `circles.mock.ts` — **el cruce deliberado hacia la Parte 2** (R48). Los cuatro círculos salen
+  del `renderVals()` de `Profile-D`, que es el único artboard que dibuja la sección «Círculos»
+  del raíl, y en su orden: Familia García · Lisboa 2026 · Amigas de la uni · Boda de Ana y Leo.
+- `users.mock.ts` — Sofía Martín (`sofia.martin@correo.es`, de `Profile-M` / `Profile-D` y de la
+  línea «Entrarás como …» de `Invite-M`) y Lucas Vidal (de `Invite-M` / `Invite-D`).
+- `storage.mock.ts` — `used_bytes: 3_100_000_000`, `limit_bytes: 5_000_000_000`, `plan_code: 'free'`.
+- `invitations.mock.ts` — token, `state_code`, `expires_at` ISO, nombre del círculo e invitador.
+- (`form-demo-values.mock.ts` es T18.)
+
+**Decisiones, ninguna de ellas contra el spec:**
+
+1. **Sin campo `id` en ninguna fixture.** En los círculos es obligado: R48 dice «nombre e imagen
+   de portada **y nada más**», y un `id` es precisamente el campo con el que la Parte 2
+   construiría `/circles/$id` — ensancharlo ahí sería el scope drift que el paso vigila. Por
+   coherencia tampoco lo llevan el visor ni el invitador: ninguna pantalla de esta parte lo
+   consume y el diseño no lo dibuja. La lista del raíl se indexa por `name`, único en el dataset.
+2. **El invitador no tiene `email`.** `UserSummaryApiShape = Omit<UserApiShape, 'email'>`. Ningún
+   artboard muestra el correo de Lucas Vidal, y un backend no se lo daría a quien recibe la
+   invitación. La alternativa era inventarse uno, que es contrato que nadie ha decidido.
+3. **Los códigos de estado de la invitación son del backend, no el vocabulario de la URL.**
+   `'pending' | 'expired' | 'invalid' | 'already_member'`. El vocabulario `?estado=` es castellano
+   (`caducada`, `invalida`, `ya-miembro`) y vive en la URL: traducirlo es trabajo del `business`
+   del pod `invite` (Grupo 11), y el mapper lleva el código a su enum de front (R43).
+4. **Las cifras de almacenamiento están elegidas para cuadrar con la barra del artboard.**
+   3,1 / 5 = 62 %, que es exactamente el `p: 62` que `Profile-M` y `Profile-D` le pasan a su
+   `Progress`. GB decimales (10⁹): en GiB binarios esos 5 000 000 000 bytes se leerían «4,7 GB» y
+   el artboard dice «5 GB».
+5. **`circle_name` de la invitación repite el literal «Familia García»** en vez de referenciar
+   `circlesMock[0]`. Los artboards reutilizan el nombre, pero el diseño no declara que la
+   invitación apunte al primer círculo del raíl, y un backend sirve esas dos cosas por endpoints
+   distintos. Acoplarlas sería inventar una relación.
+6. **Las fixtures no llevan spec, salvo las dos guardas de abajo.** `design.md` no lista ningún
+   `.spec.ts` para `mock-data/`, y R97 nombra mappers, repositorios, `business` y formateadores —
+   no fixtures. El skill de TDD lo dice igual: contenido estático y constantes no llevan ciclo.
+
+**Dos specs añadidos por encima de la lista de ficheros de `design.md`**, los dos guardando un
+requisito y no la forma de un dato, y los dos declarados aquí para que el review pueda rechazarlos:
+
+- `circles.mock.spec.ts` — el orden de los cuatro nombres, y que **cada círculo expone exactamente
+  `name` y `cover_url`**. Hace mecánica la letra de R48: el día que alguien añada un recuento de
+  miembros, el test lo dice en vez de que lo note una persona leyendo el diff.
+- `mock-data-assets.spec.ts` — ver T21.
+
+### T18 — los valores de demostración (R49, R69)
+
+`form-demo-values.mock.ts`. Contenido estático, sin ciclo de TDD. Los valores están leídos de los
+artboards, campo a campo:
+
+| Variante | Artboard | Valores |
+| --- | --- | --- |
+| `/login?estado=error` | `Login-M-Error` | email `sofia.martin@correo` (cortado), contraseña **vacía** |
+| `/register?estado=error` móvil | `Register-M` | `Sofía Martín` · `sofia.martin@correo.es` · `recuerdos2026` · repetición `recuerdos206` |
+| `/register?estado=error` escritorio | `Register-D` | `Sofía Martín` · `sofia@memora.app` · `recuerdos` · repetición `recuerdos` |
+| `/profile?estado=error` | `Profile-D` | `Sofía Martín Ortega` · `sofia@memora.app` |
+
+Tres cosas que conviene dejar escritas:
+
+1. **El reparto por breakpoint solo existe donde el contrato lo reparte.** `/register` lleva
+   `{ mobile, desktop }` porque §10 nombra dos juegos distintos y `Register-D` es
+   deliberadamente más rico (dos campos inválidos y un mensaje de nivel de formulario más exigente
+   que el de móvil: «al menos 8 caracteres **y un número**»). `/login` lleva **un** juego, porque
+   §6 dice que escritorio lleva el mismo `Alert` y los mismos campos inválidos al formulario de
+   `Login-D`. `/profile` lleva uno, porque `Profile-D` es su único artboard de estado `error`.
+2. **La contraseña del error de login va vacía**, que es lo que dibuja `Login-M-Error`: solo
+   placeholder, bajo «Escribe tu contraseña.». No es un hueco por olvidar.
+3. **Es el único fichero de `mock-data/` en camelCase.** No es una respuesta de API — ningún
+   backend devuelve «lo que la persona ha escrito» —, y el doc comment lo dice para que no se lea
+   como una incoherencia con sus vecinos.
+
+**Observación para el Grupo 9, no un bloqueo:** `Login-D` es el artboard del estado `enviando` y
+**también** dibuja email y contraseña rellenos. R69 confina los valores de demostración a las
+variantes `?estado=error`, así que `enviando` se entrega **vacío** y no hay entrada para él en la
+fixture. El contrato no es ambiguo (la decisión de §10 es explícita), pero un formulario vacío,
+deshabilitado y con «Entrando…» se ve raro, y es el humano quien debe verlo venir en el checkpoint
+del Grupo 9 en vez de descubrirlo entonces.
+
+### T19 — `formatLongDate` (R43, R97)
+
+`apps/web/src/common/formatters/date.formatter.ts`, en `common/` y no en el `business` de cada pod
+porque lo necesitan pods distintos y un import entre pods está prohibido (D12, R46).
+
+Un ciclo rojo→verde real (el de «24 de octubre») y **tres guardas que nacieron verdes**: una sola
+llamada a `Intl.DateTimeFormat('es-ES', { day: 'numeric', month: 'long' })` satisface todo el
+requisito a la vez, así que escribir más tests rojos habría sido teatro. En lugar de eso, las tres
+guardas se **probaron a mano** mutando la fuente, cada mutación restaurada por un `trap` instalado
+antes de tocar el fichero:
+
+| Mutación | Resultado |
+| --- | --- |
+| `'es-ES'` → `'en-GB'` | 3 tests rojos — mutante muerto |
+| añadir `year: 'numeric'` | 4 tests rojos — mutante muerto |
+| `day: 'numeric'` → `'2-digit'` | 1 test rojo (justo el del día sin cero) — mutante muerto |
+
+**Una afirmación mía falsificada por el run real.** El doc comment decía que las fechas del dataset
+están a mediodía UTC «para que el día mostrado no dependa de la zona horaria». Ejecutado de verdad:
+
+```
+TZ=Europe/Madrid       → 24 de octubre
+TZ=Pacific/Midway      → 24 de octubre   (UTC−11)
+TZ=Pacific/Kiritimati  → 25 de octubre   (UTC+14)
+```
+
+Mediodía UTC estabiliza el día **de UTC−11 a UTC+11**, no en todas las zonas. El comentario está
+corregido en los tres ficheros que lo repetían (`date.formatter.ts`, `date.formatter.spec.ts`,
+`invitations.mock.ts`) y ahora dice lo medido. **El comportamiento no se ha cambiado**: formatear en
+la zona de quien mira es lo correcto para una fecha que se le muestra a una persona, y fijar UTC
+haría la salida determinista a cambio de mentirle a quien lee desde otro huso. Queda como
+observación para el humano: alguien que abra las pantallas desde UTC+12…+14 leerá «25 de octubre»
+donde el diseño dice 24.
+
+### T20 — `formatStorageUsage` (R43, R97)
+
+Dos ciclos rojo→verde reales — la etiqueta primero, el porcentaje después (el segundo test rojo
+porque la función devolvía solo `{ label }`) — y cinco guardas. Cuatro probadas a mano:
+
+| Mutación | Resultado |
+| --- | --- |
+| `'es-ES'` → `'en-GB'` | 3 tests rojos — mutante muerto |
+| `BYTES_PER_GB` 10⁹ → 2³⁰ (GiB) | 5 tests rojos — mutante muerto |
+| quitar `Math.round` del porcentaje | 1 test rojo — mutante muerto |
+| `maximumFractionDigits: 1` → `2` | **7 tests verdes — mutante SUPERVIVIENTE** |
+
+El cuarto encontró un hueco real: todos mis valores de prueba tenían un decimal significativo como
+máximo (3,1 · 1,4 · 2 · 1), así que un tope de dos decimales daba exactamente la misma salida y
+nada fijaba la precisión del diseño. Cerrado con un test de 3,14 GB → «3,1 GB»; re-probada la misma
+mutación, ahora **muere**.
+
+**Dos omisiones deliberadas**, escritas en el propio fichero para que no se lean como descuidos:
+
+- **Solo GB.** El diseño no dibuja ninguna cifra en KB, MB ni TB, así que no hay escalera de
+  unidades. Cuando aparezca una será una decisión con su propio test.
+- **Sin guarda para `limitBytes === 0`** ni tope en el 100 %. El único origen de estas cifras en
+  esta parte es `storageMock`, cuyo límite es una constante distinta de cero: una guarda aquí sería
+  código no alcanzable y, peor, un número elegido a dedo que nadie podría justificar más tarde.
+
+### T21 — los assets del diseño (R95)
+
+Un ciclo rojo→verde de verdad, y el rojo cubre justo la costura entre los dos grupos:
+`mock-data-assets.spec.ts` recorre las rutas `avatar_url` / `cover_url` del dataset y comprueba
+(a) que son rutas locales relativas a la raíz y nunca URLs remotas, y (b) que **cada una resuelve a
+un fichero bajo `apps/web/public/`**. Rojo con los seis ficheros ausentes; verde al copiarlos.
+Re-probada renombrando una portada: el test la nombra. Es R95 hecho mecánico — una ruta mal escrita
+se ve aquí y no tres grupos más tarde como un hueco en una pantalla.
+
+**La lista es derivada de los artboards, no adivinada.** Los doce artboards de la Parte 1 leídos del
+canvas uno a uno, y de cada uno extraída toda referencia a `/_blob/<id>` **y** los ids que
+`Profile-D` construye dentro de su `renderVals()` vía `B(id)` (un `grep` de `/_blob/` solo se los
+habría perdido: así es como aparecen las cuatro portadas del raíl). Unión: **17 ids distintos**.
+`Register-M` no referencia ninguna imagen.
+
+**Dónde mi lista discrepa de la del coordinador.** Los once ids que el coordinador ya había visto
+están los once confirmados. Pero *«`Register-D`'s seven are **its own** and differ from login's»* no
+se sostiene: `58592cecc88cf2e43efdff86c9ff03d5` está **en los dos** — es la casilla 4 del collage de
+`Login-M` / `Login-D` y la casilla 1 del mosaico de `Register-D` —, y `b16f5dec…` es a la vez la
+casilla 3 de ese mosaico y la portada de «Amigas de la uni». De las siete de `Register-D`, **cinco**
+son exclusivamente suyas. Confío en los artboards.
+
+**Nomenclatura**, mecánica y determinista: las portadas y los avatares por lo que son, y las diez
+fotografías restantes numeradas en orden de casilla (primero las que solo usa el collage de login,
+en el orden de `Login-M`; después las que solo usa `Register-D`, en el orden de su mosaico). El
+mapa completo, que es lo que los Grupos 7, 9 y 10 necesitan para reproducir los artboards:
+
+| id del canvas | fichero en el repo | dónde se usa |
+| --- | --- | --- |
+| `65d75f78…` | `public/brand/memora-mark.svg` | la marca, en los 12 artboards |
+| `55e85f8e…` | `public/mock/avatar-sofia-martin.jpg` | `Profile-M/-D`, fila de identidad del raíl, `NotFound-D` |
+| `b0620a29…` | `public/mock/avatar-lucas-vidal.jpg` | `Invite-M/-D` |
+| `abcac459…` | `public/mock/circle-familia-garcia.jpg` | portada del raíl · collage login casilla 2 |
+| `9778d12a…` | `public/mock/circle-lisboa-2026.jpg` | portada del raíl · collage login casilla 3 |
+| `b16f5dec…` | `public/mock/circle-amigas-de-la-uni.jpg` | portada del raíl · mosaico `Register-D` casilla 3 |
+| `3b0497c0…` | `public/mock/circle-boda-de-ana-y-leo.jpg` | portada del raíl (solo ahí) |
+| `5b688922…` | `public/mock/photo-01.jpg` | collage login casilla 1 |
+| `58592cec…` | `public/mock/photo-02.jpg` | collage login casilla 4 · mosaico `Register-D` casilla 1 |
+| `bb1dcd55…` | `public/mock/photo-03.jpg` | collage login casilla 5 |
+| `b2e25f01…` | `public/mock/photo-04.jpg` | collage login casilla 6 |
+| `0044f653…` | `public/mock/photo-05.jpg` | collage login casilla 7 |
+| `09b5806b…` | `public/mock/photo-06.jpg` | mosaico `Register-D` casilla 2 |
+| `7555847d…` | `public/mock/photo-07.jpg` | mosaico `Register-D` casilla 4 |
+| `1b43b175…` | `public/mock/photo-08.jpg` | mosaico `Register-D` casilla 5 |
+| `40662964…` | `public/mock/photo-09.jpg` | mosaico `Register-D` casilla 6 |
+| `579e56b5…` | `public/mock/photo-10.jpg` | mosaico `Register-D` casilla 7 |
+
+Orden de casillas del collage de `Login-M` (7): `photo-01` · `circle-familia-garcia` ·
+`circle-lisboa-2026` · `photo-02` · `photo-03` · `photo-04` · `photo-05`. `Login-D` usa las mismas
+siete con otros `span`; `Login-M-Error` usa solo las cuatro primeras. Mosaico de `Register-D` (7):
+`photo-02` · `photo-06` · `circle-amigas-de-la-uni` · `photo-07` · `photo-08` · `photo-09` ·
+`photo-10`.
+
+#### Peso — el informe que este grupo debe al checkpoint
+
+**Total: 1 880 200 bytes (1,79 MiB) en 17 ficheros.** Es irreversible: una vez en el historial de
+git, recortarlo es un rewrite. Por eso el detalle, con el tamaño al que cada fichero **se dibuja**.
+
+Las geometrías de dibujo salen del CSS en línea de los propios artboards: en `Login-M` el collage
+son 3 columnas de (390 − 24)/3 = 122 px con `scale(1.12)` → **≈137 px de ancho** y filas de 150/170
+px → **≈168 px** (≈365 px las que ocupan dos filas). En `Login-D` y `Register-D` la sección
+izquierda es `flex: 1 1 560px` frente a una derecha `1 1 480px`: a 1440 px de viewport son ≈775 px,
+menos `inset: 24px` y 3 huecos de 12 px → columnas de **≈173 px**, y **≈358 px** las de dos columnas.
+Ese ≈358 px es el ancho máximo al que cualquier fotografía llega a dibujarse en toda la parte.
+
+| fichero | bytes | píxeles | se dibuja a | ¿proporcionado? |
+| --- | --- | --- | --- | --- |
+| `brand/memora-mark.svg` | 559 | vectorial | 30–36 px | sí (SVG, 559 B) |
+| `mock/avatar-sofia-martin.jpg` | 8 775 | 160×160 | 32–72 px | sí |
+| `mock/avatar-lucas-vidal.jpg` | 8 625 | 160×160 | 32 px | sí |
+| `mock/circle-amigas-de-la-uni.jpg` | 65 449 | 900×601 | ≈173 px (mosaico) / fila del raíl | **no** |
+| `mock/circle-familia-garcia.jpg` | 91 042 | 900×600 | ≈137 px (collage) / fila del raíl | **no** |
+| `mock/circle-lisboa-2026.jpg` | 162 121 | 900×598 | ≈137 px (collage) / fila del raíl | **no** |
+| `mock/circle-boda-de-ana-y-leo.jpg` | 195 362 | 900×1350 | solo fila del raíl (264 px de raíl) | **no, el peor caso** |
+| `mock/photo-01.jpg` | 221 707 | 900×1350 | ≈137×365 px (`Login-M`) · ≈358 px (`Login-D`) | **no, el fichero más grande** |
+| `mock/photo-02.jpg` | 113 256 | 900×600 | ≈137 px · ≈358 px | **no** |
+| `mock/photo-03.jpg` | 58 733 | 900×600 | ≈137 px · ≈173 px | límite |
+| `mock/photo-04.jpg` | 167 193 | 900×1350 | ≈137 px · ≈173 px | **no** |
+| `mock/photo-05.jpg` | 147 338 | 900×600 | ≈137 px · ≈173 px | **no** |
+| `mock/photo-06.jpg` | 173 447 | 900×1355 | ≈173×358 px (`Register-D`) | **no** |
+| `mock/photo-07.jpg` | 132 225 | 900×600 | ≈358 px (`Register-D`, 2×2) | límite |
+| `mock/photo-08.jpg` | 77 971 | 900×598 | ≈173 px | límite |
+| `mock/photo-09.jpg` | 170 637 | 900×693 | ≈173 px | **no** |
+| `mock/photo-10.jpg` | 85 760 | 900×600 | ≈358 px | sí |
+
+Los números que hacen falta para decidir, sin decidir nada:
+
+- **Once de los dieciséis JPEG pesan más de 65 KB y ninguno se dibuja por encima de 358 px CSS.**
+  A DPR 2 eso son 716 px de dispositivo: los 900 px de origen son ~1,3× lo necesario en el mejor
+  caso y **~3,3×** en el collage móvil de 137 px. Los 1,86 MiB de fotografías son el 99,97 % del
+  peso del paso.
+- **El peor caso es `circle-boda-de-ana-y-leo.jpg`**: 195 KB y 900×1350 px para un fichero que en
+  toda la Parte 1 solo aparece como una fila del raíl lateral, dentro de 264 px de ancho. `photo-01`
+  es el más grande en bytes (221 KB, 900×1350) y su dibujo mayor son ≈137×365 px en móvil.
+- **Las cuatro portadas pesan 514 KB** y las cuatro se dibujan, en su uso principal, como una fila
+  de un raíl de 264 px. El tamaño exacto de esa miniatura lo fija el `SideNav` que construye el
+  Grupo 7, que aún no existe; a cualquier tamaño plausible de fila, 65–195 KB es desproporcionado.
+
+**No he redimensionado ni recomprimido nada.** Son los assets del diseño y tocarlos es una decisión
+del humano en el checkpoint, no mía. Los bytes están en el repo exactamente como el canvas los
+sirve (sha256 de cada uno comprobado al descargar). Si la respuesta es «recomprímelos», el momento
+es **antes** del primer commit, que es justo donde está el árbol ahora.
+
+#### El camino real, ejercitado
+
+Build de producción servido con el servidor de nitro en un puerto libre **explícito (4319)**, nunca
+el 3000, y antes de medir nada un `grep` de marcadores de dev sobre los bytes servidos:
+`/@vite/client`, `__vite`, `@react-refresh`, `vite/dist/client` → **0 coincidencias** en los 2 527
+bytes de `/`. Confirmado que era el build.
+
+- **Los 17 assets responden 200** desde el servidor local, con el `content-type` correcto
+  (`image/svg+xml` y `image/jpeg`) y un `content-length` que coincide byte a byte con el origen.
+- **La única URL remota en el HTML servido** es el `<link>` de Google Fonts, que es exactamente lo
+  que R75 permite y no afecta a build ni a CI. Ninguna imagen sale a la red.
+- **Las fixtures atravesando los formateadores de verdad** (no solo en el suite), con `tsx` sobre
+  los módulos reales: `invitationMock.expires_at` → «24 de octubre»; `storageMock` →
+  «3,1 GB de 5 GB usados · plan Gratis» y `percent: 62`; `'email' in inviterMock` → `false`; los
+  nombres de campo de cada círculo → `name, cover_url`. Es la cadena T17 → T19/T20 completa.
+
+### Hallazgo lateral, independiente de este paso
+
+**La marca del diseño lleva tres colores literales y está fuera del alcance del gate de tokens.**
+`public/brand/memora-mark.svg` trae `#584fe5`, `#aaa2ff` y `#ec4899` escritos a mano. Los dos
+primeros **son** valores del token file (`brand.600` y `brand.300`), así que son deriva latente: el
+día que la marca cambie de color en `docs/design-tokens.json`, el SVG no la seguirá. El tercero,
+`#ec4899`, **no corresponde a ningún token**: el `accent.pink.base` del token file es `#ff39c6`, y
+es el que los artboards usan (`var(--memora-accent-pink)`) para el punto rosa del héroe de
+invitación — de modo que el punto de la marca y los puntos de acento de las pantallas son dos rosas
+distintos. Y nada de esto lo ve `design-tokens:validate`: medido, `lemony design-tokens validate
+--scan apps/web/public` reporta **0 ficheros escaneados**, porque `.svg` no está en el juego de
+extensiones del escaneo. Es el asset del propio diseño, no bloquea nada y no lo he tocado.
+
+### Lo que este paso NO ha hecho
+
+Ni pantallas ni rutas (`/` sigue en `null` hasta T26). No se han tocado `docs/design-tokens.json`,
+`tokens.generated.css`, el generador, `harness.config.yml`, `ci.yml`, `.prettierignore`, los
+ficheros del tema ni la biblioteca de componentes. No se ha tocado el mapa de iconos. El Grupo 7
+**no se ha empezado**. Ni un commit, ni un push: todo en el índice.
+
 ## Group 1 — what the human sees at the checkpoint
 
 Nothing visual changed: this group delivers the contract the rest is built on. What to look at:
@@ -1076,15 +1379,24 @@ changes. Resolved step numbers do not shift. The pairing:
 
 - step 1/8 (anchor 5cc92b0) — review ×3 (2 rejects: R6's `$type` gate bypassed by a `{token.path}` reference; R6 again — the gate consulted the prototype chain, and nothing guarded its "never silently omit" half) — ledger: criteria 20/20 (basis: requirements), gates 7/7 (basis: config), passes 2/2 → checkpoint: OK
 - step 2/8 (anchor 6ea1697) — review ×2 (1 reject: R27's synchronous write is constrained by no test — the mutant survives — while progress.md claimed it covered) — ledger: criteria 8/8 (basis: requirements), gates 7/7 (basis: config), passes 2/2 → checkpoint: OK
+- step 3/8 (anchor 38d3a54) — review ×2 (1 reject: `Button variant="link"` loses its geometry to tailwind-merge; `DropdownMenuRadioItem`'s `outline-none` makes its focus ring dead code) — ledger: group 3 criteria 8/8 + group 4 criteria 7/7 (basis: requirements), gates 7/7 (basis: config), passes 2/2 → checkpoint: OK
+- step 4/8 (anchor 67930ad) — review ×1 — ledger: group 5 criteria 6/6 + group 6 criteria 1/1 (basis: requirements), gates 7/7 (basis: config), passes 2/2 → checkpoint: OK
 
 ## Next action
 
-**Grupos 3 y 4 terminados** (T9–T12, T46, T13–T16) tras la **iteración 2 del fix-loop**: los
-dos puntos bloqueantes de la review arreglados y **medidos en el navegador** (la geometría del
-`link` y el anillo del ítem de menú bajo teclado real), las cuatro advisories hechas, siete
-gates en verde, todo en el índice y **sin commitear**: checkpoint humano. Con el OK, el Orchestrator commitea y despacha el Grupo
-5 (dataset mock compartido y formateadores, T17–T20), que es el paso 4/8 junto con el Grupo 6.
-Si el humano pide cambios, la iteración entra sobre el índice tal cual está.
+**Grupos 5 y 6 terminados** (T17–T20 y T21), a la primera: siete gates en verde, `audit`
+limpio, camino real ejercitado, todo en el índice y **sin commitear** → review y checkpoint
+humano. Dos cosas esperan decisión del humano en ese checkpoint, ninguna bloqueante:
+
+1. **El peso de los assets.** 1,79 MiB, y once de los dieciséis JPEG pesan más de 65 KB sin
+   dibujarse nunca por encima de 358 px CSS. Si la respuesta es recomprimir, el momento es antes
+   del primer commit — ahora — porque después es un rewrite del historial.
+2. **La marca hardcodea dos colores que son tokens** (`brand.600`, `brand.300`) y un tercero que no
+   es ninguno, y `.svg` está fuera del escaneo anti-hardcode. Es el asset del diseño; no lo he
+   tocado.
+
+Con el OK, el Orchestrator commitea y despacha el **paso 5/8**, Grupos 7 + 8 (el shell y las
+primeras rutas). Si el humano pide cambios, la iteración entra sobre el índice tal cual está.
 
 ## Blockers
 
@@ -1930,7 +2242,6 @@ node globals in `src/` (pre-existing stack property), Group 1's token files, gen
 missing shadow / `letter-spacing` families, and the `ui-handoff.md` §8 item 1 ↔ item 4 transition
 contradiction (a handoff defect for the human, and no code can hit it until a control exists).
 
-- step 3/8 (anchor 38d3a54) — review ×1 (1 reject: `Button variant="link"` loses its geometry to tailwind-merge; `DropdownMenuRadioItem`'s `outline-none` makes its focus ring dead code) — ledger: group 3 criteria 8/8 + group 4 criteria 7/7 (basis: requirements), gates 7/7 (basis: config), passes 2/2 → checkpoint: OK
 
 **Declined at step 2's checkpoint, recorded so nobody revives them as defects:** the four
 non-blocking advisories of step 2's review — three surviving mutants (the «Sistema» row of the
@@ -2466,3 +2777,258 @@ needs two sidecars. Both are written and both validate green against the anchor
 
 8 + 7 = the 15 requirements step 3's first review established as the slice. The gates, the real run
 and the four passes are the same single review in both files, recorded against each group's half.
+
+
+**Cadence after the spec round:** 14 groups, still **8 steps**. Group 14 (T47, the icon-map fix)
+sits last in the file because group numbers are what the review ledgers key on and inserting it
+before Group 13 would have renumbered 13 — but it runs **merged into step 8 with Group 13**, and
+T47 lands before T45's final gate run so the gates close over the finished tree.
+
+## Review evidence — step 4
+
+Groups 5 and 6 (T17–T21), anchor `67930ad`, auto-commit **off** — reviewed as the staged,
+uncommitted change against the anchor. Fresh context. Verdict: **APPROVE** with four advisories,
+none blocking. Ledgers: `review-ledger/step-5.json` and `step-6.json`, both
+`lemony review-ledger validate` green (criteria 6/6 and 1/1, gates 7/7, passes 2/2), no spec-side
+problems reported. Worktree and index left exactly as found: `git status` identical before and
+after, no `.bak` stranded, the diff still the same 28 paths.
+
+### The seven declared gates, re-run by me with the turbo cache bypassed
+
+`TURBO_FORCE=true` on the four turbo gates, so nothing was read from cache.
+
+| Gate | Result |
+| --- | --- |
+| `typecheck` | ✅ 3 packages, `cache bypass, force executing` on each |
+| `format:check` | ✅ `All matched files use Prettier code style!` |
+| `test` | ✅ 186 tests / 10 files in `@memora/web` (+11 db, +7 runner); the four new specs: date 4, storage 8, circles 2, assets 2 |
+| `build` | ✅ `built in 87ms`; only stderr is the pre-existing third-party `MODULE_LEVEL_DIRECTIVE` warning |
+| `design-tokens:validate` | ✅ 147 tokens, 54 files, no hardcoded values |
+| `design-tokens:contrast` | ✅ 56 pairs meet their WCAG floor |
+| `design-tokens:css:check` | ✅ projection up to date |
+
+Coverage N/A — no `@vitest/coverage-*` provider in the repo, as the Implementer reported.
+
+### Real run — production build, explicit free port, dev markers checked first
+
+Port **49877**, obtained by binding `:0`, never 3000. Before measuring anything, the served `/`
+was grepped for `@vite/client`, `/@react-refresh` and `__vite_ping` → **0 matches** in 2 527
+bytes. Confirmed it was the build.
+
+**R95 proven end to end, not from disk.** `existsSync` only proves a file is on disk; I fetched
+all **17** asset URLs over real HTTP against the nitro server:
+
+- every one **200**, `content-type` `image/jpeg` (16) and `image/svg+xml` (1);
+- the **sha256 of each served body byte-identical** to the committed file;
+- control `/mock/does-not-exist.jpg` → **404**, so the 200s are per-file and not a catch-all;
+- `.output/public/mock/` and `.output/public/brand/` confirmed to carry all 17 after `build`.
+
+**The real modules, through a harness that imports the source** (no reimplemented copy of any
+config — the scratchpad was empty this session and the harness is mine):
+
+```
+invitationMock.expires_at            → «24 de octubre»
+storageMock → «3,1 GB de 5 GB usados · plan Gratis»   percent 62
+'email' in inviterMock               → false
+circle field names                   → cover_url,name   (4 names, 4 distinct)
+```
+
+The `·` separator is **U+00B7**, byte-identical (`c2 b7`, space either side) between
+`ui-handoff.md` §10 and `storage.formatter.ts:36`. Verified by hexdump, not by eye.
+
+**Timezone claim verified in six zones** — the Implementer's *corrected* claim holds:
+
+```
+Europe/Madrid · UTC · Pacific/Midway (−11) · America/Los_Angeles  → 24 de octubre
+Pacific/Auckland (+13) · Pacific/Kiritimati (+14)                 → 25 de octubre
+```
+
+**The two undefended inputs, measured** so the record says what they actually do:
+`formatStorageUsage(1e9, 0, …)` → `percent: **Infinity**` (a `number`, so `typecheck` is silent —
+not `NaN`), and 9/5 GB → `percent: 180`, unclamped. Both exactly as the source comment declares,
+and both unreachable from `storageMock`.
+
+### Mutation probes — 6 chosen, 5 killed, **1 survivor**
+
+`basis: no-declared-risk` (neither group carries a `[risk: …]` tag), so none was owed by the
+ledger floor; all six are by judgment. Each one composite trip with the revert trapped **before**
+the edit.
+
+| Mutation | Result |
+| --- | --- |
+| `storage.formatter.ts:37` `Math.round` → `Math.floor` | **8 tests green — SURVIVOR** |
+| `storage.formatter.ts:37` `Math.round` → `Math.ceil` (control) | 1 red — killed, so the probe is sensitive |
+| `storage.formatter.ts:9` `maximumFractionDigits: 1` → `2` | 1 red — killed by the 3,14 GB test the Implementer added |
+| `date.formatter.ts:28` `month: 'long'` → `'short'` | 3 red — killed |
+| `circles.mock.ts:21` add `member_count: 7` | 1 red — R48's guard bites |
+| `circles.mock.ts:22` `cover_url` → `https://images.example.com/…` | 2 red — R95's guard bites both ways |
+
+The Implementer's own survivor (`maximumFractionDigits`) is **confirmed closed** — I re-probed it
+and it now dies on the test added for it. The project can buy the cheaper batch path: declaring a
+`test:mutation` script in `package.json` would activate the scripted path on the next review
+instead of this hand work.
+
+### Advisory 1 — the survivor: a test whose name overstates what it asserts
+
+`storage.formatter.spec.ts:44` is named «rounds the percentage to a whole number», but its only
+case is 1/3 GB → 33.33, where `round` and `floor` agree. So `Math.round` → `Math.floor` on
+`storage.formatter.ts:37` leaves **all 8 tests green**. The `ceil` control turns that same test
+red, so the survival is real and not a tooling artefact.
+
+**Closes with one case whose fraction is ≥ 0,5** — 2 GB of 3 GB is 66,67 → `67` under `round`,
+`66` under `floor`. Not blocking: the value feeds a decorative `Progress` bar in Group 12 and is
+wrong by at most one percentage point. This is the second survivor the coordinator asked me to
+look for; it exists, and it is of the same family as the first (a test suite whose inputs are all
+too well-behaved to pin the arithmetic).
+
+### Advisory 2 — the dataset↔formatter seam is crossed by nothing automated
+
+The §10 literals are pinned **twice, independently**:
+
+- `storage.formatter.spec.ts:10` asserts «3,1 GB …» from the literal `3.1 * GB`;
+- `date.formatter.spec.ts:13` asserts «24 de octubre» from the literal `'2026-10-24T12:00:00.000Z'`.
+
+Neither reads `storageMock` or `invitationMock`. So editing `storageMock.used_bytes` to
+`3_200_000_000` leaves the **whole suite green** while every screen that renders it silently
+contradicts a design that says «3,1 GB». The chain holds today — I measured it by hand, and the
+Implementer did too with `tsx` — but *nothing holds it*. This is exactly the step's declared
+failure mode (a contract that quietly disagrees with the design), which is why it is recorded
+rather than left in context.
+
+**Scheduled rather than missing:** R97 mandates mapper tests in Groups 11 and 12, and those
+mappers read the fixtures and call the formatters, so the seam gets crossed there. The cheap
+version here is one assertion per formatter spec that starts from the fixture.
+
+### Advisory 3 — the date suite's greenness depends on an undeclared environment fact
+
+`date.formatter.spec.ts:6` asserts noon UTC «cubre toda zona horaria en la que este suite se
+ejecuta de verdad». Measured under `TZ=Pacific/Kiritimati`: **3 of the 4 date tests fail**
+(`2 de marzo` for `1 de marzo`; the twelve-month array shifts a day). CI is UTC and the team is in
+Spain, so it is green everywhere this project actually runs, and the *behaviour* under test —
+formatting in the viewer's own calendar — is deliberately and correctly left alone. One line
+(`TZ` pinned for the file) closes it if the human wants it closed.
+
+### Advisory 4 — 11 of the 17 committed assets are tied to nothing mechanical
+
+`mock-data-assets.spec.ts` guards the **6** paths the dataset names (2 avatars + 4 covers). The
+ten `photo-NN.jpg` and the wordmark are referenced by nothing in the repo until Groups 7, 9 and 10
+consume them, so a file silently dropped — or an eleventh photo quietly added — passes every gate.
+Correct for this step, but it makes the **asset map in this file load-bearing for three later
+groups**, and this file is archived at closeout. Worth knowing that the map is the only audit
+trail for those eleven files.
+
+### The declared deviations — judged, and all four accepted
+
+1. **No `id` on the circles** — accepted, and not merely tolerated. R48 says «nombre e imagen de
+   portada **y nada más**», and an `id` is precisely the field Part 2 would build `/circles/$id`
+   from, so adding one would *be* the drift R48 forbids. Indexing by `name` is safe: 4 names, 4
+   distinct, verified. No fixture carries a synthetic id.
+2. **No `email` on the inviter** (`Omit<UserApiShape, 'email'>`) — accepted. No artboard shows it,
+   and a backend would not hand the inviter's address to the invitee. `'email' in inviterMock` →
+   `false`, measured.
+3. **The two specs beyond `design.md`'s file list** — **declined neither.** Each makes a
+   *requirement* mechanical rather than asserting the shape of a datum, and I probed both red:
+   `circles.mock.spec.ts` dies on a leaked `member_count`, `mock-data-assets.spec.ts` dies on both
+   a remote URL and a missing file. They are the right two specs to have written.
+4. **The documented omissions** (GB only, no `limitBytes === 0` guard, no 100 % clamp) — accepted
+   as declared, with the measured values now on the record (`Infinity`, and 180 unclamped) so a
+   later reader does not have to re-derive them.
+
+### `form-demo-values.mock.ts` in camelCase — endorsed explicitly
+
+R39 says the mock data shall be in **API-response shape**, and this one file is camelCase. It is
+nonetheless right: no backend returns «what the person typed», R49 is the governing requirement
+for that file and it says the values shall come from the shared dataset, and the reasoning is
+written in-source so it cannot later read as an inconsistency with its five `snake_case`
+neighbours. Recorded because it is the one place a reader could mistake a deliberate choice for a
+slip.
+
+### §10 copy — checked character for character
+
+| Contract | Fixture / formatter | Match |
+| --- | --- | --- |
+| «3,1 GB de 5 GB usados · plan Gratis» | `storageMock` → `formatStorageUsage` | ✅ incl. U+00B7 by hexdump |
+| «La invitación caduca el 24 de octubre» | `invitationMock.expires_at` → `formatLongDate` | ✅ |
+| «Entrarás como sofia.martin@correo.es» | `viewerMock.email` | ✅ |
+| `Register-M` uses `recuerdos206` | `registerErrorDemoValues.mobile.passwordRepeat` | ✅ verbatim |
+| `Register-D` uses `sofia@memora.app` / `recuerdos` | `registerErrorDemoValues.desktop` | ✅ verbatim |
+
+The two register sets are **internally coherent with the copy**, which is the part a literal
+comparison misses: mobile's `recuerdos2026` satisfies «Al menos 8 caracteres» and only the repeat
+differs → one invalid field, no `Alert`, as §6 draws it; desktop's `recuerdos` is 9 characters
+**with no digit**, violating the stricter form-level «al menos 8 caracteres **y un número**», and
+its email is the already-registered one → exactly the **two** invalid fields «Revisa 2 campos»
+counts. The per-breakpoint split exists only where the contract splits it (one set for `/login`
+per §6, one for `/profile` since `Profile-D` is its only error artboard).
+
+**R49/R69 — no leak into markup:** grep for `recuerdos2026`, `recuerdos206`, `sofia@memora.app`,
+`sofia.martin@correo` and «Sofía Martín Ortega» across `apps/web/src` returns **nothing** outside
+the fixture and `users.mock.ts`. The fixture is the only copy.
+
+### The asset derivation — what I could and could not measure
+
+**Stated plainly, because it bounds my verdict:** the `pencil` MCP server **failed to connect**
+this session and the workspace holds no `.qm` wireframe, so I **could not re-derive the 17 canvas
+ids from the artboards myself**. R95's «only those the artboards reference» half rests on the
+Implementer's map, not on my own reading of the canvas.
+
+Everything checkable from the repo **corroborates it, with no slack**:
+
+- **No two of the 17 files share a sha256** — nothing was downloaded twice under two names.
+- **The cell arithmetic closes exactly:** 7 login-collage cells + 7 `Register-D` mosaic cells + 4
+  covers + 2 avatars + 1 mark = **21 slots**; 21 − 17 = **4**, which is precisely the four
+  overlaps the map names (`familia-garcia` and `lisboa-2026` cover↔collage, `amigas-de-la-uni`
+  cover↔mosaic, `photo-02` collage↔mosaic). An independent arithmetic check of a hand-made list,
+  and it balances.
+- **That also settles the coordinator's cross-check:** of `Register-D`'s seven, **five** are
+  exclusively its own. The Implementer's correction is right and the original list was wrong.
+- Every file is a real progressive JPEG at 900 px wide (the two avatars 160×160) or a real SVG;
+  **nothing stray** sits under `public/`; total **1 880 200 bytes / 17 files**, re-measured to the
+  byte and matching the report.
+
+### Weight — reported, not a defect
+
+Re-measured: **1 880 200 bytes (1,79 MiB), 17 files.** Per the coordinator's instruction this is
+**not** treated as a defect, and the Implementer was right to resize nothing — the call is the
+human's, it is cheapest now (nothing is committed yet), and the coordinator's own finding that
+`Photo-M` renders the «Familia García» cover **full-bleed** and Part 3 shows these photographs at
+full width means Part 1's ≈358 px render sizes are not the binding constraint.
+
+### Not re-raised
+
+Issue **#13** (shadow, `letter-spacing`, `pill` dark override, semantic hover/accent families);
+the four declined step-2 advisories; **R35**'s `check`/`success` fix, deferred to T47 in Group 14 —
+the icon map is untouched by this diff, confirmed. Groups 1–4's token files, generator, gate
+config, theme files and component library are all **untouched** by this diff (28 paths, all
+additions under `public/`, `common/formatters/` and `common/mock-data/`).
+
+### The brand-mark side-finding — already recorded, confirmed not mine to fix
+
+I verified the measurement rather than restating it: `design-tokens:validate` reports **54 files
+scanned** and `.svg` is outside the scan's extension set, so the mark's `#584fe5` / `#aaa2ff` /
+`#ec4899` are genuinely invisible to the gate. It is the design's own asset, the design system
+says never to recolour the mark, and it blocks nothing here.
+
+### Spec-side problems
+
+**None that the validator reports** — both ledgers green with no spec-side count. One cosmetic
+imprecision, not worth a discovery and not routed: **R69 points at `ui-handoff.md` §10** for «the
+per-breakpoint values», but §10 carries only *copy*; the values themselves (`recuerdos206`,
+`sofia@memora.app`, `recuerdos`) are named in the handoff's «Decisions taken after the critique»
+preamble — where the fixture matches them character for character. The requirement is satisfiable
+and satisfied; only its cross-reference points one section away.
+
+**Declined at step 4's checkpoint, by the human, knowingly:** the review's three test advisories.
+(1) A second surviving mutant — `Math.round` → `Math.floor` in `storage.formatter.ts` leaves all 12
+tests green because every input falls where the two agree; reproduced by the Orchestrator. Costs at
+most one percentage point on a decorative `Progress` bar. (2) Nothing automated crosses the
+dataset↔formatter seam: editing `storageMock.used_bytes` keeps the suite green while every screen
+would contradict a design that says «3,1 GB». Temporary — R97's mapper tests in Groups 11 and 12
+cross it. (3) The date suite's greenness rests on an undeclared environment fact: 3 of 4 tests fail
+under `TZ=Pacific/Kiritimati`. CI runs UTC. Also declined: adding a `test:mutation` script, suggested
+by four consecutive reviews — hand probes are finding real survivors, and the reviewer's repetition
+is not by itself evidence.
+
+**Asset weight settled, not deferred:** 1 880 200 bytes in 17 files stay at source size. Resizing to
+Part 1's render sizes would degrade Parts 2 and 3 — measured, not assumed: `Photo-M` renders
+`/_blob/abcac459…`, the same «Familia García» cover this part shows in a 264 px rail, full-bleed.

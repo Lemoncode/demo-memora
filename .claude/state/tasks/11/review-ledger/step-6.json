@@ -1,0 +1,125 @@
+{
+  "version": 2,
+  "step": 6,
+  "criteria": [
+    {
+      "id": "R95",
+      "evidence": "17 files under apps/web/public/ - 16 JPEGs in mock/ and the wordmark SVG in brand/, per D7's split - and I proved the 'served locally, never the network' half end to end rather than reading it: the production build publishes all 17 under .output/public/, and against the nitro server on a free port each one returned 200 with the correct content-type and a body whose sha256 is byte-identical to the committed file, while a control path that is not in the dataset returned 404. Independently, a grep for http(s) URLs across apps/web/src and apps/web/public finds exactly two, neither a fetch of an image: the Google Fonts <link> in __root.tsx that R75 permits (Group 2's, not this group's) and the SVG namespace URI inside the mark. mock-data-assets.spec.ts makes the requirement mechanical for the six paths the dataset names, asserting each is root-relative and not remote and that each resolves to a committed file; I probed that guard by replacing a cover_url with https://images.example.com/lisboa.jpg and both its tests turned red, so it bites in both directions. On the 'only those the artboards reference' half I must be explicit about what I could and could not measure: the pencil MCP server failed to connect this session and the workspace holds no .qm wireframe, so I could not re-derive the 17 canvas ids from the artboards myself. What I could check corroborates the derivation exactly - all 17 files are distinct images (no two share a sha256, so nothing was downloaded twice under two names), every file is a real progressive JPEG or SVG at 900 px wide (160 px for the two avatars), nothing stray sits under public/, and the cell arithmetic closes with no slack: 7 login-collage cells + 7 Register-D mosaic cells + 4 covers + 2 avatars + 1 mark = 21 slots, and 21 - 17 = exactly the 4 overlaps the asset map names (familia-garcia and lisboa-2026 shared between the covers and the login collage, amigas-de-la-uni between the covers and the Register-D mosaic, photo-02 between the login collage and that mosaic). That arithmetic also settles the cross-check the coordinator's list got wrong: of Register-D's seven, five are exclusively its own. 11 of the 17 files are referenced by nothing in the repo yet because Groups 9 and 10 consume them, so for those the asset map in progress.md is the audit trail, not the code. Weight reported, not treated as a defect: 1,880,200 bytes (1.79 MiB) across 17 files, which I re-measured and which matches the Implementer's figure to the byte"
+    }
+  ],
+  "gates": [
+    {
+      "kind": "script",
+      "script": "typecheck",
+      "evidence": "green, re-run by me with TURBO_FORCE=true - 3 packages, 'cache bypass, force executing' on each. This group adds no TypeScript"
+    },
+    {
+      "kind": "script",
+      "script": "format:check",
+      "evidence": "green, re-run by me - 'All matched files use Prettier code style!', the committed SVG included"
+    },
+    {
+      "kind": "script",
+      "script": "test",
+      "evidence": "green, cache bypassed - 186 tests in @memora/web, among them this group's mock-data-assets.spec.ts (2 tests), which is the seam between Groups 5 and 6"
+    },
+    {
+      "kind": "script",
+      "script": "build",
+      "evidence": "green, cache bypassed - 'built in 87ms', and I confirmed all 17 assets are copied into .output/public/mock/ and .output/public/brand/, which is what makes the local serving real rather than assumed"
+    },
+    {
+      "kind": "script",
+      "script": "design-tokens:validate",
+      "evidence": "green - 147 tokens, 54 files scanned, no hardcoded values. The scan does not reach this group's .svg because .svg is outside the scan's extension set, which is the already-recorded side-finding about the brand mark's three literal colours and is explicitly not this group's defect: the mark is the design's own asset, shipped as drawn, and the design system says never to recolour it"
+    },
+    {
+      "kind": "script",
+      "script": "design-tokens:contrast",
+      "evidence": "green - '56 pair(s) meet their WCAG floor', unchanged; this group touches no token"
+    },
+    {
+      "kind": "script",
+      "script": "design-tokens:css:check",
+      "evidence": "green - the committed projection is up to date and untouched by this group"
+    },
+    {
+      "kind": "real-run",
+      "evidence": "the production build served on port 49877, chosen by binding :0 for a free port rather than 3000, with the served / grepped for dev markers before measuring anything - 0 matches for @vite/client, /@react-refresh and __vite_ping on 2,527 bytes - so what follows is the build and not the dev server. Then all 17 asset URLs fetched over real HTTP: 200 on every one, content-type image/jpeg on the 16 photographs and image/svg+xml on the mark, and the sha256 of each served body byte-identical to the committed file. Control: /mock/does-not-exist.jpg returned 404, which proves the 200s are per-file and not a catch-all route. Nothing in the run reached the network for an image"
+    }
+  ],
+  "mutants": {
+    "basis": "no-declared-risk"
+  },
+  "passes": [
+    {
+      "name": "senior-review",
+      "outcome": "findings",
+      "examined": [
+        "apps/web/public/brand/memora-mark.svg",
+        "apps/web/public/mock/avatar-lucas-vidal.jpg",
+        "apps/web/public/mock/avatar-sofia-martin.jpg",
+        "apps/web/public/mock/circle-amigas-de-la-uni.jpg",
+        "apps/web/public/mock/circle-boda-de-ana-y-leo.jpg",
+        "apps/web/public/mock/circle-familia-garcia.jpg",
+        "apps/web/public/mock/circle-lisboa-2026.jpg",
+        "apps/web/public/mock/photo-01.jpg",
+        "apps/web/public/mock/photo-02.jpg",
+        "apps/web/public/mock/photo-03.jpg",
+        "apps/web/public/mock/photo-04.jpg",
+        "apps/web/public/mock/photo-05.jpg",
+        "apps/web/public/mock/photo-06.jpg",
+        "apps/web/public/mock/photo-07.jpg",
+        "apps/web/public/mock/photo-08.jpg",
+        "apps/web/public/mock/photo-09.jpg",
+        "apps/web/public/mock/photo-10.jpg",
+        "apps/web/src/common/formatters/date.formatter.ts",
+        "apps/web/src/common/formatters/storage.formatter.ts",
+        "apps/web/src/common/mock-data/circles.mock.ts",
+        "apps/web/src/common/mock-data/form-demo-values.mock.ts",
+        "apps/web/src/common/mock-data/invitations.mock.ts",
+        "apps/web/src/common/mock-data/storage.mock.ts",
+        "apps/web/src/common/mock-data/users.mock.ts"
+      ],
+      "findings": [
+        {
+          "file": "apps/web/src/common/mock-data/mock-data-assets.spec.ts",
+          "line": 18,
+          "summary": "the guard covers the 6 paths the dataset names (2 avatars + 4 covers) and therefore 6 of the 17 committed files. The 10 photo-NN.jpg and the wordmark are referenced by nothing in the repo until Groups 9, 10 and 7 consume them, so for 11 of 17 files nothing mechanical ties a committed byte to a used path - a file silently dropped, or an eleventh photo quietly added, would pass every gate. This is correct for this step rather than a defect, but it is the reason the asset map in progress.md is load-bearing for three later groups, and progress.md is archived at closeout. Worth the human knowing the map is the only audit trail for those 11 files. Advisory"
+        }
+      ],
+      "reason": "owed by the per-step floor. The group adds no logic - 17 binaries plus the one spec file that guards them - so phases 3 and 4 have no surface: no TypeScript, no async, no error path, no teardown. Phase 1 and 2 reduce to the asset guard, which I probed red in both of its directions (a remote URL, and a path that resolves to no file). Naming is mechanical and deterministic as described, the two avatars are correctly 160 px rather than 900 px, and the one SVG is a real SVG. No file is a duplicate of another by content, which is the check that would have caught a careless download"
+    },
+    {
+      "name": "spec-compliance-check",
+      "outcome": "none",
+      "examined": [
+        "apps/web/public/brand/memora-mark.svg",
+        "apps/web/public/mock/avatar-lucas-vidal.jpg",
+        "apps/web/public/mock/avatar-sofia-martin.jpg",
+        "apps/web/public/mock/circle-amigas-de-la-uni.jpg",
+        "apps/web/public/mock/circle-boda-de-ana-y-leo.jpg",
+        "apps/web/public/mock/circle-familia-garcia.jpg",
+        "apps/web/public/mock/circle-lisboa-2026.jpg",
+        "apps/web/public/mock/photo-01.jpg",
+        "apps/web/public/mock/photo-02.jpg",
+        "apps/web/public/mock/photo-03.jpg",
+        "apps/web/public/mock/photo-04.jpg",
+        "apps/web/public/mock/photo-05.jpg",
+        "apps/web/public/mock/photo-06.jpg",
+        "apps/web/public/mock/photo-07.jpg",
+        "apps/web/public/mock/photo-08.jpg",
+        "apps/web/public/mock/photo-09.jpg",
+        "apps/web/public/mock/photo-10.jpg",
+        "apps/web/src/common/formatters/date.formatter.ts",
+        "apps/web/src/common/formatters/storage.formatter.ts",
+        "apps/web/src/common/mock-data/circles.mock.ts",
+        "apps/web/src/common/mock-data/form-demo-values.mock.ts",
+        "apps/web/src/common/mock-data/invitations.mock.ts",
+        "apps/web/src/common/mock-data/storage.mock.ts",
+        "apps/web/src/common/mock-data/users.mock.ts"
+      ],
+      "reason": "owed by the per-step floor. Group 6's single requirement R95 PASSES, with the one measurement boundary stated plainly in its criteria entry: the 'served locally, never the network' half is proven end to end over real HTTP, while the 'only those the artboards reference' half could not be re-derived from the canvas this session because the pencil MCP server failed to connect and the workspace holds no .qm file - it is corroborated instead by distinct-content hashes, image geometry, the absence of stray files and cell arithmetic that closes exactly on the 4 overlaps the map names. No drift: T21 also owed a weight report, and it is delivered with per-file draw geometry (1,880,200 bytes, which I re-measured to the byte). D7's split between public/mock/ and public/brand/ is honoured. No unspecified addition and no design divergence"
+    }
+  ]
+}

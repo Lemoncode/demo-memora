@@ -1,0 +1,155 @@
+{
+  "version": 2,
+  "step": 5,
+  "criteria": [
+    {
+      "id": "R39",
+      "evidence": "five fixtures under apps/web/src/common/mock-data/, all in API-response shape: snake_case field names (full_name, avatar_url, cover_url, used_bytes, limit_bytes, plan_code, state_code, expires_at, circle_name), an ISO 8601 string for expires_at, backend state codes ('pending'|'expired'|'invalid'|'already_member') rather than the Spanish ?estado= vocabulary, and raw byte counts rather than the Spanish label. Exercised through the real modules with tsx, not only through the suite: viewerMock, inviterMock, storageMock, invitationMock and circlesMock all import and resolve. Nothing else in apps/web/src references this data yet, so 'the single place' holds trivially at this point in the part. form-demo-values.mock.ts is the one file in camelCase and deliberately not API-shaped - no backend returns what a person typed - which is R49's file and is governed by R49 rather than by R39; the reasoning is written in-source so it cannot be read later as an inconsistency with its neighbours"
+    },
+    {
+      "id": "R43",
+      "evidence": "PASS for the slice this group owns, which is the two shared formatters R43's displayable forms depend on; the api-model to ViewModel mappers themselves are Groups 7, 11 and 12. Both signatures match design.md's Functions/interfaces section exactly: formatLongDate(date: Date): string and formatStorageUsage(usedBytes: number, limitBytes: number, plan: string): { label: string; percent: number }. Measured through the real modules against the real fixtures: formatLongDate(new Date(invitationMock.expires_at)) returns '24 de octubre' and formatStorageUsage(storageMock.used_bytes, storageMock.limit_bytes, 'Gratis') returns the exact handoff label plus percent 62. Neither formatter is called from a loader or a component because no loader or component exists in this step. The D12 placement (common/formatters/, not each pod's business file) is honoured"
+    },
+    {
+      "id": "R48",
+      "evidence": "circlesMock carries exactly { name, cover_url } per circle and nothing more - no id, no member count, no photo count, no albums - and the four names and their order are read from Profile-D's rail: Familia Garcia, Lisboa 2026, Amigas de la uni, Boda de Ana y Leo. The no-id deviation is correct rather than tolerated: R48 says 'name and cover image only', and an id is precisely the field Part 2 would build /circles/$id from, so adding one would be the drift R48 forbids; the list indexes by name, which I confirmed is unique across the four. circles.mock.spec.ts makes the letter of R48 mechanical by asserting Object.keys(circle).toSorted() === ['cover_url','name'] on every entry, and I probed that guard: adding member_count: 7 to the first circle turned it red, so it bites rather than decorating"
+    },
+    {
+      "id": "R49",
+      "evidence": "form-demo-values.mock.ts is the single home of every ?estado=error demo value, for /login, /register (mobile and desktop) and /profile. Verified it is the only copy: grep for recuerdos2026, recuerdos206, sofia@memora.app, sofia.martin@correo and 'Sofia Martin Ortega' across apps/web/src returns nothing outside that fixture and users.mock.ts, so no credential-shaped literal sits in any component. No component consumes it yet (Groups 9, 10 and 12 do), which is correct for this step"
+    },
+    {
+      "id": "R69",
+      "evidence": "the values are per-breakpoint exactly where the design contract splits them and nowhere else, and they match the contract character for character: /register carries { mobile, desktop } because ui-handoff.md names two sets (Register-M uses recuerdos206; Register-D uses sofia@memora.app / recuerdos) - both present verbatim; /login carries one set because handoff section 6 says desktop takes the same Alert and the same invalid fields into Login-D's form card; /profile carries one because Profile-D is its only error artboard. The sets are internally coherent with section 10's copy: mobile's password 'recuerdos2026' satisfies 'Al menos 8 caracteres' and only the repeat 'recuerdos206' differs, which is the single invalid field with no Alert; desktop's 'recuerdos' is 9 characters with no digit, violating the stricter form-level 'al menos 8 caracteres y un numero', and its email is the already-registered one, which is exactly the two invalid fields the 'Revisa 2 campos' Alert counts. Login's password is empty, as Login-M-Error draws it. 'Forms ship empty' holds because no form exists yet and the fixture is referenced by nothing"
+    },
+    {
+      "id": "R97",
+      "evidence": "both shared formatters have a unit test covering the logic that can actually break, and I re-ran all of it with the turbo cache bypassed: date.formatter.spec.ts (4 tests - the handoff literal, all twelve Spanish month names via toStrictEqual, no year, single-digit day without a leading zero) and storage.formatter.spec.ts (8 tests - the handoff label, the Spanish comma and the absence of a point, the dropped '.0' on a whole number, decimal rather than binary GB, one decimal at most, percent 62, a rounded percentage, and the caller-supplied plan). Strength probed by mutation rather than assumed: month: 'long' to 'short' killed 3 tests; maximumFractionDigits 1 to 2 - the survivor the Implementer found and closed - now dies on the 3,14 GB test it added, re-probed by me. One survivor remains, Math.round to Math.floor on the percentage, recorded as an advisory in my verdict and in progress.md; it is a weak assertion in a test this change wrote, not a missing test, and the mutation pass is advisory by contract"
+    }
+  ],
+  "gates": [
+    {
+      "kind": "script",
+      "script": "typecheck",
+      "evidence": "green, re-run by me with TURBO_FORCE=true - 3 packages, 'cache bypass, force executing' on each, tsc --noEmit plus the scripts project"
+    },
+    {
+      "kind": "script",
+      "script": "format:check",
+      "evidence": "green, re-run by me - 'All matched files use Prettier code style!'"
+    },
+    {
+      "kind": "script",
+      "script": "test",
+      "evidence": "green, cache bypassed - 186 tests in 10 files in @memora/web (170 before this step, 16 new), plus 11 in @memora/db and 7 in console-runner. The four new spec files all pass: date.formatter 4, storage.formatter 8, circles.mock 2, mock-data-assets 2"
+    },
+    {
+      "kind": "script",
+      "script": "build",
+      "evidence": "green, cache bypassed - 'built in 87ms', nitro output generated. The only stderr is the pre-existing third-party MODULE_LEVEL_DIRECTIVE warning from @tanstack/react-router's 'use client' files, which this change does not touch"
+    },
+    {
+      "kind": "script",
+      "script": "design-tokens:validate",
+      "evidence": "green - 147 tokens, 54 files scanned, no hardcoded values, with only tokens.generated.css excluded by config plus the git-ignored build output. Note the 54 files do not include this step's .svg: the scan's extension set has no .svg, which is the already-recorded side-finding about the brand mark and is not this group's defect"
+    },
+    {
+      "kind": "script",
+      "script": "design-tokens:contrast",
+      "evidence": "green - '56 pair(s) meet their WCAG floor', unchanged by this step, which touches no token"
+    },
+    {
+      "kind": "script",
+      "script": "design-tokens:css:check",
+      "evidence": "green - the committed projection is up to date; this diff touches neither Group 1's generator nor the token file nor the gate config"
+    },
+    {
+      "kind": "real-run",
+      "evidence": "two halves, both against the production build and neither trusting the Implementer's run. (1) The served bytes: nitro production server bound to port 49877, chosen by binding :0 for a free port and never 3000, and the served / grepped for dev markers first - 0 matches for @vite/client, /@react-refresh and __vite_ping on 2,527 bytes - confirming it was the build. All 17 assets then fetched over real HTTP: every one 200, correct content-type (image/jpeg, image/svg+xml), and sha256 of the served body byte-identical to the committed file; a control path /mock/does-not-exist.jpg returned 404, so the 200s are real and not a catch-all. (2) The modules: a harness importing the real source files with tsx (no reimplemented copy of any config) exercised the full chain - invitationMock.expires_at to '24 de octubre', storageMock to the exact section-10 label with percent 62, 'email' in inviterMock false, circle field names cover_url,name - plus the percentage across six ratios and the two undefended inputs the source comment calls unreachable: limitBytes 0 returns percent Infinity (a number, so typecheck is silent) and a 180 % overflow is returned unclamped, both as documented. Timezone behaviour measured in six zones: 24 de octubre from UTC-11 to UTC+11, 25 de octubre at Pacific/Auckland (UTC+13) and Pacific/Kiritimati (UTC+14), which confirms the corrected claim in the source rather than the one it replaced"
+    }
+  ],
+  "mutants": {
+    "basis": "no-declared-risk"
+  },
+  "passes": [
+    {
+      "name": "senior-review",
+      "outcome": "findings",
+      "examined": [
+        "apps/web/public/brand/memora-mark.svg",
+        "apps/web/public/mock/avatar-lucas-vidal.jpg",
+        "apps/web/public/mock/avatar-sofia-martin.jpg",
+        "apps/web/public/mock/circle-amigas-de-la-uni.jpg",
+        "apps/web/public/mock/circle-boda-de-ana-y-leo.jpg",
+        "apps/web/public/mock/circle-familia-garcia.jpg",
+        "apps/web/public/mock/circle-lisboa-2026.jpg",
+        "apps/web/public/mock/photo-01.jpg",
+        "apps/web/public/mock/photo-02.jpg",
+        "apps/web/public/mock/photo-03.jpg",
+        "apps/web/public/mock/photo-04.jpg",
+        "apps/web/public/mock/photo-05.jpg",
+        "apps/web/public/mock/photo-06.jpg",
+        "apps/web/public/mock/photo-07.jpg",
+        "apps/web/public/mock/photo-08.jpg",
+        "apps/web/public/mock/photo-09.jpg",
+        "apps/web/public/mock/photo-10.jpg",
+        "apps/web/src/common/formatters/date.formatter.ts",
+        "apps/web/src/common/formatters/storage.formatter.ts",
+        "apps/web/src/common/mock-data/circles.mock.ts",
+        "apps/web/src/common/mock-data/form-demo-values.mock.ts",
+        "apps/web/src/common/mock-data/invitations.mock.ts",
+        "apps/web/src/common/mock-data/storage.mock.ts",
+        "apps/web/src/common/mock-data/users.mock.ts"
+      ],
+      "findings": [
+        {
+          "file": "apps/web/src/common/formatters/storage.formatter.spec.ts",
+          "line": 44,
+          "summary": "the test named 'rounds the percentage to a whole number' does not prove rounding. Its only case is 1/3 GB -> 33.33, where round and floor agree, so mutating Math.round to Math.floor on storage.formatter.ts:37 leaves all 8 tests green - a survivor on a line this change added. A control mutation to Math.ceil turns the same test red, so the probe is sensitive and the survival is real. One case whose fraction is >= 0.5 closes it: 2 GB of 3 GB is 66.67 -> 67 under round, 66 under floor. Advisory, not blocking: the value feeds a decorative Progress bar in Group 12 and is wrong by at most one percentage point"
+        },
+        {
+          "file": "apps/web/src/common/formatters/storage.formatter.spec.ts",
+          "line": 10,
+          "summary": "integration seam (phase 2): no automated test crosses the dataset-to-formatter boundary. The spec pins '3,1 GB de 5 GB usados' from the literal 3.1 * GB, and date.formatter.spec.ts:13 pins '24 de octubre' from the literal '2026-10-24T12:00:00.000Z' - neither reads storageMock or invitationMock. The handoff section 10 literal is therefore pinned twice independently, so editing storageMock.used_bytes to 3_200_000_000 leaves the whole suite green while every screen silently contradicts a design that says 3,1 GB. I verified by hand that the chain currently holds, and the Implementer did too with tsx, but nothing holds it. Scheduled rather than missing: R97 mandates mapper tests in Groups 11 and 12, which will cross this seam. Advisory"
+        },
+        {
+          "file": "apps/web/src/common/formatters/date.formatter.spec.ts",
+          "line": 6,
+          "summary": "the spec's own comment asserts noon UTC 'covers every timezone this suite actually runs in'. Measured: under TZ=Pacific/Kiritimati 3 of the 4 date tests fail (2 de marzo for 1 de marzo, and the twelve-month array shifts by a day). CI is UTC and the team is in Spain, so it is green everywhere the project runs, and the behaviour under test - formatting in the viewer's own zone - is deliberately correct. But the suite's greenness depends on an undeclared environment fact. One line closes it if the human wants it closed. Advisory"
+        }
+      ],
+      "reason": "owed by the per-step floor. Phase 1: both formatters and the two fixture guards have happy-path, edge (single-digit day, whole GB, 3,14 GB rounding, every month) and AAA structure, with toStrictEqual on the array and object assertions; there is no error case to cover because neither formatter has an error path - both are pure Intl wrappers over already-typed input. Phase 3: no async anywhere in the diff, no any, no cast, no non-null assertion, no floating promise; the one boundary-type weakness is percent: number admitting Infinity, documented in-source as unreachable from storageMock and measured by me as Infinity rather than NaN. Phase 4: no dead code, no swallowed error, no catch at all, nothing to clean up on teardown. The two spec files beyond design.md's file list are declared for review to decline and I decline neither: each makes a requirement mechanical rather than asserting the shape of a datum, and I probed both guards red"
+    },
+    {
+      "name": "spec-compliance-check",
+      "outcome": "none",
+      "examined": [
+        "apps/web/public/brand/memora-mark.svg",
+        "apps/web/public/mock/avatar-lucas-vidal.jpg",
+        "apps/web/public/mock/avatar-sofia-martin.jpg",
+        "apps/web/public/mock/circle-amigas-de-la-uni.jpg",
+        "apps/web/public/mock/circle-boda-de-ana-y-leo.jpg",
+        "apps/web/public/mock/circle-familia-garcia.jpg",
+        "apps/web/public/mock/circle-lisboa-2026.jpg",
+        "apps/web/public/mock/photo-01.jpg",
+        "apps/web/public/mock/photo-02.jpg",
+        "apps/web/public/mock/photo-03.jpg",
+        "apps/web/public/mock/photo-04.jpg",
+        "apps/web/public/mock/photo-05.jpg",
+        "apps/web/public/mock/photo-06.jpg",
+        "apps/web/public/mock/photo-07.jpg",
+        "apps/web/public/mock/photo-08.jpg",
+        "apps/web/public/mock/photo-09.jpg",
+        "apps/web/public/mock/photo-10.jpg",
+        "apps/web/src/common/formatters/date.formatter.ts",
+        "apps/web/src/common/formatters/storage.formatter.ts",
+        "apps/web/src/common/mock-data/circles.mock.ts",
+        "apps/web/src/common/mock-data/form-demo-values.mock.ts",
+        "apps/web/src/common/mock-data/invitations.mock.ts",
+        "apps/web/src/common/mock-data/storage.mock.ts",
+        "apps/web/src/common/mock-data/users.mock.ts"
+      ],
+      "reason": "owed by the per-step floor. All 6 of Group 5's requirements PASS: R39, R43 (for the slice this group owns - the formatters, not the not-yet-existing mappers), R48, R49, R69, R97. No PARTIAL and no FAIL. Drift check: no unspecified addition - the two extra spec files guard R48 and R95 rather than adding behaviour, and both deviations the Implementer declared (no id on any fixture, no email on the inviter) are narrowings that R48's 'and nothing else' requires rather than widenings. No design divergence: both formatter signatures match design.md's Functions/interfaces verbatim, the file list matches except for the two declared spec additions, and D12's placement in common/formatters/ and D7's split between public/mock/ and public/brand/ are both honoured. The only spec-side imprecision I found is cosmetic and not worth a discovery: R69 points at ui-handoff.md section 10 for the per-breakpoint values, but section 10 carries only copy - the values themselves (recuerdos206, sofia@memora.app, recuerdos) are named in the handoff's 'Decisions taken after the critique' preamble, where the fixture matches them character for character"
+    }
+  ]
+}
