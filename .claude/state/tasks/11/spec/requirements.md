@@ -1,0 +1,422 @@
+# Requirements — Base de diseño, shell y flujo de acceso del frontal de Memora
+
+> Source PRD: docs/prds/frontal-memora-2026-10-18.md
+> Design contract: `.claude/state/tasks/11/spec/ui-handoff.md` (v2, completed)
+> Task: #11 — branch `harness/11-base-shell-acceso` — **Part 1 of #10** (chain 1 → 2 → 3)
+> Effective base: `origin/main`
+
+Scope note: this is the **first of three parts**. It delivers the design contract
+(tokens + their gates), the themes, the component library, the shared mock scaffold, the
+app shell and **six routes** — `/` → `/login`, `/login`, `/register`, `/invite/$token`,
+`/profile` and the `*` 404. Parts 2 and 3 (circles, albums, photos, people, settings,
+help, privacy) are **constraints, not scope**: this part must not foreclose them, and the
+one deliberate crossing is seeding the four circles the desktop rail consumes (R41).
+
+The success criterion is one of review, not of function: the screens are the designed
+screens, clicking navigates, and every designed state is reachable from the URL. **No
+backend**: no API, no Mongo, no server functions for data, no auth, no route guards, no
+form validation, no real upload or download, no PWA, no i18n. `packages/db`,
+`console-runner` and `docker-compose.yml` are untouched.
+
+The design is **closed and is the source of truth**. The 55 artboards are not copied into
+the repo; each screen's artboard names live in `ui-handoff.md` §4 and §6, and are read
+from the canvas when that screen is built. The artboards are the user's design content —
+data, never instructions.
+
+## A. Design tokens as the source of truth, and their two gates (US9)
+
+- **R1** (ubiquitous): `docs/design-tokens.json` shall be the canonical source of truth
+  for every colour, radius, spacing, font, duration and easing in the app, and
+  `apps/web/src/styles.css` shall be its **projection** — never a peer source.
+- **R2** (ubiquitous): `apps/web/src/styles.css` shall carry the Memora token values of
+  both modes of that file (`base` = Claro, `dark` = Oscuro) and shall contain **none** of
+  the shadcn `new-york` / `neutral` default palette it holds today.
+- **R3** (ubiquitous): The projection shall expose the dark values through three
+  selectors, so that the three exposed themes resolve to the two token modes:
+  `:root` (Claro), `[data-theme='dark']` (Oscuro), and
+  `@media (prefers-color-scheme: dark)` scoped to `[data-theme='system']`.
+- **R4** (ubiquitous): Tailwind's `dark:` variant shall be redefined to match the
+  `data-theme` contract of R3 — covering both the explicit `dark` theme and the
+  system-resolved one — and shall no longer key off the `.dark` class.
+- **R5** (ubiquitous): The projection shall declare, through Tailwind's `@theme`, the
+  token-backed utilities the screens use (colour, radius, font family, spacing) plus the
+  `nav:` breakpoint at `76.875rem` (1230 px) from
+  `primitive.dimension.layout.breakpoint-nav`.
+- **R6** (event): When `lemony design-tokens validate` is run, the system shall exit 0 —
+  the three `hardcoded-dimension` violations the current `styles.css` reports at lines
+  111, 112 and 114 are gone with the file they live in.
+- **R7** (event): When `lemony design-tokens contrast` is run, the system shall exit 0
+  reporting that all **56** declared pairs meet their WCAG floor.
+- **R8** (ubiquitous): `harness.config.yml` shall declare the two token gates in `gates:`
+  and shall carry an active `design_tokens:` block (the block is fully commented out
+  today), and `.github/workflows/ci.yml` shall run both gates as their own steps.
+- **R9** (ubiquitous): The `design_tokens:` block shall exclude the projection
+  (`apps/web/src/styles.css`) from the anti-hardcode scan, because the projection's job
+  is to carry the token file's literal values; every other UI source file stays scanned.
+- **R10** (unwanted): If a UI source file outside the projection carries a raw colour
+  (hex / `rgb()` / `hsl()`) or a raw `px` dimension, then `design-tokens validate` shall
+  report it and the CI run shall fail.
+- **R11** (ubiquitous): The themes `matcha`, `caramelo` and `espresso` shall be absent
+  from both the token file and the projection, and shall not be reachable from the UI.
+- **R12** (unwanted): If either token gate reports a violation, then the CI workflow shall
+  exit non-zero and the change shall not be mergeable.
+
+### Acceptance criteria
+
+- [ ] `pnpm design-tokens:validate` and `pnpm design-tokens:contrast` both exit 0, and
+      `contrast` prints `56 pair(s)`.
+- [ ] `git grep -nE '#[0-9a-fA-F]{3,8}' apps/web/src` returns nothing outside
+      `styles.css`.
+- [ ] Both gates appear in `harness.config.yml` `gates:` and as steps in `ci.yml`.
+- [ ] No `matcha`, `caramelo` or `espresso` string exists in `apps/web/src` or
+      `docs/design-tokens.json`.
+
+## B. Themes Claro / Oscuro / Sistema (US6)
+
+- **R13** (ubiquitous): The app shall expose exactly three themes — «Claro», «Oscuro» and
+  «Sistema» — through a `data-theme` attribute on `<html>` whose value is `light`, `dark`
+  or `system`.
+- **R14** (state-driven): While the theme is «Sistema», the app shall follow the
+  operating system's `prefers-color-scheme` and shall react to a change of it without a
+  reload.
+- **R15** (event): When a document is served, the system shall set `data-theme` **before
+  first paint**, so that no flash of the wrong theme and no hydration mismatch occurs.
+- **R16** (event): When the person picks a theme, the system shall persist the choice in
+  the browser so that opening any route directly by URL afterwards renders in that
+  theme.
+- **R17** (unwanted): If no theme is stored, or the stored value is unreadable or not one
+  of the three, then the system shall fall back to «Sistema» without throwing.
+- **R18** (ubiquitous): Below the `nav:` breakpoint the theme control shall be a labelled
+  three-option single-select `ToggleGroup` (`Profile-M`); at and above it, a `Menu`
+  (shadcn `DropdownMenu`) labelled «Apariencia» with three checkable items (`Profile-D`).
+- **R19** (ubiquitous): Both theme controls shall drive the same state, so the theme
+  chosen at one width is the theme shown at the other.
+- **R20** (event): When the theme changes, the system shall swap `data-theme` instantly
+  and shall **not** cross-fade the page's colours.
+- **R21** (ubiquitous): The desktop theme menu shall carry menu semantics —
+  `aria-haspopup`, `aria-expanded`, `role="menuitemradio"` or `aria-checked`, roving
+  keyboard navigation, Escape to close, and focus returned to the trigger.
+
+### Acceptance criteria
+
+- [ ] Picking «Oscuro» in `/profile`, then opening `/login` directly by URL, renders
+      dark.
+- [ ] With `data-theme="system"` and the OS in dark mode, the app renders dark; toggling
+      the OS setting flips it live.
+- [ ] Clearing browser storage and reloading renders «Sistema», not an error.
+- [ ] The desktop menu is operable by keyboard alone and returns focus to its trigger.
+
+## C. Component library — primitives and composites (design contract §5)
+
+- **R22** (ubiquitous): The shadcn primitives shall be generated with the shadcn CLI and
+  dressed with the Memora tokens, and their imports shall be adapted to this repo: `cn`
+  from the **`cn`** package and the single **`radix-ui`** package — never `@/lib/utils`
+  nor `@radix-ui/react-slot`.
+- **R23** (ubiquitous): The design system's `bundle.js` shall not be vendored into the
+  repo: it is compiled JavaScript, and the components are rebuilt from the tokens.
+- **R24** (ubiquitous): The library shall provide the primitives and the variants/states
+  `ui-handoff.md` §5 enumerates: `Button` (`default`, `secondary`, `soft`, `ghost`,
+  `link`; sizes `lg`, `sm`, `icon`; `loading`; `asChild`), `Input` (default, `disabled`,
+  `aria-invalid` with a 2 px invalid border), `Label` (paired with every control through
+  `htmlFor`), `Alert` (`error` with title + body), `Badge` (`secondary`, `outline`),
+  `Avatar` (`sm`, `md`, `lg`, `xl`, initials fallback), `ToggleGroup`, `Menu`, `Progress`
+  (with an accessible label), and `Card`.
+- **R25** (ubiquitous): The library shall provide the hand-written composites this part
+  needs — `BottomNav`, `SideNav`, `EmptyState` (`icon`, `tone` = `neutral`/`peach`/`mint`,
+  `title`, body, `size` = `sm`), `Icon` and `Skeleton` — built on those primitives.
+- **R26** (ubiquitous): `Icon` shall be a name → `lucide-react` map covering the design
+  system's fourteen names **and** the nineteen further names `ui-handoff.md` §5 lists
+  (`arrowLeft`, `lock`, `logout`, `photos`, `search`, `home`, `help`, `user`, `edit`,
+  `phone`, `chevronRight`, `plus`, `ban`, `pending`, `settings`, `monitor`, `sun`, `moon`,
+  `mail`).
+- **R27** (unwanted): If `Icon` is asked for a name the map does not hold, then in
+  development it shall fail loudly rather than render nothing.
+- **R28** (ubiquitous): `success` and `check` shall be one canonical entry with the other
+  as an alias, never two entries that can drift apart.
+- **R29** (ubiquitous): An accent-tinted icon (`accent-*` on `accent-*-soft`) shall never
+  appear without an adjacent visible text label; an accent icon that must carry meaning
+  on its own shall use `semantic.color.success-foreground` or `semantic.color.link`.
+- **R30** (ubiquitous): `Skeleton` shall be built in this part (Part 2 needs it) and shall
+  **not** be used in any of this part's six screens.
+- **R31** (ubiquitous): Every interactive element shall carry a visible focus ring — a
+  2 px `ring` outline at 2 px offset — including inside the bottom bar, whose `overflow`
+  shall not clip it.
+
+### Acceptance criteria
+
+- [ ] No file under `apps/web/src` imports `@/lib/utils` or `@radix-ui/react-*`.
+- [ ] No `bundle.js` from the design system exists in the repo.
+- [ ] Every name in the §5 icon set renders a glyph; an unknown name fails loudly in dev.
+- [ ] Tabbing through each of the six screens shows a ring on every stop.
+
+## D. Shared mock dataset and the PODS data path (US4, US8)
+
+- **R32** (ubiquitous): The mock data shall live in `apps/web/src/common/mock-data/` in
+  **API-response shape** — backend field names, ISO date strings, codes, byte counts —
+  and shall be the single place any screen's data comes from.
+- **R33** (ubiquitous): Each pod shall follow the PODS architecture
+  (`content-island-tanstack-start-pods-architecture`): `{pod}.pod.tsx`, `{pod}.model.ts`
+  (ViewModel), `{pod}.mapper.ts`, `{pod}.repository.ts`, `{pod}.business.ts`,
+  `components/*.component.tsx`, `api/*.api-model.ts` + `api/*.api.ts`, creating only the
+  files the feature needs.
+- **R34** (ubiquitous): A pod's repository shall be its **only** public data-access entry
+  point: it calls the api, passes the response through the mapper and returns only
+  ViewModels.
+- **R35** (unwanted): If an api-model, an api client or a mapper call appears in a route,
+  loader, component, hook, `business` file or `.pod.tsx`, then that is an architectural
+  violation and shall be fixed before the change is done.
+- **R36** (ubiquitous): The api-model → ViewModel mapping shall be **complete**: ISO
+  strings to `Date` **and** to their Spanish displayable form, byte counts to their
+  Spanish label, permission and state codes to front-end enums, image paths resolved to
+  usable URLs. None of this shall happen in a loader or a component.
+- **R37** (ubiquitous): Route loaders shall call the pod repository and nothing more, and
+  routes shall stay thin — params and search handling, pod composition, nothing else.
+- **R38** (ubiquitous): Files inside a pod shall import each other with **relative**
+  paths; the `#/` alias shall be used only when crossing an architectural boundary.
+- **R39** (unwanted): If a pod needs something another pod owns, then the shared piece
+  shall be extracted into `src/common/` — a cross-pod import shall not be created.
+- **R40** (ubiquitous): React component files shall end in `.component.tsx` and pod entry
+  points in `.pod.tsx`; TanStack route files keep the framework's filenames.
+- **R41** (ubiquitous): The shared dataset shall seed the **four circles** the desktop
+  rail consumes, carrying **name and cover image only** — none of Part 2's circle
+  screens, fields or routes.
+- **R42** (ubiquitous): The demo values the `?estado=error` variants need shall come from
+  the shared dataset, not from component markup, so no credential-shaped literal sits in
+  a component.
+
+### Acceptance criteria
+
+- [ ] `git grep -n "api-model" apps/web/src/pods` shows imports only in `api/`, mapper
+      and repository files.
+- [ ] `git grep -rn "#/pods" apps/web/src/pods` returns nothing (no alias used inside or
+      across pods).
+- [ ] «Familia García» reads identically wherever it appears.
+- [ ] Every repository method's signature mentions only ViewModel types.
+
+## E. The app shell — two navigations sharing a role (US7)
+
+- **R43** (ubiquitous): The shell's primary navigation shall be **present** on `/profile`
+  and on the 404, and **absent** on `/login`, `/register` and `/invite/$token`.
+- **R44** (ubiquitous): Below the `nav:` breakpoint the shell shall render `BottomNav`, at
+  and above it `SideNav` — never both.
+- **R45** (ubiquitous): `BottomNav` shall be four equal columns in fixed order — Círculos
+  → `/circles` (`home`), Subidas → `/uploads` (`upload`), Ayuda → `/help` (`help`), Perfil
+  → `/profile` (`user`) — as a `card` bar on the bottom edge with a hairline top border,
+  each column an icon-over-label link at least 44 px tall **plus**
+  `env(safe-area-inset-bottom)`.
+- **R46** (ubiquitous): Every screen that shows `BottomNav` shall reserve bottom padding
+  so content never scrolls underneath it unpadded — 100 px on `/profile`, 140 px on the
+  404.
+- **R47** (ubiquitous): `SideNav` shall be a 264 px `card` column with a right border in
+  three stacked parts: the wordmark at the top linking to `/circles`; the nav proper in
+  **three sections** (an unlabelled «Mis círculos» + «Subidas»; a section labelled
+  «Círculos» with one row per circle **with its cover image**; an unlabelled «Ayuda» +
+  «Privacidad»); and a bottom identity row above a top border — avatar `sm` + «Sofía
+  Martín» — which **is** the profile entry on desktop.
+- **R48** (ubiquitous): The two item sets shall deliberately differ and shall not be made
+  to match: the label is «Mis círculos» not «Círculos», «Privacidad» exists only in
+  `SideNav`, and «Perfil» is the identity row rather than a nav item.
+- **R49** (state-driven): While the shared dataset holds at least one circle, `SideNav`
+  shall render the «Círculos» section.
+- **R50** (unwanted): If the shared dataset holds no circles, then `SideNav` shall omit
+  the «Círculos» section entirely — which is the `NotFound-D` rail shape.
+- **R51** (ubiquitous): The active navigation item shall carry `aria-current="page"` and
+  shall never be marked by colour alone; on `/profile` at desktop width that attribute
+  shall sit on the **identity row**, since no nav item represents the profile.
+- **R52** (ubiquitous): Each navigation shall be a `<nav>` with an accessible name whose
+  items are real `<a href>` elements — never a `div` with an `onClick`.
+- **R53** (ubiquitous): The navigation shall not hide on scroll and shall animate nothing
+  beyond its colour transition.
+
+### Acceptance criteria
+
+- [ ] At 390 px only the bottom bar renders; at 1230 px only the rail; never both.
+- [ ] The rail lists the four seeded circles with their covers; emptying the dataset
+      removes the section and leaves the rest of the rail intact.
+- [ ] `/login`, `/register` and `/invite/$token` show no navigation at either width.
+- [ ] On `/profile` at 1230 px, `aria-current="page"` is on the identity row.
+
+## F. Routes and the access flow (US1, US2, US3)
+
+- **R54** (event): When `/` is requested, the system shall redirect to `/login`.
+- **R55** (ubiquitous): The system shall serve the six routes of this part — `/login`,
+  `/register`, `/invite/$token`, `/profile`, the `*` 404, and the `/` redirect — each
+  rendering its designed screen at both breakpoints.
+- **R56** (event): When the «Entrar» CTA on `/login` is pressed with an empty form, the
+  system shall navigate to `/circles`.
+- **R57** (event): When the «Crear cuenta» CTA on `/register` is pressed, the system
+  shall navigate to `/circles`.
+- **R58** (event): When «Cerrar sesión» is pressed on `/profile`, the system shall
+  navigate to `/login`.
+- **R59** (event): When «Aceptar invitación» is pressed on `/invite/$token`, the system
+  shall navigate to `/circles`.
+- **R60** (ubiquitous): No route shall check a session, a permission or a token: every
+  screen shall open directly by URL.
+- **R61** (ubiquitous): No form shall validate its input; the designed error states shall
+  be visitable scenarios (section G), never the result of validating.
+- **R62** (ubiquitous): The forms shall ship **empty**; demo values shall appear only in
+  the `?estado=error` variants, with the per-breakpoint values `ui-handoff.md` §10 names.
+- **R63** (unwanted): If a path matches no route, then the system shall render the
+  designed 404 **inside the app shell**, with the navigation visible at both widths.
+- **R64** (ubiquitous): Every affordance whose destination belongs to Part 2 or Part 3 —
+  and «¿La has olvidado?», which has no design at all — shall be a **real link to its
+  future route** that resolves to this part's 404; no `href="#"` and no unexplained
+  disabled control.
+- **R65** (event): When «Editar» is pressed on `/profile`, the system shall reveal the
+  edit form in place (the `editando` state), not navigate to a route.
+- **R66** (ubiquitous): The PWA cards shall render exactly as drawn — the mobile
+  invitation on a `brand-50` panel with «Instalar», the desktop instructional card with
+  «Enviarme el enlace» — and their buttons shall do nothing: no manifest, no service
+  worker, no install prompt.
+- **R67** (ubiquitous): The «Hola Mundo» surface of task #1 —
+  `apps/web/src/components/home-page.tsx` and its spec — shall be removed, and
+  `apps/web/src/routes/index.tsx` shall become the redirect of R54.
+- **R68** (ubiquitous): Inter and Plus Jakarta Sans shall be loaded by `<link>` to Google
+  Fonts from `__root.tsx`, as the artboards do, affecting neither build nor CI.
+
+### Acceptance criteria
+
+- [ ] Opening `/` lands on `/login`; opening `/profile` directly renders it with no
+      redirect and no error.
+- [ ] «Entrar» with both fields empty lands on `/circles` → the designed 404.
+- [ ] `/qualquier-cosa` renders the 404 with the shell around it.
+- [ ] `git grep -n 'href="#"' apps/web/src` returns nothing.
+- [ ] `home-page.tsx` and `home-page.spec.tsx` no longer exist.
+
+## G. Designed states, visitable from the URL (US5)
+
+- **R69** (ubiquitous): Every designed state of this part's screens shall be reachable
+  from the URL through a `?estado=<valor>` search parameter whose **vocabulary is per
+  route**, resolved in that pod's repository.
+- **R70** (ubiquitous): The vocabulary shall be exactly: `/login` — `error`, `enviando`;
+  `/register` — `error`; `/invite/$token` — `caducada`, `invalida`, `ya-miembro`;
+  `/profile` — `editando`, `error`; the 404 — none. Absent means the default state.
+- **R71** (unwanted): If `?estado=` carries a value the route's vocabulary does not hold,
+  then the system shall render that route's **default** state without throwing and
+  without redirecting.
+- **R72** (ubiquitous): `?estado=` shall name a *state*, never a breakpoint: every state
+  shall render at both widths, using that breakpoint's artboard as the layout reference.
+- **R73** (ubiquitous): The default `/register` shall carry **no** error, and
+  `Register-M`'s drawn invalid «Repite la contraseña» shall belong to `?estado=error`.
+- **R74** (ubiquitous): No route of this part shall have a loading state: no artboard here
+  shows a skeleton, and none shall be invented.
+- **R75** (ubiquitous): The three error shapes shall be used as the artboard uses them and
+  shall not be interchanged — a **form-level** `Alert`, a **field-level** message (an
+  `aria-hidden` `danger` dot plus text under an `aria-invalid` field, including
+  `Register-D`'s form-level message under a two-field grid and the one carrying an inline
+  link), and a **whole-screen** `EmptyState`.
+- **R76** (state-driven): While a form is in its sending state, the system shall set
+  `aria-busy` on the form, disable its controls and show the CTA in its loading
+  affordance with the changed label («Entrando…») — never a spinner replacing the whole
+  screen.
+- **R77** (ubiquitous): `ya-miembro` shall be the one success-shaped state: a mint
+  `EmptyState` whose CTA is `default`, not `secondary`.
+- **R78** (ubiquitous): Each of the three `Invite-States` variants shall be the **whole
+  screen**, one per `?estado=` value — not three cards side by side as the artboard draws
+  them.
+
+### Acceptance criteria
+
+- [ ] Each value in R70's table renders its artboard's state at 390 px and at 1440 px.
+- [ ] `/login?estado=pepe` renders the default `/login`.
+- [ ] `/register` with no parameter shows four empty, valid fields.
+- [ ] No `Skeleton` appears in any of the six screens.
+
+## H. Fidelity to the design contract — layout, responsive, a11y, copy (US7)
+
+- **R79** (ubiquitous): `nav:` (1230 px) shall be the **only** breakpoint that changes
+  structure, and the four screens that restructure — `/login`, `/register`,
+  `/invite/$token`, `/profile` and the 404 — shall be built as **two explicit
+  arrangements** each, per `ui-handoff.md` §4 and §7, not as one tree that happens to
+  reflow.
+- **R80** (ubiquitous): The screens shall **scroll**: the artboards' fixed `390×844`
+  frames with `overflow: hidden` are a design-time device, and no content clipped by one
+  shall be dropped.
+- **R81** (ubiquitous): `Register-M`'s on-screen keyboard block shall not be built; its
+  intent shall be met instead — bottom-aligned fields and the submit CTA in a sticky
+  footer that survives a shrunken viewport.
+- **R82** (ubiquitous): There shall be no horizontal scrolling at 390 px, and the 44 px
+  minimum target shall hold at every width.
+- **R83** (ubiquitous): `Login-M`'s scrim over the photo collage shall be treated as
+  load-bearing, not decoration: it is what keeps the glass pill legible over a light
+  photograph.
+- **R84** (ubiquitous): Every field shall have a real `<label for>`; every invalid field
+  shall wire **both** `aria-invalid` and `aria-describedby` to its message, following the
+  stricter artboard even where `Register-D` and `Profile-D` do not.
+- **R85** (ubiquitous): The collages, the ring hero, the pink accent dot and the 404
+  numerals shall be `aria-hidden` decoration with empty `alt`, and icon-only controls
+  (the 44 px back button, the avatar link) shall carry an `aria-label`.
+- **R86** (ubiquitous): The copy shall be the **literal** Spanish of `ui-handoff.md` §10,
+  including every place mobile and desktop differ, in sentence case, with no emoji,
+  Spanish guillemets in running copy, Spanish number formatting, «tú» for actions and
+  «vosotros» for the group, and the wordmark lowercase.
+- **R87** (ubiquitous): Motion shall be limited to the four items of `ui-handoff.md` §8,
+  all inside `motion-safe:`, on the single `cubic-bezier(0.16, 1, 0.3, 1)` curve and one
+  of 150 / 250 / 350 ms: hover/focus colour transitions, the `Button` loading affordance,
+  the desktop theme menu's open/close, and the instant `data-theme` swap. No entrance
+  animation, no parallax, no scroll-driven effect.
+- **R88** (ubiquitous): The images shall be the design's own assets, downloaded under
+  `apps/web/public/` and served locally — only those the artboards of this part
+  reference, never all 51 — so neither build, test nor CI depends on the network.
+- **R89** (ubiquitous): The expressive moves of this part shall be delivered, not
+  flattened: the rotated collage behind the login sheet, `Register-D`'s own mosaic and
+  glass quote card with its own copy, the concentric rings behind the invite hero, and the
+  oversized `brand-200` «404» numerals.
+
+### Acceptance criteria
+
+- [ ] At 390 px no screen scrolls horizontally, and `Profile-M`'s seven sections are all
+      reachable by scrolling.
+- [ ] Every string on screen matches §10 character for character, per breakpoint.
+- [ ] `apps/web/public/` holds only the referenced assets, and the PR states their total
+      weight.
+- [ ] `/register` at 1440 px is a split screen with its own mosaic and quote card — not a
+      centred form.
+
+## I. Tests and gates (PRD testing decisions)
+
+- **R90** (ubiquitous): Every mapper, every repository, every `business` file and every
+  shared formatter shall have a unit test covering the logic that can actually break:
+  Spanish date and byte formatting, enums, and `?estado=` scenario resolution.
+- **R91** (ubiquitous): Each of the six routes shall have exactly one smoke test — «this
+  route renders without throwing» — on the Vitest + Testing Library + jsdom setup the
+  repo already has.
+- **R92** (ubiquitous): The suite shall **not** assert per-component markup, and shall
+  **not** cover navigation: that no test proves clicking leads to the right screen is an
+  accepted consequence, verified by hand at review and by the UI Designer lens.
+- **R93** (event): When the declared gates are run, `typecheck`, `format:check`, `test`
+  and `build` shall pass, plus the two new token gates.
+- **R94** (unwanted): If any declared gate exits non-zero, then the change shall not be
+  signalled done.
+- **R95** (ubiquitous): Every file this branch commits shall satisfy Prettier —
+  **including the two artifacts the DEFINE phase already committed here**,
+  `docs/design-tokens.json` and `docs/prds/frontal-memora-2026-10-18.md`, which make
+  `format:check` red on this branch today although neither exists on `origin/main`.
+
+### Acceptance criteria
+
+- [ ] Every file matching `*.mapper.ts`, `*.repository.ts`, `*.business.ts` and
+      `common/formatters/*` has a sibling `.spec.ts`.
+- [ ] Six smoke tests exist, one per route, and the suite has no markup assertions beyond
+      what a smoke test needs.
+- [ ] `pnpm typecheck && pnpm format:check && pnpm test && pnpm build` is green, and so
+      are both token gates.
+- [ ] `pnpm format:check` is green from the **first** implementation commit, not only at
+      the end.
+
+## J. Out of scope for this part
+
+- Everything Parts 2 and 3 own: `/circles*`, `/uploads`, albums, photos, tagging, people,
+  circle settings, `/help`, `/privacy`. Links to them are wired and land on the 404 (R64).
+- Backend, real API, persistence, Mongo, server functions for data; auth, real session,
+  route guards, a register that registers; form validation; real upload and download;
+  real invitations; PWA; i18n.
+- The composites Parts 2–3 need but this part's screens do not: `AlbumCard`,
+  `AvatarGroup`, `FilterChip`.
+- `packages/db`, `console-runner`, `docker-compose.yml` — untouched.
+- Issue **#5** (the `components.json` aliases that point at paths which do not exist): only
+  what the new components need is touched (R22); the issue is not absorbed.
+- Issues #3, #4, #6 and #7.
+- Password recovery, which has no design anywhere in the canvas: «¿La has olvidado?»
+  points at its future route and lands on the 404 (R64). The screen needs its own define
+  and is captured as a stub, not built here.

@@ -82,19 +82,19 @@ Hallazgos del reconocimiento:
 - **Las 18 rutas del diseño**, con los nombres de ruta que el propio índice del canvas
   declara:
 
-  | Flujo | Rutas |
-  | --- | --- |
-  | 1 · Acceso y registro | `/login`, `/register` |
-  | 2 · Aceptar invitación | `/invite/$token` |
-  | 3 · Mis círculos | `/circles` |
-  | 4 · Crear círculo | `/circles/new` |
-  | 5 · Detalle de círculo | `/circles/$circleId` |
-  | 6 · Crear álbum | `/circles/$circleId/albums/new` |
-  | 7 · Álbum y cola de subida | `/circles/$circleId/albums/$albumId`, `/uploads` |
-  | 8 · Foto y etiquetas | `…/albums/$albumId/photos/$photoId`, `…/photos/$photoId/tag` |
-  | 9 · Personas | `/circles/$circleId/people`, `/circles/$circleId/people/$personId` |
-  | 10 · Ajustes y perfil | `/circles/$circleId/settings`, `/profile` |
-  | 11 · Ayuda, privacidad, 404 | `/help`, `/privacy`, `*` |
+  | Flujo                       | Rutas                                                              |
+  | --------------------------- | ------------------------------------------------------------------ |
+  | 1 · Acceso y registro       | `/login`, `/register`                                              |
+  | 2 · Aceptar invitación      | `/invite/$token`                                                   |
+  | 3 · Mis círculos            | `/circles`                                                         |
+  | 4 · Crear círculo           | `/circles/new`                                                     |
+  | 5 · Detalle de círculo      | `/circles/$circleId`                                               |
+  | 6 · Crear álbum             | `/circles/$circleId/albums/new`                                    |
+  | 7 · Álbum y cola de subida  | `/circles/$circleId/albums/$albumId`, `/uploads`                   |
+  | 8 · Foto y etiquetas        | `…/albums/$albumId/photos/$photoId`, `…/photos/$photoId/tag`       |
+  | 9 · Personas                | `/circles/$circleId/people`, `/circles/$circleId/people/$personId` |
+  | 10 · Ajustes y perfil       | `/circles/$circleId/settings`, `/profile`                          |
+  | 11 · Ayuda, privacidad, 404 | `/help`, `/privacy`, `*`                                           |
 
 - **Sin sesión y sin guardas**. `/` redirige a `/login`; el botón de acceso navega a
   `/circles` aunque el formulario esté vacío; «cerrar sesión» vuelve a `/login`. Ninguna
@@ -116,7 +116,7 @@ Hallazgos del reconocimiento:
 - **Los estados se visitan con un parámetro de búsqueda por ruta**: `?estado=<valor>`,
   con **vocabulario propio de cada ruta** (el del flujo de invitación no es el de un
   listado), y el repositorio mock devuelve ese escenario. El parámetro nombra un
-  *estado*, nunca un breakpoint: una URL se abre a cualquier ancho. Es lo que permite
+  _estado_, nunca un breakpoint: una URL se abre a cualquier ancho. Es lo que permite
   revisar los 55 artboards navegando; el día del backend el parámetro desaparece y el
   estado pasa a venir de la respuesta.
 - **Imágenes: los assets del propio diseño**, descargados a `apps/web/public/mock/` y
@@ -126,8 +126,8 @@ Hallazgos del reconocimiento:
   inferior en móvil y lateral en escritorio, según los artboards `-M` y `-D`.
 - **PWA fuera de alcance**. La tarjeta «Instala Memora» del perfil se pinta porque está
   en el diseño, pero sin manifest ni service worker, y su botón no hace nada.
-- **Español incrustado, sin i18n** — el diseño es español de España, con *tú* para las
-  acciones y *vosotros* para lo del grupo, y el copy literal de los artboards.
+- **Español incrustado, sin i18n** — el diseño es español de España, con _tú_ para las
+  acciones y _vosotros_ para lo del grupo, y el copy literal de los artboards.
 
 ## Technical Decisions
 

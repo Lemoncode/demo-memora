@@ -204,15 +204,39 @@
     "fontFamily": {
       "display": {
         "$type": "fontFamily",
-        "$value": ["Plus Jakarta Sans", "Inter", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "Roboto", "sans-serif"]
+        "$value": [
+          "Plus Jakarta Sans",
+          "Inter",
+          "-apple-system",
+          "BlinkMacSystemFont",
+          "Segoe UI",
+          "Roboto",
+          "sans-serif"
+        ]
       },
       "sans": {
         "$type": "fontFamily",
-        "$value": ["Inter", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "Roboto", "Helvetica", "Arial", "sans-serif"]
+        "$value": [
+          "Inter",
+          "-apple-system",
+          "BlinkMacSystemFont",
+          "Segoe UI",
+          "Roboto",
+          "Helvetica",
+          "Arial",
+          "sans-serif"
+        ]
       },
       "mono": {
         "$type": "fontFamily",
-        "$value": ["ui-monospace", "SFMono-Regular", "Menlo", "Monaco", "Consolas", "monospace"]
+        "$value": [
+          "ui-monospace",
+          "SFMono-Regular",
+          "Menlo",
+          "Monaco",
+          "Consolas",
+          "monospace"
+        ]
       }
     },
     "fontWeight": {
@@ -254,7 +278,11 @@
         "$value": "{primitive.color.ink.primary}",
         "$extensions": {
           "com.lemony.contrast": {
-            "against": ["{semantic.color.background}", "{semantic.color.card}", "{semantic.color.elevated}"],
+            "against": [
+              "{semantic.color.background}",
+              "{semantic.color.card}",
+              "{semantic.color.elevated}"
+            ],
             "level": "text"
           }
         }
@@ -262,7 +290,10 @@
       "card": { "$type": "color", "$value": "{primitive.color.ground.surface}" },
       "card-foreground": { "$type": "color", "$value": "{primitive.color.ink.primary}" },
       "popover": { "$type": "color", "$value": "{primitive.color.ground.surface}" },
-      "popover-foreground": { "$type": "color", "$value": "{primitive.color.ink.primary}" },
+      "popover-foreground": {
+        "$type": "color",
+        "$value": "{primitive.color.ink.primary}"
+      },
       "elevated": { "$type": "color", "$value": "{primitive.color.ground.elevated}" },
       "primary": { "$type": "color", "$value": "{primitive.color.brand.600}" },
       "primary-foreground": {
@@ -270,20 +301,33 @@
         "$type": "color",
         "$value": "{primitive.color.static.white}",
         "$extensions": {
-          "com.lemony.contrast": { "against": "{semantic.color.primary}", "level": "text" }
+          "com.lemony.contrast": {
+            "against": "{semantic.color.primary}",
+            "level": "text"
+          }
         }
       },
       "secondary": { "$type": "color", "$value": "{primitive.color.ground.elevated}" },
-      "secondary-foreground": { "$type": "color", "$value": "{primitive.color.ink.primary}" },
+      "secondary-foreground": {
+        "$type": "color",
+        "$value": "{primitive.color.ink.primary}"
+      },
       "accent": { "$type": "color", "$value": "{primitive.color.ground.elevated}" },
-      "accent-foreground": { "$type": "color", "$value": "{primitive.color.ink.primary}" },
+      "accent-foreground": {
+        "$type": "color",
+        "$value": "{primitive.color.ink.primary}"
+      },
       "muted": { "$type": "color", "$value": "{primitive.color.ground.subtle}" },
       "muted-foreground": {
         "$type": "color",
         "$value": "{primitive.color.ink.muted}",
         "$extensions": {
           "com.lemony.contrast": {
-            "against": ["{semantic.color.background}", "{semantic.color.card}", "{semantic.color.elevated}"],
+            "against": [
+              "{semantic.color.background}",
+              "{semantic.color.card}",
+              "{semantic.color.elevated}"
+            ],
             "level": "text"
           }
         }
@@ -294,7 +338,11 @@
         "$value": "{primitive.color.ink.secondary}",
         "$extensions": {
           "com.lemony.contrast": {
-            "against": ["{semantic.color.background}", "{semantic.color.card}", "{semantic.color.elevated}"],
+            "against": [
+              "{semantic.color.background}",
+              "{semantic.color.card}",
+              "{semantic.color.elevated}"
+            ],
             "level": "text"
           }
         }
@@ -306,7 +354,11 @@
         "$extensions": {
           "com.lemony.modes": { "dark": "{primitive.color.brand.300}" },
           "com.lemony.contrast": {
-            "against": ["{semantic.color.background}", "{semantic.color.card}", "{semantic.color.elevated}"],
+            "against": [
+              "{semantic.color.background}",
+              "{semantic.color.card}",
+              "{semantic.color.elevated}"
+            ],
             "level": "text"
           }
         }
@@ -318,7 +370,11 @@
         "$extensions": {
           "com.lemony.modes": { "dark": "{primitive.color.accent.mint.base}" },
           "com.lemony.contrast": {
-            "against": ["{semantic.color.background}", "{semantic.color.card}", "{semantic.color.elevated}"],
+            "against": [
+              "{semantic.color.background}",
+              "{semantic.color.card}",
+              "{semantic.color.elevated}"
+            ],
             "level": "text"
           }
         }
@@ -342,7 +398,11 @@
         "$value": "{primitive.color.signal.danger-strong}",
         "$extensions": {
           "com.lemony.contrast": {
-            "against": ["{semantic.color.background}", "{semantic.color.card}", "{semantic.color.elevated}"],
+            "against": [
+              "{semantic.color.background}",
+              "{semantic.color.card}",
+              "{semantic.color.elevated}"
+            ],
             "level": "non-text"
           }
         }
@@ -353,7 +413,11 @@
         "$value": "{primitive.color.line.control}",
         "$extensions": {
           "com.lemony.contrast": {
-            "against": ["{semantic.color.background}", "{semantic.color.card}", "{semantic.color.elevated}"],
+            "against": [
+              "{semantic.color.background}",
+              "{semantic.color.card}",
+              "{semantic.color.elevated}"
+            ],
             "level": "non-text"
           }
         }
@@ -364,7 +428,11 @@
         "$value": "{primitive.color.brand.500}",
         "$extensions": {
           "com.lemony.contrast": {
-            "against": ["{semantic.color.background}", "{semantic.color.card}", "{semantic.color.elevated}"],
+            "against": [
+              "{semantic.color.background}",
+              "{semantic.color.card}",
+              "{semantic.color.elevated}"
+            ],
             "level": "non-text"
           }
         }
@@ -391,7 +459,10 @@
       "easing": { "$type": "cubicBezier", "$value": "{primitive.cubicBezier.standard}" }
     },
     "typography": {
-      "heading-family": { "$type": "fontFamily", "$value": "{primitive.fontFamily.display}" },
+      "heading-family": {
+        "$type": "fontFamily",
+        "$value": "{primitive.fontFamily.display}"
+      },
       "body-family": { "$type": "fontFamily", "$value": "{primitive.fontFamily.sans}" }
     }
   },
@@ -405,14 +476,20 @@
         "$type": "color",
         "$value": "{semantic.color.link}",
         "$extensions": {
-          "com.lemony.contrast": { "against": "{component.bottom-nav.background}", "level": "text" }
+          "com.lemony.contrast": {
+            "against": "{component.bottom-nav.background}",
+            "level": "text"
+          }
         }
       },
       "item-inactive": {
         "$type": "color",
         "$value": "{primitive.color.ink.muted}",
         "$extensions": {
-          "com.lemony.contrast": { "against": "{component.bottom-nav.background}", "level": "text" }
+          "com.lemony.contrast": {
+            "against": "{component.bottom-nav.background}",
+            "level": "text"
+          }
         }
       }
     },
@@ -424,14 +501,20 @@
         "$type": "color",
         "$value": "{primitive.color.brand.700}",
         "$extensions": {
-          "com.lemony.contrast": { "against": "{component.side-nav.item-active-background}", "level": "text" }
+          "com.lemony.contrast": {
+            "against": "{component.side-nav.item-active-background}",
+            "level": "text"
+          }
         }
       }
     },
     "field": {
       "background": { "$type": "color", "$value": "{semantic.color.card}" },
       "border": { "$type": "color", "$value": "{semantic.color.input}" },
-      "border-invalid": { "$type": "color", "$value": "{semantic.color.destructive-border}" },
+      "border-invalid": {
+        "$type": "color",
+        "$value": "{semantic.color.destructive-border}"
+      },
       "radius": { "$type": "dimension", "$value": "{semantic.radius.control}" },
       "height": { "$type": "dimension", "$value": "3rem" }
     },
