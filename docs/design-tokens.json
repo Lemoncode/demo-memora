@@ -1,0 +1,450 @@
+{
+  "$description": "Memora design tokens. Canonical, client-owned source of truth; apps/web/src/styles.css is its projection. Derived from the `memora` design system that ships with the screen canvas (https://claude.ai/artifact/55PWqQU14xwwAifgCqbgeb). Modes: base = theme Claro, dark = theme Oscuro. The design system also defines matcha, caramelo and espresso; they are NOT in this delivery and NOT measured — see tasks/11/spec/ui-handoff.md §9 before exposing them.",
+  "primitive": {
+    "color": {
+      "brand": {
+        "$description": "Violet brand scale. Identical in both modes.",
+        "50": { "$type": "color", "$value": "#f0efff" },
+        "100": { "$type": "color", "$value": "#e2dfff" },
+        "200": { "$type": "color", "$value": "#c8c3ff" },
+        "300": { "$type": "color", "$value": "#aaa2ff" },
+        "400": { "$type": "color", "$value": "#8980fa" },
+        "500": { "$type": "color", "$value": "#6c63ff" },
+        "600": { "$type": "color", "$value": "#584fe5" },
+        "700": { "$type": "color", "$value": "#463ec1" },
+        "800": { "$type": "color", "$value": "#39349a" },
+        "900": { "$type": "color", "$value": "#302d78" }
+      },
+      "accent": {
+        "$description": "Three neon accents for icons and markers, never large fields.",
+        "pink": {
+          "base": { "$type": "color", "$value": "#ff39c6" },
+          "hover": { "$type": "color", "$value": "#ff00b8" },
+          "strong": { "$type": "color", "$value": "#e000a2" },
+          "soft": {
+            "$type": "color",
+            "$value": "#fff0fb",
+            "$extensions": { "com.lemony.modes": { "dark": "#2b1b29" } }
+          },
+          "border": {
+            "$type": "color",
+            "$value": "#ffb8ed",
+            "$extensions": { "com.lemony.modes": { "dark": "#3d2338" } }
+          }
+        },
+        "peach": {
+          "base": { "$type": "color", "$value": "#ff9500" },
+          "hover": { "$type": "color", "$value": "#ff6a00" },
+          "strong": { "$type": "color", "$value": "#f05a00" },
+          "soft": {
+            "$type": "color",
+            "$value": "#fff4e5",
+            "$extensions": { "com.lemony.modes": { "dark": "#2b201b" } }
+          },
+          "border": {
+            "$type": "color",
+            "$value": "#ffd69a",
+            "$extensions": { "com.lemony.modes": { "dark": "#3d2a20" } }
+          }
+        },
+        "mint": {
+          "base": { "$type": "color", "$value": "#00e6a0" },
+          "hover": { "$type": "color", "$value": "#00db99" },
+          "strong": { "$type": "color", "$value": "#007d58" },
+          "soft": {
+            "$type": "color",
+            "$value": "#e8fff6",
+            "$extensions": { "com.lemony.modes": { "dark": "#0f2720" } }
+          },
+          "border": {
+            "$type": "color",
+            "$value": "#a8f7db",
+            "$extensions": { "com.lemony.modes": { "dark": "#1b3d32" } }
+          }
+        }
+      },
+      "signal": {
+        "danger": { "$type": "color", "$value": "#f87171" },
+        "danger-strong": {
+          "$description": "Error colour where it bounds a control and therefore carries state (WCAG 1.4.11). The design system's danger is 2.77:1 on a card, which after line.control was darkened to 3.23:1 would have made an invalid field read WEAKER than a resting one. Light is darkened; dark keeps danger, which already measures 6.27:1 on the dark card.",
+          "$type": "color",
+          "$value": "#e03131",
+          "$extensions": { "com.lemony.modes": { "dark": "#f87171" } }
+        },
+        "rating": { "$type": "color", "$value": "#fbbf24" },
+        "heart": { "$type": "color", "$value": "#ef4444" }
+      },
+      "ground": {
+        "page": {
+          "$type": "color",
+          "$value": "#f8fafc",
+          "$extensions": { "com.lemony.modes": { "dark": "#080f19" } }
+        },
+        "surface": {
+          "$type": "color",
+          "$value": "#ffffff",
+          "$extensions": { "com.lemony.modes": { "dark": "#111b27" } }
+        },
+        "elevated": {
+          "$type": "color",
+          "$value": "#f1f5f9",
+          "$extensions": { "com.lemony.modes": { "dark": "#172332" } }
+        },
+        "subtle": {
+          "$type": "color",
+          "$value": "#f8fafc",
+          "$extensions": { "com.lemony.modes": { "dark": "#1b2939" } }
+        }
+      },
+      "ink": {
+        "primary": {
+          "$type": "color",
+          "$value": "#0f172a",
+          "$extensions": { "com.lemony.modes": { "dark": "#f8fafc" } }
+        },
+        "secondary": {
+          "$type": "color",
+          "$value": "#475569",
+          "$extensions": { "com.lemony.modes": { "dark": "#cbd5e1" } }
+        },
+        "muted": {
+          "$description": "Darkened from the design system's #64748b, which measured 4.34:1 on ground.elevated. #5e6c7e clears AA on page, surface and elevated.",
+          "$type": "color",
+          "$value": "#5e6c7e",
+          "$extensions": { "com.lemony.modes": { "dark": "#94a3b8" } }
+        },
+        "inverse": {
+          "$type": "color",
+          "$value": "#ffffff",
+          "$extensions": { "com.lemony.modes": { "dark": "#0f172a" } }
+        }
+      },
+      "line": {
+        "subtle": {
+          "$description": "Decorative separator between regions. Not a measured pair: it carries no state.",
+          "$type": "color",
+          "$value": "#e2e8f0",
+          "$extensions": { "com.lemony.modes": { "dark": "#223347" } }
+        },
+        "strong": {
+          "$description": "Heavier decorative separator. Not a measured pair.",
+          "$type": "color",
+          "$value": "#cbd5e1",
+          "$extensions": { "com.lemony.modes": { "dark": "#263648" } }
+        },
+        "control": {
+          "$description": "Resting boundary of a form control. Darkened from the design system's border-strong (1.48:1 on surface) so a field is identifiable per WCAG 1.4.11.",
+          "$type": "color",
+          "$value": "#7d8da3",
+          "$extensions": { "com.lemony.modes": { "dark": "#5a7190" } }
+        }
+      },
+      "footer": {
+        "background": { "$type": "color", "$value": "#080f19" },
+        "foreground": { "$type": "color", "$value": "#f8fafc" }
+      },
+      "glass": {
+        "background": {
+          "$type": "color",
+          "$value": "#ffffffd1",
+          "$extensions": { "com.lemony.modes": { "dark": "#080f19d9" } }
+        },
+        "border": {
+          "$type": "color",
+          "$value": "#e2e8f0cc",
+          "$extensions": { "com.lemony.modes": { "dark": "#263648bf" } }
+        }
+      },
+      "static": {
+        "$description": "Fixed in every mode: the wordmark lockup, primary-button text and photo badges.",
+        "white": { "$type": "color", "$value": "#ffffff" },
+        "black": { "$type": "color", "$value": "#000000" }
+      }
+    },
+    "dimension": {
+      "space": {
+        "1": { "$type": "dimension", "$value": "0.25rem" },
+        "2": { "$type": "dimension", "$value": "0.5rem" },
+        "3": { "$type": "dimension", "$value": "0.75rem" },
+        "4": { "$type": "dimension", "$value": "1rem" },
+        "5": { "$type": "dimension", "$value": "1.25rem" },
+        "6": { "$type": "dimension", "$value": "1.5rem" },
+        "8": { "$type": "dimension", "$value": "2rem" },
+        "10": { "$type": "dimension", "$value": "2.5rem" },
+        "12": { "$type": "dimension", "$value": "3rem" },
+        "16": { "$type": "dimension", "$value": "4rem" },
+        "20": { "$type": "dimension", "$value": "5rem" },
+        "28": { "$type": "dimension", "$value": "7rem" }
+      },
+      "radius": {
+        "xs": { "$type": "dimension", "$value": "0.375rem" },
+        "sm": { "$type": "dimension", "$value": "0.5rem" },
+        "md": { "$type": "dimension", "$value": "0.75rem" },
+        "lg": { "$type": "dimension", "$value": "1rem" },
+        "xl": { "$type": "dimension", "$value": "1.25rem" },
+        "2xl": { "$type": "dimension", "$value": "1.5rem" },
+        "3xl": { "$type": "dimension", "$value": "2rem" },
+        "full": { "$type": "dimension", "$value": "9999px" }
+      },
+      "blur": {
+        "glass": { "$type": "dimension", "$value": "16px" }
+      },
+      "layout": {
+        "content-max": { "$type": "dimension", "$value": "80rem" },
+        "header-height": { "$type": "dimension", "$value": "5rem" },
+        "breakpoint-nav": { "$type": "dimension", "$value": "76.875rem" },
+        "card-container": { "$type": "dimension", "$value": "13rem" },
+        "touch-target": {
+          "$description": "App rule: every interactive target is at least this tall and wide.",
+          "$type": "dimension",
+          "$value": "2.75rem"
+        }
+      }
+    },
+    "fontFamily": {
+      "display": {
+        "$type": "fontFamily",
+        "$value": ["Plus Jakarta Sans", "Inter", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "Roboto", "sans-serif"]
+      },
+      "sans": {
+        "$type": "fontFamily",
+        "$value": ["Inter", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "Roboto", "Helvetica", "Arial", "sans-serif"]
+      },
+      "mono": {
+        "$type": "fontFamily",
+        "$value": ["ui-monospace", "SFMono-Regular", "Menlo", "Monaco", "Consolas", "monospace"]
+      }
+    },
+    "fontWeight": {
+      "normal": { "$type": "fontWeight", "$value": 400 },
+      "medium": { "$type": "fontWeight", "$value": 500 },
+      "semibold": { "$type": "fontWeight", "$value": 600 },
+      "bold": { "$type": "fontWeight", "$value": 700 },
+      "extrabold": { "$type": "fontWeight", "$value": 800 }
+    },
+    "number": {
+      "leading": {
+        "none": { "$type": "number", "$value": 1 },
+        "tight": { "$type": "number", "$value": 1.15 },
+        "snug": { "$type": "number", "$value": 1.35 },
+        "normal": { "$type": "number", "$value": 1.5 },
+        "relaxed": { "$type": "number", "$value": 1.625 }
+      },
+      "z": {
+        "sidenav": { "$type": "number", "$value": 40 },
+        "header": { "$type": "number", "$value": 50 },
+        "modal": { "$type": "number", "$value": 60 },
+        "toast": { "$type": "number", "$value": 70 }
+      }
+    },
+    "duration": {
+      "fast": { "$type": "duration", "$value": "150ms" },
+      "normal": { "$type": "duration", "$value": "250ms" },
+      "slow": { "$type": "duration", "$value": "350ms" }
+    },
+    "cubicBezier": {
+      "standard": { "$type": "cubicBezier", "$value": [0.16, 1, 0.3, 1] }
+    }
+  },
+  "semantic": {
+    "color": {
+      "background": { "$type": "color", "$value": "{primitive.color.ground.page}" },
+      "foreground": {
+        "$type": "color",
+        "$value": "{primitive.color.ink.primary}",
+        "$extensions": {
+          "com.lemony.contrast": {
+            "against": ["{semantic.color.background}", "{semantic.color.card}", "{semantic.color.elevated}"],
+            "level": "text"
+          }
+        }
+      },
+      "card": { "$type": "color", "$value": "{primitive.color.ground.surface}" },
+      "card-foreground": { "$type": "color", "$value": "{primitive.color.ink.primary}" },
+      "popover": { "$type": "color", "$value": "{primitive.color.ground.surface}" },
+      "popover-foreground": { "$type": "color", "$value": "{primitive.color.ink.primary}" },
+      "elevated": { "$type": "color", "$value": "{primitive.color.ground.elevated}" },
+      "primary": { "$type": "color", "$value": "{primitive.color.brand.600}" },
+      "primary-foreground": {
+        "$description": "Fixed white, not ink.inverse: the primary button keeps white text in both modes.",
+        "$type": "color",
+        "$value": "{primitive.color.static.white}",
+        "$extensions": {
+          "com.lemony.contrast": { "against": "{semantic.color.primary}", "level": "text" }
+        }
+      },
+      "secondary": { "$type": "color", "$value": "{primitive.color.ground.elevated}" },
+      "secondary-foreground": { "$type": "color", "$value": "{primitive.color.ink.primary}" },
+      "accent": { "$type": "color", "$value": "{primitive.color.ground.elevated}" },
+      "accent-foreground": { "$type": "color", "$value": "{primitive.color.ink.primary}" },
+      "muted": { "$type": "color", "$value": "{primitive.color.ground.subtle}" },
+      "muted-foreground": {
+        "$type": "color",
+        "$value": "{primitive.color.ink.muted}",
+        "$extensions": {
+          "com.lemony.contrast": {
+            "against": ["{semantic.color.background}", "{semantic.color.card}", "{semantic.color.elevated}"],
+            "level": "text"
+          }
+        }
+      },
+      "body-foreground": {
+        "$description": "Intros and card copy.",
+        "$type": "color",
+        "$value": "{primitive.color.ink.secondary}",
+        "$extensions": {
+          "com.lemony.contrast": {
+            "against": ["{semantic.color.background}", "{semantic.color.card}", "{semantic.color.elevated}"],
+            "level": "text"
+          }
+        }
+      },
+      "link": {
+        "$description": "Links and brand-coloured words. The design system switches brand TEXT to brand-300 on dark grounds; that rule lives here as the dark mode value.",
+        "$type": "color",
+        "$value": "{primitive.color.brand.600}",
+        "$extensions": {
+          "com.lemony.modes": { "dark": "{primitive.color.brand.300}" },
+          "com.lemony.contrast": {
+            "against": ["{semantic.color.background}", "{semantic.color.card}", "{semantic.color.elevated}"],
+            "level": "text"
+          }
+        }
+      },
+      "success-foreground": {
+        "$description": "Mint as text. The design system uses accent-mint-strong on light grounds and plain accent-mint on dark.",
+        "$type": "color",
+        "$value": "{primitive.color.accent.mint.strong}",
+        "$extensions": {
+          "com.lemony.modes": { "dark": "{primitive.color.accent.mint.base}" },
+          "com.lemony.contrast": {
+            "against": ["{semantic.color.background}", "{semantic.color.card}", "{semantic.color.elevated}"],
+            "level": "text"
+          }
+        }
+      },
+      "pill": { "$type": "color", "$value": "{primitive.color.brand.100}" },
+      "pill-foreground": {
+        "$type": "color",
+        "$value": "{primitive.color.brand.700}",
+        "$extensions": {
+          "com.lemony.contrast": { "against": "{semantic.color.pill}", "level": "text" }
+        }
+      },
+      "destructive": {
+        "$description": "Error accent where it is decoration beside words: the aria-hidden dot before an error message. NOT a measured pair (2.77:1 on card) because the state is carried by the Alert, the message text and aria-invalid, never by this colour alone — the design system's own rule. Anything that BOUNDS a control uses destructive-border instead.",
+        "$type": "color",
+        "$value": "{primitive.color.signal.danger}"
+      },
+      "destructive-border": {
+        "$description": "The boundary of an invalid control. A measured pair: a control's border indicates state, which WCAG 1.4.11 holds to 3:1 with no redundancy exemption — the same reasoning that produced line.control.",
+        "$type": "color",
+        "$value": "{primitive.color.signal.danger-strong}",
+        "$extensions": {
+          "com.lemony.contrast": {
+            "against": ["{semantic.color.background}", "{semantic.color.card}", "{semantic.color.elevated}"],
+            "level": "non-text"
+          }
+        }
+      },
+      "border": { "$type": "color", "$value": "{primitive.color.line.subtle}" },
+      "input": {
+        "$type": "color",
+        "$value": "{primitive.color.line.control}",
+        "$extensions": {
+          "com.lemony.contrast": {
+            "against": ["{semantic.color.background}", "{semantic.color.card}", "{semantic.color.elevated}"],
+            "level": "non-text"
+          }
+        }
+      },
+      "ring": {
+        "$description": "Focus ring: 2px outline, 2px offset, on every interactive element.",
+        "$type": "color",
+        "$value": "{primitive.color.brand.500}",
+        "$extensions": {
+          "com.lemony.contrast": {
+            "against": ["{semantic.color.background}", "{semantic.color.card}", "{semantic.color.elevated}"],
+            "level": "non-text"
+          }
+        }
+      },
+      "footer": { "$type": "color", "$value": "{primitive.color.footer.background}" },
+      "footer-foreground": {
+        "$type": "color",
+        "$value": "{primitive.color.footer.foreground}",
+        "$extensions": {
+          "com.lemony.contrast": { "against": "{semantic.color.footer}", "level": "text" }
+        }
+      },
+      "glass": { "$type": "color", "$value": "{primitive.color.glass.background}" },
+      "glass-border": { "$type": "color", "$value": "{primitive.color.glass.border}" }
+    },
+    "radius": {
+      "control": { "$type": "dimension", "$value": "{primitive.dimension.radius.md}" },
+      "card": { "$type": "dimension", "$value": "{primitive.dimension.radius.lg}" },
+      "panel": { "$type": "dimension", "$value": "{primitive.dimension.radius.2xl}" },
+      "pill": { "$type": "dimension", "$value": "{primitive.dimension.radius.full}" }
+    },
+    "motion": {
+      "duration": { "$type": "duration", "$value": "{primitive.duration.normal}" },
+      "easing": { "$type": "cubicBezier", "$value": "{primitive.cubicBezier.standard}" }
+    },
+    "typography": {
+      "heading-family": { "$type": "fontFamily", "$value": "{primitive.fontFamily.display}" },
+      "body-family": { "$type": "fontFamily", "$value": "{primitive.fontFamily.sans}" }
+    }
+  },
+  "component": {
+    "bottom-nav": {
+      "$description": "Mobile tab bar, fixed to the bottom edge with safe-area padding.",
+      "background": { "$type": "color", "$value": "{semantic.color.card}" },
+      "border": { "$type": "color", "$value": "{semantic.color.border}" },
+      "item-active": {
+        "$description": "Brand-coloured TEXT (icon + label), so it follows the design system's rule and uses the link token: brand-600 on light, brand-300 on dark. Pointing it at semantic.color.primary — the literal brand-600 the artboards draw in light mode — measures 3.02:1 on the dark card and fails AA; the contrast gate caught it.",
+        "$type": "color",
+        "$value": "{semantic.color.link}",
+        "$extensions": {
+          "com.lemony.contrast": { "against": "{component.bottom-nav.background}", "level": "text" }
+        }
+      },
+      "item-inactive": {
+        "$type": "color",
+        "$value": "{primitive.color.ink.muted}",
+        "$extensions": {
+          "com.lemony.contrast": { "against": "{component.bottom-nav.background}", "level": "text" }
+        }
+      }
+    },
+    "side-nav": {
+      "$description": "Desktop vertical navigation, from the `nav:` breakpoint up.",
+      "background": { "$type": "color", "$value": "{semantic.color.card}" },
+      "item-active-background": { "$type": "color", "$value": "{semantic.color.pill}" },
+      "item-active-foreground": {
+        "$type": "color",
+        "$value": "{primitive.color.brand.700}",
+        "$extensions": {
+          "com.lemony.contrast": { "against": "{component.side-nav.item-active-background}", "level": "text" }
+        }
+      }
+    },
+    "field": {
+      "background": { "$type": "color", "$value": "{semantic.color.card}" },
+      "border": { "$type": "color", "$value": "{semantic.color.input}" },
+      "border-invalid": { "$type": "color", "$value": "{semantic.color.destructive-border}" },
+      "radius": { "$type": "dimension", "$value": "{semantic.radius.control}" },
+      "height": { "$type": "dimension", "$value": "3rem" }
+    },
+    "photo-badge": {
+      "$description": "Badge laid over a photograph. The ground is image data, not a token, so the pair cannot be measured here — the implementation keeps the scrim opacity the design system fixes (black 50% under white text, white 50% under black text).",
+      "dark-background": { "$type": "color", "$value": "#00000080" },
+      "dark-foreground": { "$type": "color", "$value": "{primitive.color.static.white}" },
+      "light-background": { "$type": "color", "$value": "#ffffff80" },
+      "light-foreground": { "$type": "color", "$value": "{primitive.color.static.black}" }
+    },
+    "not-found": {
+      "$description": "The decorative 404 numerals: aria-hidden, so no contrast floor applies.",
+      "numerals": { "$type": "color", "$value": "{primitive.color.brand.200}" }
+    }
+  }
+}
