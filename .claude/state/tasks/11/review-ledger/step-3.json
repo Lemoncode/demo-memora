@@ -1,0 +1,213 @@
+{
+  "version": 2,
+  "step": 3,
+  "criteria": [
+    {
+      "id": "R29",
+      "evidence": "read every primitive line by line: `cn` imported from the `cn` package and all Radix primitives from the single `radix-ui` package in button/label/alert/badge/avatar/progress/toggle-group/dropdown-menu; `grep -rn '@/lib/utils\\|@radix-ui/' apps/web/src` returns nothing"
+    },
+    {
+      "id": "R30",
+      "evidence": "`find . -name bundle.js -not -path ./node_modules/*` returns nothing; the design system's compiled bundle was read as data (which is why `album` is `layers` and `help` is `circle-question-mark`) and vendored nowhere"
+    },
+    {
+      "id": "R31",
+      "evidence": "every variant/state §5 enumerates exists, and the previous PARTIAL is cleared: `link` now measures 20 px tall, `display: inline-flex`, `padding: 0px` in real Chrome, inline in a paragraph as the artboards place it. Input carries `aria-invalid:border-2 aria-invalid:border-destructive-border`; Progress's `label` is required, not optional; Avatar ships sm/md/lg/xl with the initials fallback"
+    },
+    {
+      "id": "R38",
+      "evidence": "real Tab key events through CDP over 17 tab stops: every one reports `:focus-visible` matching with `outline: solid 2px`, `outline-offset: 2px`, `outline-color: rgb(108, 99, 255)` — Buttons at every size and variant, asChild (an `<a>`), Input default and aria-invalid, FutureLink, ToggleGroupItem, menu trigger. The previous failure is cleared: the DropdownMenuRadioItem now paints the same ring under Radix's programmatic roving focus driven by real arrow keys"
+    },
+    {
+      "id": "R74",
+      "evidence": "PASS for the half T9 owes: `home-page.tsx` and `home-page.spec.tsx` are deleted and nothing imports them; the old `components/ui/button.tsx` is gone and `components.json`'s `components`/`ui` aliases point at `#/common/components*` while `utils`/`lib`/`hooks` are untouched. R74's redirect half is T26's (Group 8) by the spec's own task split — `/` renders `null` until then, by instruction and with the reason in the file"
+    },
+    {
+      "id": "R94",
+      "evidence": "PASS against the amended §8: computed styles show Button/ToggleGroupItem `color, background-color, box-shadow`, Input `border-color, box-shadow`, FutureLink and the menu item `color, background-color` — all 0.15s on cubic-bezier(0.16, 1, 0.3, 1) behind `motion-safe:`; the menu's enter/exit is 150 ms on the same curve inside `motion-safe:` (the `slide-in-from-*` classes only set inert translate variables the gated animation consumes); Progress declares no transition. The spinner and `Skeleton`'s pulse are admitted by amended §8 item 2 as loading affordances outside the interaction budget. R94's own letter is now stale against that amendment — reported as a spec-side problem"
+    },
+    {
+      "id": "R103",
+      "evidence": "measured on both paths over 8 frames with `document.getAnimations()`: as shipped, zero CSS transitions created anywhere on the page on either the control swap or an OS `prefers-color-scheme` flip under «Sistema» (where `data-theme` stays `system`, confirming the suppression had to hang off the matchMedia listener). Control: removing `!important` from the `styles.css` rule makes 27 transitions escape on both paths, so the zero is a real suppression and not a no-op swap. Inverse: after a swap a real hover still interpolates background-color (74,66,201 -> 71,63,195 -> 70,62,193), so the marker does not outlive the swap. The marker lives exactly frames 0-1; the single-rAF mutant turned 2 tests red"
+    },
+    {
+      "id": "R104",
+      "evidence": "`grep -rn 'transition-all' apps/web/src` returns nothing and a spec pins it with a split needle so the grep stays empty; every rendered transition-property in the real build names its properties explicitly, with no `all` outside the browser's 0s default on untransitioned elements"
+    }
+  ],
+  "gates": [
+    {
+      "kind": "script",
+      "script": "typecheck",
+      "evidence": "green, re-run by me with TURBO_FORCE=true — 3 packages, `cache bypass, force executing` on each, `tsc --noEmit` plus the scripts project"
+    },
+    {
+      "kind": "script",
+      "script": "format:check",
+      "evidence": "green — `All matched files use Prettier code style!`"
+    },
+    {
+      "kind": "script",
+      "script": "test",
+      "evidence": "green, cache bypassed — 188 tests in 11 files (web: 170 in 6 files), including the new button.spec.tsx and focus-ring.spec.ts"
+    },
+    {
+      "kind": "script",
+      "script": "build",
+      "evidence": "green, cache bypassed — `built in 96ms`, nitro output generated; the only stderr is the pre-existing third-party MODULE_LEVEL_DIRECTIVE warning from @tanstack/react-router's `use client` files, not this change's"
+    },
+    {
+      "kind": "script",
+      "script": "design-tokens:validate",
+      "evidence": "green — 147 tokens, 43 files scanned, no hardcoded values, with only `tokens.generated.css` excluded (plus git-ignored build output)"
+    },
+    {
+      "kind": "script",
+      "script": "design-tokens:contrast",
+      "evidence": "green — `56 pair(s) meet their WCAG floor`"
+    },
+    {
+      "kind": "script",
+      "script": "design-tokens:css:check",
+      "evidence": "green — the committed projection is up to date; this diff does not touch Group 1's generator, token file or gate config"
+    },
+    {
+      "kind": "real-run",
+      "evidence": "production build served on a free port chosen by binding :0 (never 3000), served bytes grepped first for dev markers — viteClient/reactRefresh/devAttr all false on 25,249 bytes — then driven in real headless Chrome over CDP: geometry and computed styles of every primitive, elementFromPoint hit testing around an inline link in running copy, real Tab/Enter/Arrow/Escape key events for the focus rings and the menu, real mouse events for hover, Emulation.setEmulatedMedia for the OS theme path, and the unknown-icon production path. A temporary probe route replaced routes/index.tsx under an EXIT trap and was restored; git status after each trip matched its starting state with no .bak left behind"
+    }
+  ],
+  "mutants": {
+    "basis": "no-declared-risk"
+  },
+  "passes": [
+    {
+      "name": "senior-review",
+      "outcome": "findings",
+      "examined": [
+        "apps/web/components.json",
+        "apps/web/package.json",
+        "apps/web/src/common/components/empty-state.component.tsx",
+        "apps/web/src/common/components/future-link.component.tsx",
+        "apps/web/src/common/components/icon.component.tsx",
+        "apps/web/src/common/components/skeleton.component.tsx",
+        "apps/web/src/common/components/ui/alert.tsx",
+        "apps/web/src/common/components/ui/avatar.tsx",
+        "apps/web/src/common/components/ui/badge.tsx",
+        "apps/web/src/common/components/ui/button.tsx",
+        "apps/web/src/common/components/ui/card.tsx",
+        "apps/web/src/common/components/ui/dropdown-menu.tsx",
+        "apps/web/src/common/components/ui/input.tsx",
+        "apps/web/src/common/components/ui/label.tsx",
+        "apps/web/src/common/components/ui/progress.tsx",
+        "apps/web/src/common/components/ui/toggle-group.tsx",
+        "apps/web/src/common/theme/theme-provider.component.tsx",
+        "apps/web/src/routes/index.tsx",
+        "apps/web/src/styles.css",
+        "pnpm-lock.yaml"
+      ],
+      "findings": [
+        {
+          "file": "apps/web/src/common/theme/theme-provider.component.spec.tsx",
+          "line": 449,
+          "summary": "`toEqual([])` where the skill asks for `toStrictEqual` — the new R104 grep test; the step fixed the previous instance in icon.component.spec.tsx and introduced this one. Cosmetic for a string array"
+        },
+        {
+          "file": "apps/web/src/common/components/ui/button.tsx",
+          "line": 82,
+          "summary": "`variant=\"link\" size=\"icon\"` emits both `size-[…touch-target]` and `h-auto`, which contradict each other and resolve by stylesheet order rather than class order. No artboard uses the combination and the code says so; noted, not blocking"
+        },
+        {
+          "file": "apps/web/src/common/components/focus-ring.spec.ts",
+          "line": 21,
+          "summary": "the guard's scope is `src/common/components` only, so Groups 7-12's work under `src/pods/` will not be covered; and it matches the literal `outline-none`, while `outline-hidden`, `outline-0`, `outline-transparent` or `[--tw-outline-style:none]` would kill the ring identically and pass. None appears today. It also excludes `.spec.ts` but not `.spec.tsx`"
+        },
+        {
+          "file": "apps/web/src/common/components/icon.component.tsx",
+          "line": 148,
+          "summary": "throwing during render unmounts the subtree in development — which is what D15 asked \"fail loudly\" to mean; recorded so a later reader does not mistake it for an accident"
+        }
+      ]
+    },
+    {
+      "name": "spec-compliance-check",
+      "outcome": "none",
+      "examined": [
+        "apps/web/components.json",
+        "apps/web/package.json",
+        "apps/web/src/common/components/empty-state.component.tsx",
+        "apps/web/src/common/components/future-link.component.tsx",
+        "apps/web/src/common/components/icon.component.tsx",
+        "apps/web/src/common/components/skeleton.component.tsx",
+        "apps/web/src/common/components/ui/alert.tsx",
+        "apps/web/src/common/components/ui/avatar.tsx",
+        "apps/web/src/common/components/ui/badge.tsx",
+        "apps/web/src/common/components/ui/button.tsx",
+        "apps/web/src/common/components/ui/card.tsx",
+        "apps/web/src/common/components/ui/dropdown-menu.tsx",
+        "apps/web/src/common/components/ui/input.tsx",
+        "apps/web/src/common/components/ui/label.tsx",
+        "apps/web/src/common/components/ui/progress.tsx",
+        "apps/web/src/common/components/ui/toggle-group.tsx",
+        "apps/web/src/common/theme/theme-provider.component.tsx",
+        "apps/web/src/routes/index.tsx",
+        "apps/web/src/styles.css",
+        "pnpm-lock.yaml"
+      ],
+      "reason": "15 of 15 slice requirements PASS; the two requirements whose letter is stale against the amended design contract (R94, R103) and the one whose premise is false (R35) are reported as spec-side problems, not as implementation failures"
+    },
+    {
+      "name": "security-review",
+      "outcome": "none",
+      "examined": [
+        "apps/web/components.json",
+        "apps/web/package.json",
+        "apps/web/src/common/components/empty-state.component.tsx",
+        "apps/web/src/common/components/future-link.component.tsx",
+        "apps/web/src/common/components/icon.component.tsx",
+        "apps/web/src/common/components/skeleton.component.tsx",
+        "apps/web/src/common/components/ui/alert.tsx",
+        "apps/web/src/common/components/ui/avatar.tsx",
+        "apps/web/src/common/components/ui/badge.tsx",
+        "apps/web/src/common/components/ui/button.tsx",
+        "apps/web/src/common/components/ui/card.tsx",
+        "apps/web/src/common/components/ui/dropdown-menu.tsx",
+        "apps/web/src/common/components/ui/input.tsx",
+        "apps/web/src/common/components/ui/label.tsx",
+        "apps/web/src/common/components/ui/progress.tsx",
+        "apps/web/src/common/components/ui/toggle-group.tsx",
+        "apps/web/src/common/theme/theme-provider.component.tsx",
+        "apps/web/src/routes/index.tsx",
+        "apps/web/src/styles.css",
+        "pnpm-lock.yaml"
+      ],
+      "reason": "run beyond the per-step floor (no group carries a `[risk: …]` tag, so the on-risk rows are not owed), for continuity with step 2's record and because this group introduces the application's entire interactive surface. Declared surfaces handed over: none — `tasks.md`'s preamble declares as a deliberate claim that this part has no auth, writes no data, spawns no process, moves no money, handles no secret and changes no file mode, and Groups 3-4's rationales name their damage as component-tree relocation and a nav item silently losing its meaning. Nothing found: no user input, no network call, no subprocess, no secret, no destructive write, no file-mode change, no LLM in the loop; the only new dependency is `lucide-react` 1.59.0 and the lockfile change is additive"
+    },
+    {
+      "name": "silent-failure-hunter",
+      "outcome": "none",
+      "examined": [
+        "apps/web/components.json",
+        "apps/web/package.json",
+        "apps/web/src/common/components/empty-state.component.tsx",
+        "apps/web/src/common/components/future-link.component.tsx",
+        "apps/web/src/common/components/icon.component.tsx",
+        "apps/web/src/common/components/skeleton.component.tsx",
+        "apps/web/src/common/components/ui/alert.tsx",
+        "apps/web/src/common/components/ui/avatar.tsx",
+        "apps/web/src/common/components/ui/badge.tsx",
+        "apps/web/src/common/components/ui/button.tsx",
+        "apps/web/src/common/components/ui/card.tsx",
+        "apps/web/src/common/components/ui/dropdown-menu.tsx",
+        "apps/web/src/common/components/ui/input.tsx",
+        "apps/web/src/common/components/ui/label.tsx",
+        "apps/web/src/common/components/ui/progress.tsx",
+        "apps/web/src/common/components/ui/toggle-group.tsx",
+        "apps/web/src/common/theme/theme-provider.component.tsx",
+        "apps/web/src/routes/index.tsx",
+        "apps/web/src/styles.css",
+        "pnpm-lock.yaml"
+      ],
+      "reason": "run beyond the per-step floor: both rejected defects were silent-failure shapes — `outline-none` making three `focus-visible:` utilities dead code that read as compliance, and a hit area that swallows clicks on neighbouring text invisibly — so the invocation's own brief is a silent-failure brief. Nothing found: no `catch` anywhere in the diff, no `.catch(() => {})`, no floating promise, no success-shaped error return. The three guarded fallbacks (`matchMedia` absent, `requestAnimationFrame` absent, a `data-theme` outside the vocabulary) each carry a comment stating the intent and each falls to the documented R24 default rather than to silence; `Progress`'s `value ?? 0` is the one dangerous-fallback shape and the human has judged it acceptable. Both former defects now have a test that goes red when the shape returns, verified by mutant"
+    }
+  ]
+}

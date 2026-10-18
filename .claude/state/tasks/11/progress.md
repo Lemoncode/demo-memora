@@ -7,12 +7,14 @@
 
 ## Active
 
-**Status**: implementing — Group 2 (tema Claro / Oscuro / Sistema), step-by-step,
-auto-commit **off** (save-points in the git index, zero commits).
+**Status**: implementing — **Grupos 3 y 4** (biblioteca de componentes), paso 3 de 8,
+step-by-step, auto-commit **off** (save-points en el índice de git, cero commits).
 
-**Active subtask**: none — **Group 2 complete (T6–T8)**, all seven gates green, the real path
-exercised in Chrome against the production build, everything staged and uncommitted, awaiting
-the human checkpoint. Group 3 not started.
+**Active subtask**: ninguna — **Grupos 3 y 4 completos (T9–T12, T46, T13–T16)**, tras la
+**iteración 2 del fix-loop** (review REJECT: dos puntos bloqueantes, los dos reales y los dos
+arreglados y medidos). Los siete gates en verde, el camino real ejercitado en Chrome contra el
+build de producción, todo en el índice y sin commitear, a la espera del checkpoint humano. El
+Grupo 5 no se ha empezado.
 
 Group 1 (T1–T5) is done, reviewed over three rounds and committed at `6ea1697`; its record
 below is kept verbatim.
@@ -524,6 +526,452 @@ mediciones de esta iteración se hicieron en **puertos explícitos y libres**: `
 de fuentes y `3242` para el run final de producción. Al medir producción, puerto explícito
 siempre; `3000` no.
 
+## Grupos 3 y 4 — la biblioteca de componentes (T9–T12, T46, T13–T16), paso 3/8
+
+**Preflight del skill `tdd`.** Playbooks cargados: **ninguno** — `docs/playbooks/` sigue
+teniendo sólo el `README.md` de la convención de lookup, y su ausencia no es un blocker.
+Entorno de test: **jsdom + Testing Library** para los specs de componente, que es la
+convención del repo y lo que el Grupo 2 ya dejó dicho (el repo no tiene browser mode por
+decisión explícita). Lo que jsdom **no** puede ver se midió en Chrome de verdad, y en este
+paso eso no fue una formalidad: encontró un defecto real en T46.
+
+### La referencia de vestido: el `bundle.js` del sistema de diseño, leído como datos
+
+R30 prohíbe **vendorizar** el `bundle.js`, y no se ha vendorizado ni una línea: es JS
+compilado y no hay fuente React que copiar. Pero leerlo para saber **qué clases le pone el
+diseño a cada componente** no es vendorizar, es consultar la fuente de verdad del diseño en
+vez de adivinarla. De ahí salen, medidos y no supuestos:
+
+- **El mapa de iconos entero** (`iconMap`), nombre por nombre — ver T13.
+- Las variantes y tamaños de `Button` y `Badge`, y el vestido de `Input`, `Label`, `Alert`,
+  `EmptyState`, `Skeleton`, `Progress`, `Menu` y `ToggleGroup`.
+- **El anillo de foco del sistema es literalmente
+  `focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring`**, que
+  es exactamente lo que pide §9 («2 px de anillo con 2 px de separación»). Es decir: R38 se
+  cumple con la misma cadena que escribe el DS, no con una interpretación.
+
+Artboards leídos del canvas para esto: `Login-M-Error` (el `Alert`, el campo inválido con su
+`h-12` y su borde de 2 px, el mensaje con su punto `aria-hidden`), `Invite-States` (la API de
+`EmptyState`: `icon`/`tone`/`title`/`size`, y los tres tonos) y `Register-M` (el icono
+`success` tintado con `accent-mint-strong`, y el botón de volver de 44 px).
+
+### T9 — la mudanza de los primitivos
+
+`git mv` de `button.tsx` y `card.tsx` a `src/common/components/ui/`, los alias `components` y
+`ui` de `components.json` apuntando ahí, y `utils` / `lib` / `hooks` **sin tocar**, que es lo
+que mantiene la issue #5 fuera de esta entrega (D4). `home-page.tsx` y su spec borrados (R74):
+el suite baja de 115 a 113 tests ahí.
+
+**`routes/index.tsx` queda como marcador de posición que no pinta nada**, con un comentario
+que dice por qué. No puede ser todavía la redirección de R61 (T26, Grupo 8): `redirect` y
+`<Link>` están tipados contra el árbol de rutas generado y `/login` no existe hasta el Grupo
+9, así que escribirla ahora rompería `typecheck`. Y **no se ha inventado una pantalla** para
+llenar el hueco: la instrucción de este paso es que no hay rutas. Consecuencia que conviene
+decir en voz alta: **en el checkpoint, abrir `/` no enseña nada**. Lo que hay que mirar son
+las capturas de abajo.
+
+### T10, T11 y T12 — los primitivos, vestidos
+
+Generados con la CLI de shadcn (R29). **La CLI ya emitió los imports de este repo** — `cn`
+desde `cn` y los primitivos desde el paquete único `radix-ui` — así que la corrección a mano
+que D4 anticipaba no hizo falta; se comprobó fichero por fichero. No tocó `styles.css` ni
+`package.json`: se comparó con una copia previa de los dos.
+
+Decisiones de vestido, todas con el mismo criterio — **entregar lo que §5 enumera y nada más**,
+porque una variante que ningún artboard usa es superficie que nadie ha revisado:
+
+- **`Button`**: `default`, `secondary`, `soft`, `ghost`, `link`; se caen `destructive` y
+  `outline` del primitivo generado. Tamaños `default` / `lg` / `sm` / `icon`.
+- **`Badge`**: sólo `secondary` y `outline` (el DS tiene ocho). **`Alert`**: sólo `error`.
+- **`Avatar`**: `sm`/`md`/`lg`/`xl` con los valores del DS. Se caen `AvatarGroup`,
+  `AvatarGroupCount` y `AvatarBadge`: §J pone `AvatarGroup` explícitamente **fuera** de esta
+  parte. **Las iniciales no se derivan en el componente**: R43 y T22 ponen esa derivación en
+  el mapper del pod, así que el llamante las pasa como hijos y no hay dos sitios calculando
+  lo mismo.
+- **`toggle.tsx` borrado.** La CLI lo crea porque `ToggleGroup` reutiliza las variantes de un
+  `Toggle` suelto; esta parte no tiene ninguno y la lista de ficheros de `design.md` enumera
+  diez en `ui/` y **no incluye** `toggle.tsx`. Las variantes viven ahora en `toggle-group.tsx`.
+- **`dropdown-menu.tsx` recortado a siete piezas** de las catorce que genera la CLI: `Root`,
+  `Trigger`, `Content`, `Label`, `Separator`, `RadioGroup` y `RadioItem`. `RadioItem` es lo
+  que da `role="menuitemradio"` + `aria-checked`, que es literalmente R28.
+- **`Progress` sin transición de ancho.** El DS la anima 300 ms; §8 es una lista cerrada de
+  cinco cosas y el ancho de una barra no es ninguna (R94). Y `label` es **obligatorio** en el
+  tipo, no opcional: §5 pide «etiqueta accesible», y un `aria-label` que se puede omitir se
+  omite.
+
+**Alturas y el suelo de 44 px (R89), que es donde se desvió del DS a conciencia.** El
+`default` del DS mide 40 px y el `icon` 40 px, por debajo del suelo. Así que `default` e
+`icon` miden el **token** `primitive.dimension.layout.touch-target` (2,75rem = 44 px) — que es
+además lo que `Register-M` dibuja para su único control sólo-icono — y `lg` se queda en los
+48 px del DS. `sm` conserva los 32 px del DS (es lo que dibuja `Profile-D`) y **extiende su
+área de pulsación a 44 px con un pseudoelemento**, que es exactamente la regla de app del DS
+(«los chips y los interruptores extienden su área de pulsación»). Medido en el navegador: el
+`::after` del `sm` mide 44 px.
+
+**Sombras y `tracking`, el interino de #13** aplicado tal y como se decidió: utilidades de
+Tailwind, nunca un valor arbitrario con un literal dentro. El `shadow-brand` del DS (la sombra
+teñida de marca que «marca lo único que hay que pulsar») se compone como
+`shadow-md shadow-primary/25`: `shadow-primary/25` tiñe la sombra con `--color-primary`, así
+que **no lleva ningún literal** y el día que #13 defina la familia desde el fichero de tokens
+esto hereda el cambio sin tocarse. Comprobado en el CSS compilado:
+`.shadow-primary\/25{--tw-shadow-color:var(--semantic-color-primary)}`.
+
+**El escáner pilló un hex en un comentario mío** (`#f87171`, citado al explicar por qué el
+borde inválido usa `destructive-border`), igual que le pasó al Grupo 1 con un ejemplo en un
+comentario del generador. El comentario perdió el valor y lo dice con palabras.
+
+### T46 — **aquí está el hallazgo del paso: el mecanismo no suprimía nada**
+
+Cuatro ciclos rojo → verde en el proveedor (marcador en el manejador; marcador soltado;
+camino del sistema operativo; la guarda de deriva sobre `styles.css`), más la mitad de CSS en
+el `@layer base` y un quinto ciclo para R104. Y **todo eso estaba verde cuando la medición en
+Chrome demostró que la supresión no funcionaba**.
+
+**Lo que midió el navegador.** Con el build de producción servido en un puerto libre
+explícito, se muestreó el `background-color` computado de un botón `secondary` (uno cuyo color
+**sí** cambia entre temas — el primer intento midió el botón primario, que es `brand-600` en
+los dos temas y por tanto no podía interpolar nunca: una medición vacua que casi se da por
+buena) fotograma a fotograma durante un cambio de tema:
+
+```
+f1 rgb(241,245,249) → f3 rgb(124,133,143) → f5 rgb(44,55,69) → f9 rgb(23,35,50)
+```
+
+Es decir: **cross-fade**, exactamente lo que R27 prohíbe, con el mecanismo entero puesto y los
+163 tests en verde.
+
+**La causa.** Un solo `requestAnimationFrame` no sirve: su callback corre *antes* del
+recálculo de estilo del fotograma, así que el marcador ya no está cuando el navegador computa
+los colores nuevos. Y el `getComputedStyle` que yo había puesto para forzar el recálculo
+tampoco servía, por una razón distinta y peor: **estaba antes de escribir `data-theme`**, así
+que asentaba los colores viejos.
+
+**Las seis variantes, medidas en una página aislada** (sin React, sin el repo, sólo la
+semántica del navegador; el primer intento de ese experimento también salió mal — leía el
+color inicial a mitad de una transición anterior — y se corrigió el reset antes de creerse
+nada):
+
+| Variante | Veredicto |
+| --- | --- |
+| sin supresión (control) | INTERPOLA (6 intermedios) |
+| un rAF + flush del estilo computado del root (**lo que se había escrito**) | **INTERPOLA (6)** |
+| un rAF + flush forzando layout (`offsetHeight`) | INTERPOLA (6) |
+| **rAF doble** | **SUPRIME (0)** |
+| rAF doble + layout | SUPRIME (0) |
+| flush *después* de escribir el tema + un rAF | SUPRIME (0) |
+
+**Se toma el rAF doble**, por dos razones: no depende del orden de las escrituras — y el
+camino del sistema operativo **no escribe ningún atributo** tras el que flushear, así que allí
+no existe el «después» — y no fuerza un reflow sincrónico en cada cambio. El marcador vive el
+fotograma que pinta el cambio y se suelta en el siguiente, ~33 ms. Es una desviación de la
+letra de §8 punto 5 («suéltalo en el fotograma siguiente») que la medición **obliga**: con un
+solo fotograma el mecanismo está puesto y no hace nada.
+
+Vuelto a medir en la aplicación real tras el arreglo: **0 colores intermedios**, el botón pasa
+de `rgb(241,245,249)` a `rgb(23,35,50)` en el primer fotograma.
+
+**Y el criterio que vigila el otro lado**: tras el cambio de tema, pasar el ratón por encima
+del botón **sí** interpola — 5 muestras intermedias hasta `rgb(70,62,193)`, que es `brand-700`,
+el color de hover que pide el DS — con `transition-duration: 0.15s`. O sea: el marcador no
+sobrevive y no ha matado en silencio las transiciones de la aplicación.
+
+**El suite ahora sí lo ve.** El test del marcador se reescribió a la forma que la medición
+fijó (sobrevive al fotograma que pinta, se suelta en el siguiente) y **mata el mutante del rAF
+único**: con un solo rAF, 1 test en rojo. Antes de medir, ese defecto pasaba 163/163.
+
+**Dónde vive cada mitad (D16), y la única desviación de su letra.** El marcador lo pone el
+proveedor y la regla está en el `@layer base` de `styles.css` escrito a mano, porque el
+generador es dueño del fichero generado byte a byte (R7). La desviación: D16 dice «en el
+efecto que ya escribe `data-theme`», y **ese efecto no cubre el camino del sistema operativo**
+— con el tema en «Sistema», un cambio de `prefers-color-scheme` no toca `data-theme` (se queda
+en `system`) y el repintado lo hace el brazo `@media` del CSS, así que el efecto con
+dependencia `[theme]` no corre. R103 dice explícitamente que la supresión «vale como sea que
+se haya disparado el cambio», así que la supresión se cuelga también del oyente de
+`matchMedia`, que vive dentro del efecto del proveedor. Se cumple la sustancia de R103 y de la
+intención de D16; se desvía de una frase de su justificación. Hay un test que lo fija.
+
+**La guarda de deriva entre las dos mitades.** El nombre del atributo vive en TypeScript y el
+selector en CSS, y **ningún compilador une esas dos mitades**: si uno cambiase y el otro no,
+el mecanismo quedaría verde y sin efecto. Un test lee `styles.css` y comprueba que la regla
+existe y apaga las transiciones con `!important`. Renombrar el atributo sólo en el CSS: 1 test
+en rojo. Quitar el `!important`: 1 test en rojo (y no es decorativo — la regla está en `base`
+y las utilidades de Tailwind ganan por capa).
+
+**R104, la otra mitad.** El `transition-*` sin acotar del `Button` pasa a nombrar las tres
+propiedades que de verdad cambian, con 150 ms y la curva del sistema, dentro de
+`motion-safe:`. Y hay un **test mecánico** que recorre `apps/web/src` y falla si la utilidad
+sin acotar reaparece en cualquier `.ts`/`.tsx`/`.css`: su criterio de aceptación es un `git
+grep`, nada más en el proyecto lo vigila (el escáner anti-hardcode mira colores y dimensiones,
+no transiciones) y la aguja se compone de dos trozos para que el `git grep` del humano siga
+saliendo vacío. **Sale vacío.**
+
+**Mutantes de T46, todos cazados** (cada uno un comando con `trap`, árbol limpio después):
+
+| Mutante | Resultado |
+| --- | --- |
+| un solo rAF (el defecto que se midió) | **cazado** — 1 test |
+| el marcador no se suelta nunca | cazado — 2 tests |
+| `setTheme` no suprime | cazado — 2 tests |
+| el camino del SO no suprime | cazado — 1 test |
+| renombrar el atributo sólo en el CSS | cazado — 1 test |
+| quitar el `!important` | cazado — 1 test |
+
+Un sondeo anterior de «el marcador no se suelta nunca» **salió no-op** (el `perl` no casaba con
+la línea) y durante un rato pareció un superviviente. Queda dicho, como en el Grupo 2: se
+repitió verificando que la mutación se había aplicado antes de creerse el resultado.
+
+### T13 — `Icon`, y una afirmación del contrato que la medición desmiente
+
+El mapa cubre los **catorce nombres del README del DS y los diecinueve que añade §5** (33
+canónicos + 1 alias). Qué glifo le toca a cada nombre **no se ha elegido aquí**: se leyó del
+`iconMap` del propio sistema de diseño. Por eso `album` es `layers` y no un álbum, `filter` es
+`funnel`, `upload` es `cloud-upload`, `edit` es `pencil`, `phone` es `smartphone`, `photos` es
+`images`, `pin` es `map-pin`, `shield` es `shield-check`, `help` es `circle-question-mark` y
+`pending` es `hourglass`. Adivinarlos habría dado un conjunto plausible y **distinto** del
+diseño.
+
+**El hallazgo: §5 dice que `success` y `check` «son el mismo glifo», y el sistema de diseño
+dice que no.** En su `iconMap`, `check` es `check` (la marca pelada) y `success` es
+`circle-check` (la marca dentro de un círculo): dos glifos distintos. R35 pide «una entrada
+canónica más un alias», y no dice cuál es cuál — así que **`success` es la canónica y `check`
+su alias**, porque **ningún artboard de esta parte usa `check`**: `Register-M` (la pista de la
+contraseña) e `Invite-States` (el estado «ya eres miembro») piden los dos `success`. Así se
+cumple R35 a la letra, sin dos entradas que puedan separarse, **y** se pinta el glifo que el
+diseño pone en cada sitio donde esta parte lo usa. Consecuencia, dicha para que no sorprenda:
+un futuro `check` saldrá como `circle-check`. Si el humano prefiere lo contrario, es cambiar
+qué entrada apunta a qué y nada más.
+
+**El mapa es un `Map`, no un objeto indexado**, que es la lección que la review del Grupo 1
+dejó **dos veces**: indexar un literal consulta `Object.prototype` y `ICON_MAP['constructor']`
+devuelve una función que el componente intentaría pintar. Hay un test con los cinco nombres
+heredados; con un índice de objeto, **5 tests en rojo**.
+
+Ciclos: el glifo conocido; el fallo ruidoso en desarrollo nombrando el nombre (R34, D15 — el
+camino de producción no se asevera, como D15 dice); los nombres heredados (**nació verde**,
+porque el `Map` ya estaba en el primer verde — probado a mano); el alias; los 34 nombres (la
+lista se escribe **a mano desde el contrato**, no se deriva del mapa, que es la lección del
+contador de hojas del Grupo 1); y el par decorativo/anunciado (**también nació verde** — llegó
+en el verde anterior; los dos mutantes caen, 1 test cada uno).
+
+### T14, T15 y T16 — los compuestos
+
+- **`EmptyState`** con la anatomía del DS y los tres tonos de §5. `neutral` y `mint` salen
+  enteros de la capa semántica, y `mint` es el caso bonito: `success-foreground` **ya es**
+  «mint-strong en claro, mint-base en oscuro», que es exactamente lo que el DS escribe como
+  `text-accent-mint-strong dark:text-accent-mint` — un solo token, medido por el gate de
+  contraste, sin variante `dark:`. **`peach` no tiene equivalente semántico** en el fichero de
+  tokens, así que referencia la escala primitiva por `var()`: sin literales, pero un nivel por
+  debajo de lo que el contrato de tokens prefiere. Anotado abajo como candidato de fichero de
+  tokens, no arreglado aquí.
+- **`Skeleton`**, que **no se usa en ninguna de las seis pantallas** (R37) y no se puede
+  inventar en ellas. Lleva `motion-safe:animate-pulse`, que es **motion fuera de los cinco
+  puntos de §8**, y se entrega a conciencia: es el vestido que le da el propio sistema de
+  diseño, y como no se monta en ninguna pantalla de esta parte, **no hay un solo pixel de esta
+  entrega que se mueva por su causa**. Dicho aquí para que no parezca un descuido.
+- **`FutureLink`**, el único objetivo de `grep` que las Partes 2 y 3 convierten (R71, D9), con
+  `href` obligatorio en el tipo y el anillo de foco de serie.
+
+**Sin spec para estos tres, y es una decisión, no un olvido.** R99 prohíbe explícitamente
+aseverar markup de componentes, y los tres son presentacionales y declarativos — la lista de
+exclusiones del propio skill `tdd` («envoltorios de paso», «contenido estático»). `Icon` sí
+lleva spec porque **es un mapper** con un fallo ruidoso, y R34 lo pide. Lo que estos tres sí
+tienen es verificación: se pintaron en el navegador y se miraron.
+
+### Verify — los siete gates y el camino real
+
+| Gate | Resultado |
+| --- | --- |
+| `typecheck` | ✅ 3/3 paquetes, 0 cacheados |
+| `format:check` | ✅ |
+| `test` | ✅ **163** en `@memora/web` (113 tras borrar `home-page`, +50 en este paso), 181 en el monorepo |
+| `build` | ✅ |
+| `design-tokens:validate` | ✅ 147 tokens, 41 ficheros, sin hardcodes |
+| `design-tokens:contrast` | ✅ 56 parejas |
+| `design-tokens:css:check` | ✅ al día (no se tocó el fichero generado) |
+
+`pnpm audit --audit-level=moderate` → sin vulnerabilidades. Criterios de aceptación que son un
+`grep`: `transition-all` → **0**; `href="#"` → **0** (había uno **en un comentario** mío de
+`FutureLink`, que es justo lo que ese comentario prohibía: reescrito); `@/lib/utils` o
+`@radix-ui/react-*` → **0**; `bundle.js` en el repo → **0**; `home-page` → **0**.
+
+**El camino real, ejercitado y no aseverado.** Build de producción servido en un puerto libre
+**explícito** (3421/3423/3425/3427, nunca el 3000) y con los bytes servidos comprobados antes
+de fiarse: `@vite/client|@react-refresh|vite/dist/client|__vite` → **0 ocurrencias**. Chrome
+headless por CDP sobre el `WebSocket` global de Node, sin añadir ninguna dependencia al repo.
+La sonda es una galería con **todos** los componentes, que reemplaza temporalmente
+`routes/index.tsx` y se restaura desde el índice en el mismo comando con `trap` (así no se
+toca `routeTree.gen.ts`). Medido:
+
+- **El cambio de tema no interpola**: 0 colores intermedios (arriba).
+- **El hover sigue vivo tras el cambio**: 5 intermedios hasta `brand-700`, `td: 0.15s`.
+- **El anillo de foco, en cuatro componentes** — `Button`, `Input`, `FutureLink` y el ítem del
+  `ToggleGroup` —: los cuatro `enfocado: true`, `focusVisible: true`,
+  `outline: 2px solid`, `outline-offset: 2px`, color `rgb(108,99,255)` = `brand-500` =
+  `--color-ring`. **R38 medido, no afirmado.** (La primera lectura de esto salió
+  `outline-style: none` con 3 px: el menú estaba abierto y atrapaba el foco, así que
+  `btn.focus()` no llegaba. Se cerró el menú con Escape y se pulsó Tab de verdad antes de
+  medir; si no, el 3 px era el `medium` por omisión de Chrome y no el anillo de nadie.)
+- **El `Menu` con semántica de menú**: `aria-haspopup="menu"`, `aria-expanded` pasa a `true`,
+  etiqueta «Apariencia», tres `role="menuitemradio"` con `aria-checked` (el del tema guardado
+  en `true`), **44 px de alto cada uno** y `animation-duration: 0.15s` (§8 punto 3). La
+  primera medición decía que el menú no abría: Radix abre en `pointerdown` y yo usaba
+  `element.click()`. Con eventos de puntero de verdad, abre.
+- **Alturas**: `default` 44, `lg` 48, `sm` 32 con área de pulsación de **44 px**, `icon` 44;
+  campos 48; ítems del toggle 44.
+- **Los 34 iconos pintan**, y los 34 con `aria-hidden="true"`.
+- **Sin scroll horizontal** a 390 px (`scrollWidth` 390 = `innerWidth`) ni a 1440.
+- **`Progress`**: `role="progressbar"`, `aria-label` y `aria-valuenow` presentes.
+- Consola: sólo el 404 de `favicon.ico` (preexistente), un aviso del DOM de la **sonda** (un
+  campo de contraseña fuera de un `<form>`, cosa de la galería) y la excepción de hidratación
+  de abajo.
+
+### Lo que el humano ve en el checkpoint
+
+**Abrir `/` no enseña nada** — este paso no entrega rutas a propósito. Lo que hay que mirar
+son las cuatro capturas de la galería, con **todos** los componentes en los dos temas y en las
+dos anchuras:
+
+- `…/scratchpad/cdp/out4/galeria-claro-1440.png` y `galeria-claro-390.png`
+- `…/scratchpad/cdp/out4/galeria-oscuro-1440.png` y `galeria-oscuro-390.png`
+
+(ruta completa: `/private/tmp/claude-501/-Users-brauliodiez-lemoncode-demo-memora/e1755a81-d274-442a-a863-bad54ef6d592/scratchpad/cdp/out4/`)
+
+Qué mirar con ojo crítico:
+
+1. **El modo oscuro**, que §6 marca explícitamente para revisión a ojo porque esta parte no
+   tiene ningún artboard oscuro. En particular el botón `soft` («Editar») y el relleno de los
+   avatares: se quedan en lavanda clara sobre fondo oscuro (ver abajo).
+2. **El conjunto de iconos completo**, donde se ve que `success` y `check` pintan el mismo
+   glifo (la marca dentro de un círculo).
+3. Los tres tonos de `EmptyState`, que son los tres estados de la invitación.
+4. El `sm` del `Button`: se ve pequeño a propósito (es lo que dibuja `Profile-D`) y su área de
+   pulsación mide 44 px aunque no se vea.
+
+La galería **no** se entrega: vive en el scratchpad y se monta con un comando con `trap` que
+restaura el árbol. El solape entre la `Card` y «Privacidad» que se ve en las capturas es de la
+maquetación de la sonda (una fila `flex` sin `min-w`), no de los componentes.
+
+### Lo que queda anotado para otros grupos
+
+- **El fichero de tokens no tiene familia semántica de *hover*.** El DS pide
+  `hover:bg-brand-700` para el primario, `hover:bg-brand-200` para el `soft` y
+  `hover:bg-border-strong` para el `secondary`; como no hay token semántico para eso, los tres
+  referencian la escala **primitiva** por `var()`. Sin literales, pero un nivel por debajo de
+  lo que el contrato prefiere. Candidato claro de fichero de tokens.
+- **Ni familia *accent* semántica**: el tono `peach` de `EmptyState` referencia primitivas por
+  lo mismo. `mint` no lo necesita porque `success-foreground` ya hace ese trabajo.
+- **El avatar y el botón `soft` no se invierten en oscuro.** El DS usa `brand-900/40` +
+  `brand-200` en temas oscuros; el fichero de tokens **no declara ese override** para
+  `pill`/`pill-foreground`, así que se usa la pareja declarada y medida (brand-100 /
+  brand-700), que es legible en los dos modos pero deja dos manchas claras en el oscuro. Es
+  visible en la captura oscura. Inventar el color aquí habría metido un valor sin medir por el
+  gate de contraste; por eso se deja y se cuenta.
+- **La restricción SSR/hidratación del Grupo 12 ya no es una predicción: está medida.** La
+  galería pinta `theme` y `resolvedTheme` sin puerta de montaje, y con un tema guardado en
+  `dark` el navegador tira **React #418** (el texto servido no coincide con el hidratado); sin
+  nada guardado, **cero excepciones**. Es decir: lo que `progress.md` tenía anotado para T40 y
+  T41 ocurre de verdad y se ve así. Ningún componente de esta entrega pinta estado de tema,
+  así que la aplicación entregada no lo sufre — pero quien monte los dos controles necesita la
+  puerta de montaje o `useSyncExternalStore` con snapshot de servidor, y ahora sabe qué error
+  va a ver si se la salta.
+- **Las dos piezas internas que importan un glifo directo de `lucide-react`** y no pasan por
+  `Icon`: el spinner del `Button` (`LoaderCircle`) y el indicador del ítem de menú
+  (`CheckIcon`). Son piezas internas de los primitivos, no iconos con nombre de la aplicación;
+  el mapa cerrado de R33 es el vocabulario de las pantallas, no una aduana sobre los
+  primitivos.
+
+### Fix-loop iteración 2 — review REJECT: dos puntos bloqueantes, los dos reales
+
+**T46 aguantó.** La review reprodujo el fallo del rAF único por su cuenta y además **tiró su
+primer arnés** al darse cuenta de que sondear `getComputedStyle` desde un rAF registrado antes
+del cambio fuerza un recálculo temprano que **suprime él solo** la transición — con lo que
+hasta el rAF único salía verde. Vuelto a medir con oyentes de `transitionrun`/`transitionstart`:
+sin supresión y con un rAF se disparan transiciones de `background-color` y `color`; **con rAF
+doble no se dispara ninguna**, ni por el camino del control ni por el del sistema operativo, y
+el hover sigue interpolando después del cambio. O sea: el diagnóstico y el arreglo quedan
+confirmados por una sonda más estricta que la que los encontró.
+
+#### Bloqueante 1 — `Button variant="link"` no era un enlace
+
+`cva` compone variante **antes** que tamaño y la cadena entera pasa por `cn`, que es clsx **más
+tailwind-merge**: de dos clases en conflicto gana la última. Así que el `h-auto px-0` de la
+variante lo barría la geometría del tamaño y `link` salía con **44 px de alto y 16 px de
+padding** — geometría idéntica a `default`. Los artboards ponen `link` **dentro de una frase**
+(«¿La has olvidado?» en la misma línea que la etiqueta «Contraseña»; «Crea una» e «Inicia
+sesión» dentro de un párrafo), y el Grupo 6 construye esas pantallas.
+
+Arreglado moviendo **las dos** reglas de geometría a `compoundVariants`, que `cva` emite
+después del tamaño y por tanto ganan en `cn`:
+
+- `variant: 'link'` → `h-auto px-0`.
+- el extensor de área de pulsación pasa a `{ variant: [default, secondary, soft, ghost], size:
+  'sm' }`, porque en un enlace en línea metía 44 px invisibles por encima y por debajo y se
+  habría comido los clics del texto que lo rodea. Ese segundo efecto no estaba en el reporte y
+  salió al arreglar el primero.
+
+**Medido en el navegador**: `link` mide **20 px de alto, `padding` 0 y `display: inline-flex`**;
+`default`, 44 px y 16 px. Y hay spec: `apps/web/src/common/components/ui/button.spec.tsx`
+asevera la salida de `cn(buttonVariants(...))` — una función pura, no markup de pantalla
+(R99) —, incluye el caso negativo para no ser vacua, y falla con 4 tests sobre el código
+anterior.
+
+#### Bloqueante 2 — el ítem del menú de tema no pintaba anillo de foco
+
+`dropdown-menu.tsx` llevaba `outline-none` en la base. En Tailwind v4 eso pone
+`--tw-outline-style: none` **sin condición**, y `focus-visible:outline-2` resuelve
+`outline-style: var(--tw-outline-style)` → `none`: las tres utilidades de foco eran **código
+muerto que se leía como cumplimiento**. La misma forma de fallo silencioso que el titular de
+T46, y tampoco la veía ningún test (jsdom no computa Tailwind, y el escáner anti-hardcode mira
+colores y dimensiones).
+
+Arreglado quitando `outline-none`. **Y medido con teclado de verdad**, que era la pregunta
+abierta: Radix mueve el foco **programáticamente** en el roving de flechas, así que si
+`:focus-visible` casa ahí no se podía suponer. Entrando por teclado de principio a fin (Tab →
+foco en el disparador → Enter → flechas), el ítem resaltado mide **`outline: solid 2px`,
+`outline-offset: 2px`, color `rgb(108,99,255)` = `brand-500`**, con `focusVisible: true` y
+`data-highlighted` presente — y lo mismo el segundo ítem tras otra flecha. Es decir:
+`focus-visible:` **sí** es el gancho correcto bajo el foco programático de Radix, y no hace
+falta ni `focus:` ni `data-highlighted:`; no se ha añadido un segundo anillo que sólo funcione
+con Tab.
+
+**Guarda nueva**, `apps/web/src/common/components/focus-ring.spec.ts`: ningún componente puede
+mezclar `outline-none` con las utilidades de foco. Mira **código y no prosa** (quita bloques
+`/* … */` y líneas de comentario) para que un comentario pueda nombrar el peligro — es la
+tercera vez en este paso que un literal dentro de un comentario dispara una de mis propias
+guardas, así que esta se arregló en la guarda y no en el comentario. Verificada contra el
+mutante: devolviendo `outline-none` a la clase, 1 test en rojo.
+
+#### Las cuatro advisories, todas arregladas
+
+1. **`EmptyState` y `Avatar` indexaban objetos literales** donde `Icon` usa un `Map`. Ahora los
+   tres tienen la misma forma — la lección por la que el Grupo 1 fue rechazado dos veces — con
+   una caída explícita al valor por omisión (`?? SIZE_CLASSES.default`, `?? TONE_CLASSES.neutral`,
+   `?? SIZE_CLASSES.md`) en vez de a `undefined`.
+2. **`disabled:cursor-progress` no se ve nunca**: `disabled:pointer-events-none` gana el hit
+   test. Fuera; se queda sólo la opacidad, que sí se pinta.
+3. `toEqual` → **`toStrictEqual`** en `icon.component.spec.tsx`.
+4. **El test del camino del SO no fijaba sus dos fotogramas** (pasaba también con un rAF
+   único). Ahora asevera uno a uno, como el del control.
+
+#### Una enmienda del contrato, del coordinador
+
+§8 punto 2 pasa a ser una **categoría**, «afordancias de carga» — el spinner del `Button` y el
+pulso del `Skeleton` —, explícitamente **fuera** del presupuesto de 150/250/350 ms de la
+interacción, porque señalan trabajo en curso en vez de responder a un gesto. El comentario de
+`Skeleton` decía que el pulso «hereda el presupuesto de §8 ya resuelto», que era justo al revés
+(el pulso de Tailwind es un ciclo de ~2 s con su propia curva). Corregido; el pulso se queda.
+
+#### Para el acta
+
+**R28 y R89 no son de este paso**: ninguna tarea de los Grupos 3 o 4 las referencia. El trabajo
+de los 44 px se sostiene por sí mismo y midió bien (Button 44, `lg` 48, `icon` 44×44,
+`ToggleGroupItem` 44, `Input` 48, ítem de menú 44, y el extensor del `sm` verificado), pero no
+se cuentan como obligaciones de este paso.
+
+No se tocan, por indicación expresa: que `Progress` convierta un `value` ausente en 0 %; que los
+diez primitivos no lleven spec (es lo que pide la lista de ficheros de `design.md`, y es
+pregunta para el humano); y R35, que se sigue honrando como está escrita mientras no cambie.
+
 ## Group 1 — what the human sees at the checkpoint
 
 Nothing visual changed: this group delivers the contract the rest is built on. What to look at:
@@ -631,10 +1079,12 @@ changes. Resolved step numbers do not shift. The pairing:
 
 ## Next action
 
-Grupo 2 **terminado** (T6–T8), siete gates en verde, 25/25 comprobaciones en Chrome contra el
-build de producción, todo en el índice y **sin commitear**: checkpoint humano. Con el OK, el
-Orchestrator commitea y despacha el Grupo 3 (primitivos shadcn vestidos con los tokens,
-T9–T12). Si el humano pide cambios, la iteración entra sobre el índice tal cual está.
+**Grupos 3 y 4 terminados** (T9–T12, T46, T13–T16) tras la **iteración 2 del fix-loop**: los
+dos puntos bloqueantes de la review arreglados y **medidos en el navegador** (la geometría del
+`link` y el anillo del ítem de menú bajo teclado real), las cuatro advisories hechas, siete
+gates en verde, todo en el índice y **sin commitear**: checkpoint humano. Con el OK, el Orchestrator commitea y despacha el Grupo
+5 (dataset mock compartido y formateadores, T17–T20), que es el paso 4/8 junto con el Grupo 6.
+Si el humano pide cambios, la iteración entra sobre el índice tal cual está.
 
 ## Blockers
 
@@ -1479,3 +1929,540 @@ node globals in `src/` (pre-existing stack property), Group 1's token files, gen
 `harness.config.yml`, `ci.yml` and `.prettierignore` (untouched here, correctly), issue #13's
 missing shadow / `letter-spacing` families, and the `ui-handoff.md` §8 item 1 ↔ item 4 transition
 contradiction (a handoff defect for the human, and no code can hit it until a control exists).
+
+- step 3/8 (anchor 38d3a54) — review ×1 (1 reject: `Button variant="link"` loses its geometry to tailwind-merge; `DropdownMenuRadioItem`'s `outline-none` makes its focus ring dead code) — ledger: group 3 criteria 8/8 + group 4 criteria 7/7 (basis: requirements), gates 7/7 (basis: config), passes 2/2 → checkpoint: OK
+
+**Declined at step 2's checkpoint, recorded so nobody revives them as defects:** the four
+non-blocking advisories of step 2's review — three surviving mutants (the «Sistema» row of the
+`setTheme` test asserting a fallback rather than a write, `readSystemPrefersDark`'s `?? false`,
+and the post-subscription resync) and the latent `</script>` escape in `THEME_BOOTSTRAP_SCRIPT`'s
+`JSON.stringify`. The code is correct in all four; what is missing is test strength and one piece
+of hardening. The human declined them knowingly.
+
+**Interim for the tokens issue #13, decided here so it is not improvised per component:** the
+token file has no shadow and no `letter-spacing` families. Components use **Tailwind's built-in
+`shadow-*` and `tracking-*` utilities**, never an arbitrary value with a literal in it. Tailwind's
+`tracking-tight` is already `-0.025em`, the design system's value, so tracking needs nothing. The
+shadows differ slightly from the design system's, which is the accepted cost of deferring #13 —
+and because both families are Tailwind `@theme` namespaces, #13's fix redefines them from the
+token file and every call site inherits it without being touched. An arbitrary
+`shadow-[0_4px_12px_...]` would have to be hunted down instead.
+
+## Review evidence — step 3
+
+Per-step review of **Groups 3 + 4** (T9–T12, T46, T13–T16), anchor
+`38d3a540dd230bac93620efd7a7718b02e10cef7`, auto-commit OFF (staged, uncommitted; 25 files,
+HEAD still the anchor). Verdict **REJECT** — two measured defects, both invisible to the
+163 green tests. No issue comment (per-step), no ledger (a REJECT approves nothing).
+
+### Gates — all seven green, turbo cache bypassed
+
+Run with `pnpm turbo run <t> --force` for the three turbo tasks, direct for the rest:
+
+| Gate | Result |
+| --- | --- |
+| `build` | ✅ built in 84 ms; only pre-existing `MODULE_LEVEL_DIRECTIVE` "use client" warnings from `@tanstack/react-router` |
+| `typecheck` | ✅ 3/3 packages (`tsc --noEmit` + `-p scripts`) |
+| `test` | ✅ 163/163 in `@memora/web` (4 files), 11 in `@memora/db`, 7 in `console-runner` |
+| `format:check` | ✅ all matched files use Prettier style |
+| `design-tokens:validate` | ✅ 147 tokens, 41 files scanned, no hardcoded values |
+| `design-tokens:contrast` | ✅ 56 pairs meet their WCAG floor |
+| `design-tokens:css:check` | ✅ `tokens.generated.css` up to date |
+| `pnpm audit --audit-level=moderate` | ✅ no known vulnerabilities (beyond the declared seven) |
+
+Static acceptance criteria, all verified by hand: `git grep transition-all apps/web/src` → empty
+(R104); `git grep -E "@/lib/utils|@radix-ui/react-"` → empty (R29); no `bundle.js` tracked (R30);
+`Skeleton` referenced only inside its own file (R37); `home-page.tsx`/`.spec.tsx` gone and
+`apps/web/src/components/` removed entirely (R74, D4); `ui/` holds exactly the ten files
+`design.md` enumerates — no `toggle.tsx`; 14 `from 'cn'` imports and 7 `from 'radix-ui'`.
+
+### Real run
+
+Production build served on an explicit free port (63143, reserved via a `net` probe — never
+3000). Served HTML verified production **before** measuring: zero `@vite/client` /
+`react-refresh` / `RefreshRuntime` markers, hashed assets (`styles-DA-keqPO.css`,
+`index-BoMF4Q88.js`), `<html lang="es" data-theme="system">` written by the pre-paint script.
+`/` renders `null` by instruction (documented placeholder until T26) — correct, not an omission.
+All browser measurements below are real headless Chrome over CDP against that build and that
+stylesheet.
+
+### T46 falsified by measurement, on both paths — it holds
+
+The first harness attempt was **discarded as unsound**: sampling `getComputedStyle` from a rAF
+registered *before* the swap forces an early style recalc while the marker is still present, which
+itself suppresses the transition and made even the single-rAF variant look green. Re-measured with
+`transitionrun`/`transitionstart` listeners, which cannot be perturbed that way. Probe element
+carries the exact class string `button.tsx` emits for `variant="secondary" size="default"`
+(obtained by running the real `cn(buttonVariants(...))`).
+
+| Mechanism | `light→dark` | `dark→light` |
+| --- | --- | --- |
+| no suppression (negative control) | `transitionrun/start: background-color, color` | same |
+| **single rAF (T46 as it first shipped)** | `transitionrun/start: background-color, color` | same |
+| **double rAF (as implemented)** | *(no events)* | *(no events)* |
+
+The negative control firing proves the probe can see interpolation; the single-rAF row
+**independently reproduces the Implementer's diagnosis** — one `requestAnimationFrame` suppresses
+nothing. Double rAF suppresses completely.
+
+- **OS path, through the real provider listener** (`Emulation.setEmulatedMedia`
+  `prefers-color-scheme: dark` with `data-theme="system"`, so nothing writes an attribute and the
+  CSS `@media` arm repaints): background went `rgb(241,245,249)` → `rgb(23,35,50)`, **2 distinct
+  colours, no intermediates**; `data-theme` stayed `system`; marker cleaned up. Without
+  suppression the same swap yields 8 intermediates (`241,245,249 → 125,133,143 → 69,80,92 →
+  44,55,69 → 32,44,59 → 27,39,54 → 24,36,51 → 23,35,50`).
+- **The inverse acceptance criterion holds**: after a completed swap the marker is absent
+  (`hasAttribute` → false) and a **real** `Input.dispatchMouseEvent` hover still interpolates —
+  6 distinct colours `23,35,50 → 31,45,62 → 35,50,67 → 37,52,70 → 37,53,71 → 38,54,72`. The
+  marker does not outlive its frame, so hover/focus transitions survive.
+- The `styles.css` rule is in the built stylesheet verbatim:
+  `html[data-theme-switching],html[data-theme-switching] *,…:before,…:after{transition:none!important}`.
+
+### Mutation probes — 3 chosen, 3 killed (basis: no declared risk, so no ledger floor)
+
+Hand-probe path (no `test:mutation` script declared). Each one composite trip with an `EXIT` trap;
+`git status` after each confirmed the tree byte-identical and no `.bak` stranded.
+
+| Mutant | Outcome |
+| --- | --- |
+| `theme-provider.component.tsx:109` double rAF → single rAF | **killed** — `theme-provider.component.spec.tsx:365` ("sobrevive al fotograma que pinta el cambio") |
+| `icon.component.tsx:144` `ICONS.get(name)` → `(ICON_MAP as Record<…>)[name]` | **killed** — 5 tests (the inherited-key cases) |
+| `icon.component.tsx:158` `aria-hidden` always `'true'` | **killed** — the `label` announcement test |
+
+One note, advisory: only the **control-path** frame-count test constrains the two frames. The
+OS-path test runs `correr()` twice then asserts `null`, which a single rAF also satisfies. Both
+paths call the same `suppressTransitionsForSwap`, so they cannot diverge today — but the OS test
+is not what kills the mutant.
+
+### `Icon` production path — proven, not assumed
+
+Vitest pins `import.meta.env.DEV` true even under `--mode production` (45/45 still pass), so that
+route was inconclusive. Compiled the real file with the repo's own esbuild and
+`--define:import.meta.env.DEV=false`: the throw is **eliminated**, not skipped —
+`const Glyph = ICONS.get(name); return Glyph === void 0 ? null : React.createElement(Glyph, …)`.
+With `DEV=true` the `throw new Error(«…» no está en el mapa de iconos…)` is present. R34/D15 hold
+on both branches. The message string appears in no built asset. (`Icon` is additionally
+tree-shaken out of the current build, since no route mounts it yet.)
+
+### Focus ring (R38, §9) — 7 of 8 correct, one provably dead
+
+Measured under **real keyboard focus** (`Input.dispatchKeyEvent` Tab chains — programmatic
+`.focus()` does not set `:focus-visible`, which made the first attempt read `outline-style: none`
+everywhere).
+
+| Element | `:focus-visible` | outline-style | width | offset |
+| --- | --- | --- | --- | --- |
+| Button `default` / `sm` / `icon` / `link` | true | `solid` | 2px | 2px |
+| Input | true | `solid` | 2px | 2px |
+| FutureLink | true | `solid` | 2px | 2px |
+| ToggleGroupItem | true | `solid` | 2px | 2px |
+| **DropdownMenuRadioItem** | true | **`none`** | 2px | 2px |
+
+Colour `rgb(108,99,255)` = `--semantic-color-ring` → `brand-500`. Built CSS confirms
+`.focus-visible\:outline-2:focus-visible{outline-style:var(--tw-outline-style);outline-width:2px}`,
+`…outline-offset-2{outline-offset:2px}`, `…outline-ring{outline-color:var(--semantic-color-ring)}`.
+A/B isolating the single cause: the same class string with ` outline-none` removed measures
+`outline-style: solid`. See failing point 2.
+
+### Button geometry and the 44 px floor
+
+| variant/size | height | padding-x | note |
+| --- | --- | --- | --- |
+| `*/default` | 44 | 16px | the touch-target token (`2.75rem`), beats the DS's 40 px |
+| `*/lg` | 48 | 24px | |
+| `*/sm` | 32 | 12px | hit area extended to 44 px — verified |
+| `*/icon` | 44×44 | 0 | |
+| **`link/default`** | **44** | **16px** | **defect — identical to `default/default`**; see failing point 1 |
+
+ToggleGroupItem 44, Input 48 (`--component-field-height: 3rem`), DropdownMenuRadioItem 44 — all
+at or above the floor. `FutureLink` is an inline `<a>` at 24 px, which is right for running copy;
+the screens own its box.
+
+**The `sm` hit-area extender is real.** `document.elementFromPoint` at the visual box ±5 px
+returns the button; at ±8 px it does not — 32 + 2×6 = 44, and `::after` computes
+`height: 44px; position: absolute; left/right: 0px`. Side by side with an 8 px gap, each button
+owns its own edge (no overlap). Stacked vertically with **zero** gap the two 44 px areas overlap
+by 6 px and the **later** sibling wins that band (`elementFromPoint` at B.top+2 → B), so the
+upper button loses 6 px rather than stealing the lower one's — the safe direction. `Profile-D`
+draws «Cambiar foto» / «Quitar» in a row, so this is fine today; worth remembering for any
+zero-gap vertical stack of `sm` buttons.
+
+### Spec compliance — 13 PASS, 2 PARTIAL over the slice
+
+Slice = the 15 requirements Groups 3+4 reference (every task references at least one, so no
+task-only rows). R28 and R89 are **not** in the slice — no task in these groups references them.
+
+| Req | Status | Evidence |
+| --- | --- | --- |
+| R29 | ✅ PASS | 14 `from 'cn'`, 7 `from 'radix-ui'`, zero `@/lib/utils` / `@radix-ui/react-*`; typecheck + build green |
+| R30 | ✅ PASS | no `bundle.js` tracked; the icon map and each dressing were *read* from the compiled bundle as data, vendoring nothing — correct per T10 |
+| R31 | ⚠️ **PARTIAL** | every primitive and variant §5 enumerates exists, but `Button variant="link"` does not render as a link (measured). Lean variants accepted — §5's table, R31's own list and `design.md`'s file list enumerate exactly those |
+| R32 | ✅ PASS | `EmptyState` (icon/tone neutral·peach·mint/title/body/size incl. `sm`), `Icon`, `Skeleton` present; `BottomNav`/`SideNav` are Group 7 |
+| R33 | ✅ PASS | 14 DS + 19 handoff + `success` = 34 entries; spec asserts the counts and that each name renders, names written by hand from the contract (not derived from the map) |
+| R34 | ✅ PASS | dev throw names the offending name; mutation-probed; production branch compiled and read |
+| R35 | ✅ PASS *to the letter* | `success` canonical, `check` aliased to the same `CircleCheck`, asserted by identical `outerHTML`. **The premise is false — see spec-side below** |
+| R36 | ✅ PASS | enforced by construction in `EmptyState` (`title` is required, so an accent-tinted icon cannot appear without a visible label); usage rule recorded in `Icon`'s doc comment as T13 asks |
+| R37 | ✅ PASS | built, and `git grep Skeleton` finds only its own file |
+| R38 | ⚠️ **PARTIAL** | 2px/2px solid measured on Button (all sizes), Input, FutureLink, ToggleGroupItem; **no ring on DropdownMenuRadioItem** |
+| R71 | ✅ PASS | `href` is required, not optional; single named grep target for Parts 2–3; no `href="#"`, no unexplained disabled control |
+| R74 | ✅ PASS | «Hola Mundo» and its spec deleted, `src/components/` gone; the `/` → `/login` redirect is R61/T26's half and correctly deferred |
+| R94 | ✅ PASS | menu enter/exit inside `motion-safe:` on `duration-fast` + `semantic-motion-easing`; every component transition names explicit properties. Advisory below on `Skeleton` |
+| R103 | ✅ PASS | measured on both paths (above); `styles.css` ↔ provider constant bound by a test; mutant killed |
+| R104 | ✅ PASS | `git grep transition-all` empty, guarded by a test that splits the needle so the criterion's own grep stays empty |
+
+### The two failing points
+
+**1. `Button variant="link"` is not a link (R31).** `cva` composes `variant` **before** `size`, and
+`Button` then passes the whole string through `cn` — which is clsx **+ tailwind-merge**. So the
+variant's `h-auto px-0` is **stripped** in favour of the size's geometry. Measured in the browser:
+`link/default` → height **44 px**, padding-x **16 px**, `display: flex` — byte-identical geometry
+to `default/default`. `link/lg` → 48 / 24 px; `link/sm` → 32 / 12 px. Only `size="icon"` keeps
+`px-0`, and only because `icon` sets no `px-*`. The emitted class string contains neither
+`h-auto` nor `px-0`:
+
+```
+… text-link underline-offset-4 hover:underline h-[var(--primitive-dimension-layout-touch-target)] px-4 text-sm
+```
+
+R31 and T12 both require the `link` variant, and the artboards use it for inline text
+(«¿La has olvidado?», where `link` must sit in a line of running copy). A 44 px-tall, 16 px-padded
+flex block will not. The fix is one of: a cva `compoundVariants` entry zeroing the geometry for
+`variant: 'link'`; moving height/padding out of `size` for that variant; or giving `link` its own
+size default. Whatever the fix, it needs an assertion — this is the concrete cost of Group 3
+shipping ten primitives with **zero specs** (only `icon.component.spec.tsx` exists, which is what
+`design.md`'s file list asks for, so the gap is spec-sanctioned — but it is why this reached review).
+
+**2. `DropdownMenuRadioItem` paints no focus ring (R38, §9).**
+`dropdown-menu.tsx:105` carries `outline-none` in the base class list. In Tailwind v4 `outline-none`
+sets `--tw-outline-style: none` **unconditionally**, and `focus-visible:outline-2` (line 108) sets
+`outline-style: var(--tw-outline-style)` — which resolves to `none`. Measured under real keyboard
+focus: `outline-style: none` while width (2px), offset (2px) and colour (`rgb(108,99,255)`) are all
+set. The three `focus-visible:outline-*` utilities are dead code that reads as compliance — the
+silent-failure shape, and the one the suite cannot see. A/B: the identical string without
+`outline-none` measures `solid`. §9 says "focus is never implicit: 2 px ring at 2 px offset on
+every interactive element"; a menu item is one, and it is the desktop theme control's three
+checkable items (R28, Group 12). It does get `focus:bg-accent`, so keyboard navigation is not
+invisible today — but that is a background change, not the required ring.
+Fix: drop `outline-none`, or scope it (`focus:outline-none` / `outline-hidden`) so the
+`focus-visible` rule can win. Worth confirming the ring paints on a **real** Radix item while
+fixing it: Radix moves focus programmatically, so whether `:focus-visible` matches during arrow-key
+roving should be measured rather than assumed — `focus:` or `data-highlighted:` may be the right
+hook instead of `focus-visible:`.
+
+### Advisory — not blocking, not re-raising anything already settled
+
+- **`Skeleton`'s `motion-safe:animate-pulse` is motion outside §8's five** (R94's wider letter):
+  Tailwind's own ~2 s cycle, not on `cubic-bezier(0.16, 1, 0.3, 1)`, not one of 150/250/350 ms.
+  Zero rendered impact — nothing in this part mounts it — and declared in the file's doc comment.
+  But that comment tells Part 2 it "inherits §8's budget already resolved", which is the opposite
+  of true: it inherits a deviation. Settle it here or make the comment say so.
+- **`Button loading`'s `animate-spin`** is §8 item 2, which admits the affordance without fixing
+  its timing — so, admitted. Noting it only so the next reviewer does not re-derive it.
+- **`disabled:cursor-progress` on a loading Button never shows**, because
+  `disabled:pointer-events-none` from the base wins the hit test; the cursor comes from the parent.
+- **`EmptyState` and `Avatar` still index object literals** (`TONES[tone]`, `SIZES[size]`) where
+  `Icon` deliberately switched to a `Map` after the Group 1 review made that point twice. Impact
+  is low here — `cn` ignores a function, so a prototype key degrades to no classes rather than
+  rendering `Object.prototype.constructor` — but it is the same shape, left in two of three places.
+- **`Progress` turns a missing `value` into `0 %`** (`100 - (value ?? 0)`), i.e. an empty bar
+  rather than Radix's indeterminate state or a loud failure. The screen supplies it (T20).
+- **`toEqual` where the skill asks for `toStrictEqual`** at `icon.component.spec.tsx:108`.
+- The declared deviations I was asked to judge are all **sound**: lean variants (§5's table and
+  `design.md`'s file list enumerate exactly those; `Menu` → shadcn `DropdownMenu` is §5's own
+  instruction), `shadow-brand` → `shadow-md shadow-primary/25` (no literal, so issue #13's fix
+  reaches it through `@theme`), reading the compiled `bundle.js` as data while vendoring nothing
+  (R30 intact, and it is why `album` is `layers` and `help` is `circle-question-mark` rather than
+  a plausible guess). The #13 interim was honoured — `design-tokens:validate` scans all 41 files
+  and reports no hardcoded value, and every non-semantic colour reaches the primitive scale
+  through `var()`.
+
+### Spec-side problems — reported, not mine to fix, not rejected on
+
+- **R35 contradicts the corrected `ui-handoff.md` §5, in this very diff.** §5 now says (correctly,
+  measured against the design system's own `iconMap`) that `check` and `success` are **two
+  different glyphs — two separate entries, no alias**. R35 still mandates "one canonical entry with
+  the other as an alias". The implementation honours **R35**, so `success` is canonical and a
+  future `check` call site will render a circle-check it did not ask for. Part 1 uses only
+  `success`, so nothing visible changes today. Already routed to the Spec Author by the
+  Orchestrator — recorded here, not raised again as a discovery, and explicitly **not** a reason
+  to reject the group.
+- Nothing else: `tasks.md` and `requirements.md` parsed cleanly — no unknown risk class (no group
+  carries a tag, which the preamble states as a claim), no dangling `(R<n>)` ref, no duplicate
+  group number or task id, no empty group, and every task in Groups 1–4 is ticked.
+
+## Review evidence — step 3 (re-review, iteration 2)
+
+Fresh Reviewer, fresh context. Both rejected points re-verified **by measurement against the real
+modules and the real browser**, never from the record. The trap I was warned about is real:
+`scratchpad/probe-cva.mjs` reimplements the button's `cva` config inline (its `link` variant still
+carries `h-auto px-0` and its `sm` size still carries the unscoped extender), so it prints the
+pre-fix geometry and reads as a regression. I did not use it. Every number below comes from
+`buttonVariants` imported from `apps/web/src/common/components/ui/button.tsx`, or from real Chrome
+over the production build.
+
+### The seven declared gates, re-run by me with the turbo cache bypassed
+
+`TURBO_FORCE=true` on all three turbo-driven gates, so nothing was replayed from cache.
+
+| Gate | Result |
+| --- | --- |
+| `typecheck` | green — 3 packages, `cache bypass, force executing` on each |
+| `format:check` | green — "All matched files use Prettier code style!" |
+| `test` | green — 188 tests, 11 files (web: 170 in 6 files) |
+| `build` | green — `✓ built in 96ms`, nitro output generated |
+| `design-tokens:validate` | green — 147 tokens, 43 files scanned, no hardcoded values, only the generated file excluded |
+| `design-tokens:contrast` | green — `56 pair(s) meet their WCAG floor` |
+| `design-tokens:css:check` | green — projection up to date |
+
+`build`'s only stderr is the pre-existing third-party `MODULE_LEVEL_DIRECTIVE` warning for
+`@tanstack/react-router`'s `"use client"` files — not this change's, and not new.
+
+### Real run — production build, explicit free port, dev markers checked first
+
+Measurement hygiene honoured: a free port chosen by binding `:0`, never 3000, and the served bytes
+grepped before trusting anything — `{"viteClient":false,"reactRefresh":false,"devAttr":false}` on
+25 249 bytes. A temporary probe route replaced `routes/index.tsx` under an `EXIT` trap and was
+restored; `git status` after each trip is byte-for-byte what it was before, with no `.bak` left.
+
+### Rejection 1 — `Button variant="link"` — FIXED, both halves, and the second half holds
+
+Real module through `cn`, exactly as the component composes it:
+
+```
+link      / default  -> inline-flex h-auto px-0
+link      / lg       -> inline-flex h-auto px-0
+link      / sm       -> inline-flex h-auto px-0          (no `after:` — extender absent)
+default   / default  -> inline-flex h-[var(--primitive-dimension-layout-touch-target)] px-4
+secondary / sm       -> inline-flex h-8 px-3 after:… after:h-[…touch-target] …   (extender present)
+```
+
+Rendered, in Chrome, with the `link` **inside running copy** as the artboards place it:
+
+| Probe | height | display | padding | `::after` |
+| --- | --- | --- | --- | --- |
+| `link` inline in a `<p>` | **20 px** | `inline-flex` | `0px` | `content: none` |
+| `secondary`/`sm` inline in a `<p>` | 32 px | `inline-flex` | `0px 12px` | `content: ""`, `height: 44px` |
+
+**The second claim — the one nobody had independently checked — is true.** Hit test by
+`elementFromPoint` at ±3, ±8, ±14 and ±22 px around the inline link's box: every point outside its
+own 20 px box lands on the paragraph or on the neighbouring text span, never on the link. The same
+probe on the inline `sm` button captures at ±3 px (its 44 px extender, ~6 px each way) and releases
+by ±8 px — so the link assertion is **not vacuous**: the extender demonstrably still works where it
+is wanted. `after:inset-x-0` pins the extender horizontally, so two `sm` buttons in a row cannot
+overlap, and the measurement confirms no horizontal growth.
+
+### Rejection 2 — the menu's focus ring — FIXED, under real key events
+
+Driven by CDP `Input.dispatchKeyEvent`, not a programmatic `.focus()` (which is what broke the
+first attempt): Tab → trigger, Enter, ArrowDown, ArrowDown, Escape.
+
+- Trigger before: `aria-haspopup="menu"`, `aria-expanded="false"` → after Enter `"true"`, 3
+  `role="menuitemradio"` items in the DOM.
+- First arrow lands on «Oscuro»: `role=menuitemradio`, `aria-checked="false"`,
+  `data-highlighted` present, **`:focus-visible` matches**, `outline: solid 2px`, `outline-offset:
+  2px`, `outline-color: rgb(108, 99, 255)`, height 44 px. Second arrow lands on «Sistema» with the
+  same ring.
+- Escape: `aria-expanded="false"`, items gone, **focus returned to the trigger**.
+
+So `focus-visible:` **is** the right hook under Radix's programmatic roving focus, and the decision
+to add no `focus:` / `data-highlighted:` fallback is correct — verified, not assumed.
+
+### R38 across the whole surface — every tab stop, real Tab presses
+
+17 stops, all `solid 2px` at `2px` offset in `rgb(108, 99, 255)`, all with `:focus-visible`
+matching: the three theme buttons, the inline `link`, the inline `sm`, `default`/`lg`/`sm`/`icon`/
+`link`/`loading` Buttons, `asChild` (renders `<a>`), `Input` default and `aria-invalid`,
+`FutureLink`, `ToggleGroupItem` (single roving stop, 44 px), the menu trigger. Plus the three menu
+items above. Nothing in Groups 3–4 is interactive and unringed.
+
+### The 44 px floor
+
+`Button default` 44 · `lg` 48 · `icon` 44×44 · `loading` 44 · `asChild` 44 · `ToggleGroupItem` 44 ·
+menu trigger 44 · menu item 44 · `Input` 48 · `Avatar sm/xl` 32/80. `Button sm` is 32 px with a
+measured 44 px extender. Inline text links are 20–24 px by design. (R89 is not in this step's
+slice; recording the numbers because they were asked for.)
+
+### T46 — falsified on both paths, with a control that proves the probe is sensitive
+
+Sampled `document.getAnimations()` (document-wide, so it sees every transition anywhere on the
+page) across 8 frames straddling the swap, plus the marker's presence:
+
+| | marker frames | CSS transitions created |
+| --- | --- | --- |
+| Control path (click «Oscuro») — **as shipped** | frames 0–1, gone at 2 | **none, any frame** |
+| OS path (`prefers-color-scheme` light→dark, theme «Sistema») — **as shipped** | present, gone 2 frames later | **none, any frame** |
+| Control path with `!important` removed from the rule | same | **27 transitions**, sustained 8+ frames |
+| OS path with `!important` removed | same | **27 transitions**, sustained 8+ frames |
+
+The mutant's 27 are `color` ×15, `background-color` ×4 and all four `border-*-color` ×2 — exactly
+§8's "half-finished repaint". That control matters twice over: it proves my zero is a real
+suppression and not a no-op swap (the colours genuinely change), and it proves the `!important` is
+load-bearing. On the OS path `data-theme` stayed `system` throughout, which is the §8(b) correction
+holding: no attribute is written there, so the suppression had to hang off the `matchMedia`
+listener, and it does.
+
+**The inverse holds too.** After a swap, a real `Input.dispatchMouseEvent` hover over the button
+produces a `background-color` CSSTransition interpolating `rgb(74,66,201)` → `rgb(71,63,195)` →
+settled `rgb(70,62,193)`. The marker does not outlive the swap, and hover is not silently dead.
+
+Declared transitions, measured: `Button` and `ToggleGroupItem`
+`color, background-color, box-shadow`; `Input` `border-color, box-shadow`; `FutureLink` and the menu
+item `color, background-color` — all `0.15s`, all `cubic-bezier(0.16, 1, 0.3, 1)`, all behind
+`motion-safe:`. `Progress` and `Card` declare no transition. `transition-all`: absent from
+`apps/web/src` (R104) and pinned by a test.
+
+### Mutation probes — 6 chosen, 6 killed (basis: no declared risk, so none owed; all by judgment)
+
+| Mutant | Outcome |
+| --- | --- |
+| `theme-provider`: double rAF → single | **killed** — 2 tests red (the control path **and** the OS path, so the OS test really is tightened) |
+| `styles.css`: drop `!important` from the suppression rule | **killed** — 1 test red, and the browser control above shows 27 transitions escaping |
+| `button.tsx`: empty the `link` compound (`h-auto px-0` gone) | **killed** — 3 tests red |
+| `button.tsx`: unscope the hit-area extender so it reaches `link` again | **killed** — 1 test red |
+| `dropdown-menu.tsx`: put `outline-none` back on the item | **killed** — focus-ring guard red, naming `ui/dropdown-menu.tsx` |
+| `icon.component.tsx`: `Map` → object-literal indexing | **killed** — 5 prototype-key tests red |
+
+Every revert was an `EXIT`-trapped composite trip; the tree is clean. No survivors, so nothing to
+route as an advisory or a side-finding. The project still has no `test:mutation` script — declaring
+one in `package.json` would buy the cheap batch path on the next review instead of this hand work.
+
+### The new guard — it does constrain the shape, within a scope worth knowing
+
+`focus-ring.spec.ts` is not just asserting the current text: the mutant proved it catches a
+reintroduced `outline-none` in a nested `ui/` file, and the comment-stripping is honest (it removes
+`/* … */` blocks and `//`/`*` line starts, and deliberately does not cut at a mid-line `//` so a URL
+in a string cannot swallow code). Two limits, neither blocking:
+
+- **Scope**: `src/common/components` only. Groups 7–12 build nav items and screens under
+  `src/pods/`, which this guard will not see.
+- **Shape**: it matches the literal `outline-none`. `outline-hidden`, `outline-0`,
+  `outline-transparent` or `[--tw-outline-style:none]` would kill the ring the same way and pass.
+  Neither appears today.
+- It excludes `.spec.ts` but not `.spec.tsx`, so a future `.spec.tsx` discussing the literal in code
+  would trip it. (That is how a literal in a comment tripped it three times this step.)
+
+### `Icon` — both halves of the split, from the two harnesses that can see them
+
+- **Production**: in the real production build, clicking the probe that renders
+  `<Icon name="no-existe-este-icono" />` produced **zero** `error`/`unhandledrejection` events, an
+  **empty** container, and the page still alive. Silent in production, as D15 asks.
+- **Development**: `import.meta.env.DEV` is true under Vitest, and the spec drives the throw and
+  asserts the name is in the message; the `Map` mutant above shows those assertions are load-bearing.
+- R33's set: 14 design-system names + 19 handoff names + `success` = 34 entries, written out by hand
+  in the spec rather than derived from the map, so the count is not tautological.
+
+### `Skeleton`'s pulse, judged against the **amended** §8
+
+Rendered `animation-name: pulse`, inside `motion-safe:`, `aria-hidden="true"`. §8 item 2 is now a
+category — "loading affordances … explicitly **outside** the 150/250/350 ms budget … neither
+responds to a gesture" — which admits Tailwind's ~2 s cycle and its own curve on its own terms. The
+previous review's finding is **closed**: the pulse is in the list, and the `Skeleton` doc comment no
+longer claims it "inherits §8's budget already resolved" — it now says the opposite, correctly. And
+`Skeleton` is still invented into nothing: `grep -rn 'Skeleton' apps/web/src` returns only its own
+definition (R37), which this part trivially satisfies since it ships no screen at all.
+
+### Spec compliance — the 15-requirement slice, 15 PASS
+
+The slice is the union of what Groups 3–4's nine tasks reference: R29, R30, R31, R32, R33, R34,
+R35, R36, R37, R38, R71, R74, R94, R103, R104. R28 and R89 are **not** in it, as step 3's first
+review established. Every task in both groups is ticked.
+
+| Req | Status | Evidence |
+| --- | --- | --- |
+| R29 | ✅ PASS | `cn` from `cn`, primitives from the single `radix-ui`; `grep` for `@/lib/utils` and `@radix-ui/` returns nothing |
+| R30 | ✅ PASS | no `bundle.js` anywhere in the repo |
+| R31 | ✅ PASS | every §5 variant/state exists **and** `link` now renders as inline text (20 px, `inline-flex`, padding 0) — the previous PARTIAL is cleared |
+| R32 | ✅ PASS | `EmptyState` (`icon`, three tones, mandatory `title`, `size`); `Icon`, `Skeleton`. `BottomNav`/`SideNav` are Group 7's |
+| R33 | ✅ PASS | 34 entries, each rendering a glyph; glyph choices read from the design system's own `iconMap`, not guessed |
+| R34 | ✅ PASS | loud in dev (spec + mutant), silent in prod (measured in the real build) |
+| R35 | ✅ PASS *to the letter* | one canonical entry (`success`) with `check` aliased to the same `CircleCheck`. **The premise is false — see spec-side** |
+| R36 | ✅ PASS | usage rule recorded in `icon.component.tsx`'s doc comment, and `EmptyState`'s mandatory `title` enforces it by construction |
+| R37 | ✅ PASS | built; used by nothing |
+| R38 | ✅ PASS | 2 px at 2 px offset on all 17 tab stops **and** on the menu items — the previous failure is cleared |
+| R71 | ✅ PASS | `FutureLink` is a real `<a href>` behind one grep target; no `href="#"` in the tree |
+| R74 | ✅ PASS *for the half T9 owes* | `home-page.tsx` and its spec gone, nothing imports them. R74's redirect half is T26's (Group 8) by the spec's own task split, and `/` renders `null` until then by instruction |
+| R94 | ✅ PASS *against the amended §8* | every transition on the one curve at 150 ms inside `motion-safe:`; menu open/close at 150 ms; spinner and pulse admitted by amended item 2. **R94's own letter is now stale — see spec-side** |
+| R103 | ✅ PASS | measured on both paths with a control proving the probe sensitive; `styles.css` ↔ provider constant bound by a test; mutant killed |
+| R104 | ✅ PASS | no `transition-all`; every transition names its properties explicitly, confirmed in the computed styles |
+
+No unspecified additions: nothing in the diff behaves beyond what the slice asks for, and the
+deliberate `null` at `/` is named in the file with its reason.
+
+### Quality pass — nothing blocking; four notes
+
+1. **`toEqual([])` where the skill asks `toStrictEqual`** — `theme-provider.component.spec.tsx`, the
+   new R104 grep test. The step fixed the previous instance in `icon.component.spec.tsx` and
+   introduced this one. Cosmetic for a string array.
+2. **`Button variant="link" size="icon"`** emits both `size-[…touch-target]` and `h-auto`, which
+   contradict each other; which wins depends on stylesheet order, not class order. Not a
+   combination any artboard uses, and the code says so. Left as a note for whoever first wants it.
+3. **The focus-ring guard's scope and shape**, above.
+4. `Icon` throwing during render unmounts the subtree in dev. That is what "fail loudly" means here
+   and D15 asked for it; noting it so nobody later reads it as an accident.
+
+Integration seams: the two halves of the suppression live in different files with no compiler
+between them, and a test binds the attribute name across both — the right test for the seam. The
+`cva` → `cn` composition is the other seam this step broke and it now has a pure-function spec with
+a negative case, which is the right shape under R99 (no screen markup asserted).
+
+TypeScript/async: no floating promises, no `any`, no non-null assertions, no unawaited work in a
+`try`. The three guarded fallbacks (`matchMedia` absent, `requestAnimationFrame` absent,
+`data-theme` out of vocabulary) each carry a comment stating the intent and each fails toward the
+documented default rather than toward silence.
+
+Security and silent-failure passes, run beyond the per-step floor (the group declares no
+`[risk: …]`): nothing. No user input, no network, no subprocess, no secret, no destructive write, no
+file-mode change, no LLM. No `catch` anywhere in the diff; no swallowed error; the one `??` chain
+and the two optional calls are the documented R24 fallbacks. Both rejected defects were
+silent-failure *shapes* — dead utilities that read as compliance, and an invisible hit area — and
+both now have a test that goes red when the shape returns.
+
+### Not re-raised
+
+R35's false premise (routed to the Spec Author; reported below, not a reject), the token file's
+missing shadow / `letter-spacing` families (issue #13, deferred, Tailwind built-ins as the standing
+interim — and `design-tokens:validate` is green over all 43 files), the four declined step-2
+advisories, `Progress` mapping a missing `value` to 0 %, the ten primitives shipping without specs
+(what `design.md`'s file list asks for, and a question for the human), the absent semantic
+hover/accent families and the missing `pill` dark override. Group 1's token files, generator and
+gate config are untouched by this diff.
+
+### Spec-side problems — reported, not mine to fix, not rejected on
+
+1. **R103's letter is now stale.** It still says the marker is "dropped on the **next frame**".
+   `ui-handoff.md` §8 item 5, corrected **in this very diff** and measured, says a single
+   `requestAnimationFrame` "provably suppresses **nothing**" and that it takes **two** frames. The
+   implementation uses two and is right to; it satisfies §8 and R103's substance while deviating
+   from R103's words. `requirements.md` was not updated alongside §8. For the Spec Author.
+2. **R94's letter is now stale, in the same way.** R94 binds *all five* of §8's items to
+   "the single `cubic-bezier(0.16, 1, 0.3, 1)` curve and one of 150 / 250 / 350 ms", and enumerates
+   item 2 as "the `Button` loading affordance". Amended §8 item 2 is now a *category* — spinner plus
+   `Skeleton` pulse — explicitly **outside** that budget. So a correct implementation of amended §8
+   cannot satisfy R94 to the letter: Tailwind's `animate-spin` is 1 s linear and `animate-pulse`
+   ~2 s on its own curve. The Orchestrator closed the §8 gap; the R94 gap behind it is still open.
+   This is the one spec-side problem not already on the settled list. For the Spec Author.
+3. **R35 contradicts the corrected §5**, as the previous review recorded: §5 now says `check` and
+   `success` are two different glyphs needing two entries and no alias; R35 still mandates one entry
+   plus an alias. The implementation honours R35, so a future `check` call site renders a
+   circle-check. Already routed — recorded, not raised again.
+
+Nothing else: `tasks.md` and `requirements.md` parsed cleanly — no unknown risk class (no group
+carries a tag, which the preamble states as a deliberate claim), no dangling `(R<n>)` ref, no
+duplicated group number or task id, no task above the first header, no empty group, and every task
+in Groups 1–4 is ticked. The tick flips in this diff are the Implementer's done-markers, not a spec
+change. The `ui-handoff.md` edits in the diff are contract amendments the Orchestrator owns (§8
+item 2 is recorded in `progress.md` as "una enmienda del contrato, del coordinador") plus the
+measured §5 and §8 item 5 corrections — not the Implementer rewriting the contract to fit its
+output.
+
+### Ledger — one checkpoint, two files
+
+`lemony review-ledger validate` maps **step N to group N**, so a checkpoint that covers two groups
+needs two sidecars. Both are written and both validate green against the anchor
+`38d3a540dd230bac93620efd7a7718b02e10cef7`:
+
+- `review-ledger/step-3.json` — Group 3's slice, `criteria 8/8`, `gates 7/7`, `passes 2/2`
+- `review-ledger/step-4.json` — Group 4's slice, `criteria 7/7`, `gates 7/7`, `passes 2/2`
+
+8 + 7 = the 15 requirements step 3's first review established as the slice. The gates, the real run
+and the four passes are the same single review in both files, recorded against each group's half.

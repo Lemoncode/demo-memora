@@ -78,26 +78,26 @@ the vocabulary, the rationale says what it is.
 
 ## Group 3 — Primitivos shadcn vestidos con los tokens _(mechanical but it relocates the component tree and edits `components.json`, which borders open issue #5; it also retires the «Hola Mundo» of task #1, so the checkpoint is the first one where the app looks like Memora; five tasks because T46 was added at step 2's checkpoint and belongs with the `Button` whose `transition-all` it scopes, not in a group of its own)_
 
-- [ ] T9 — Move `button.tsx` and `card.tsx` to `src/common/components/ui/`, point
+- [x] T9 — Move `button.tsx` and `card.tsx` to `src/common/components/ui/`, point
       `components.json`'s `components` and `ui` aliases at the new paths while leaving
       `utils` / `lib` / `hooks` untouched, and delete `components/home-page.tsx` and its
       spec (R29, R74)
-- [ ] T10 — Generate and dress `Input`, `Label`, `Alert` and `Badge`, adapting every
+- [x] T10 — Generate and dress `Input`, `Label`, `Alert` and `Badge`, adapting every
       import to this repo — `cn` from the `cn` package, primitives from the single
       `radix-ui` package — and vendoring nothing from the design system's compiled
       `bundle.js` (R29, R30, R31)
-- [ ] T11 — Add the `lucide-react` dependency and the `tw-animate-css` devDependency, then
+- [x] T11 — Add the `lucide-react` dependency and the `tw-animate-css` devDependency, then
       generate and dress `Avatar` (`sm`/`md`/`lg`/`xl` with an initials fallback),
       `Progress` with an accessible label, `ToggleGroup` and `DropdownMenu`, keeping the
       menu's motion inside the system's 150 ms / single-curve budget (R29, R31, R94)
-- [ ] T12 — Dress `Button` with the variants and sizes the artboards use — `default`,
+- [x] T12 — Dress `Button` with the variants and sizes the artboards use — `default`,
       `secondary`, `soft`, `ghost`, `link`; `lg`, `sm`, `icon`; the `loading` affordance;
       `asChild` — and give every interactive element the 2 px ring at 2 px offset.
       **Inherited constraint:** the `Button` already in the repo ships `transition-all`,
       which is why a theme swap would fade this component's colours while the rest of the
       page snaps; scoping it is T46's subject, not this task's to improvise (per R104)
       (R31, R38)
-- [ ] T46 — **Make the theme swap instant, both halves of it.** `ui-handoff.md` §8 items 1
+- [x] T46 — **Make the theme swap instant, both halves of it.** `ui-handoff.md` §8 items 1
       and 4 contradicted each other — 150 ms hover/focus colour transitions versus an
       instant `data-theme` swap — and the human resolved it at step 2's checkpoint with
       §8's new item 5: suppress transitions for the duration of the swap. Scope every
@@ -116,18 +116,18 @@ the vocabulary, the rationale says what it is.
 
 ## Group 4 — Compuestos comunes _(isolates the pieces every screen and both later parts consume; `Icon` in particular is a seam whose failure mode is a nav item silently losing its meaning)_
 
-- [ ] T13 — Build `Icon` as a closed name → `lucide-react` map covering the design
+- [x] T13 — Build `Icon` as a closed name → `lucide-react` map covering the design
       system's fourteen names and the nineteen further ones the design contract lists,
       with `success` and `check` as one canonical entry plus an alias. An unknown name
       fails loudly in development and renders nothing in production; unit-test the
       development path. Record the usage rule that an accent-tinted icon never appears
       without an adjacent visible label (R33, R34, R35, R36)
-- [ ] T14 — Build `EmptyState` with `icon`, `tone` of `neutral` / `peach` / `mint`,
+- [x] T14 — Build `EmptyState` with `icon`, `tone` of `neutral` / `peach` / `mint`,
       `title`, body and `size` — the message container the invite states and both 404s use
       (R32)
-- [ ] T15 — Build `Skeleton`. It is used by none of this part's six screens and must not
+- [x] T15 — Build `Skeleton`. It is used by none of this part's six screens and must not
       be invented into them; it exists because Part 2's loading artboards need it (R37)
-- [ ] T16 — Build `FutureLink`, the plain `<a href>` for a route that does not exist yet.
+- [x] T16 — Build `FutureLink`, the plain `<a href>` for a route that does not exist yet.
       It is the single grep target Parts 2 and 3 convert to a typed `Link`, and the reason
       no affordance in this part needs an `href="#"` or an unexplained disabled control
       (R71)

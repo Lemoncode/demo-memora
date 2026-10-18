@@ -288,9 +288,15 @@ upload, users). This part's artboards additionally use `arrowLeft`, `lock`, `log
 `search`, `home`, `help`, `user`, `edit`, `phone`, `chevronRight`, `plus`, `ban`, `pending`,
 `settings`, `monitor`, `sun`, `moon` and `mail`. Build `Icon` as a **name → `lucide-react` map**, and
 make an unknown name **fail loudly in development** rather than render nothing — a silently missing
-icon is how a nav item loses its meaning. Note `success` (used by `Register-M` and `Invite-States`)
-and the README's `check` are the same glyph: keep **one** canonical name with the other as an alias,
-rather than two entries that can drift apart.
+icon is how a nav item loses its meaning.
+
+**Correction (step 3, measured against the design system's own `iconMap`).** v2 of this handoff
+claimed `success` and the README's `check` were the same glyph and should be one canonical entry
+with the other as an alias. **That is false.** The design system maps `check` → a bare check and
+`success` → a circle-check: two different glyphs. They are **two separate entries**, no alias. Part 1
+uses only `success` (`Register-M`'s password hint, `Invite-States`' mint card), so nothing in this
+part changes by fixing it — what the correction prevents is a future `check` call site silently
+rendering a circled glyph it did not ask for.
 
 **Do / Don't for accent-tinted icons.** An accent-tinted icon (`accent-*` on `accent-*-soft`) **never
 appears without an adjacent visible text label**. Those pairs measure 1.56–2.87:1 and are exempt from
@@ -415,15 +421,28 @@ Motion = low. Everything that moves is wrapped in `motion-safe:`, uses the singl
 beyond it is over-delivering:
 
 1. Colour/background transitions on hover and focus for links, buttons and nav items (150 ms).
-2. The `Button` loading affordance in `Login-D`.
+2. **Loading affordances**, which are a different category from interaction motion and do not take
+   the 150/250/350 ms budget: the `Button` spinner in `Login-D`, and `Skeleton`'s pulse (added at
+   step 3 — the item said only "the `Button` loading affordance", which left `Skeleton`'s standard
+   pulse outside the list and therefore nominally over-delivery; a static skeleton reads as broken
+   layout rather than as loading, so it is admitted here rather than removed). Both tell the user
+   that something is in flight; neither responds to a gesture.
 3. The theme **`Menu`** open/close on desktop (150 ms, same curve). `Profile-D` ships the menu
    **open** (`aria-expanded="true"`), and shadcn's `DropdownMenu` animates enter/exit by default —
    so this is admitted explicitly rather than left to contradict the dial.
 4. The theme change itself: an instant `data-theme` swap on `<html>`. **No cross-fade** — a
    transition on every colour in the page is the kind of flourish this dial excludes.
 5. **Transitions are suppressed for the duration of a theme swap** — set a marker attribute on
-   `<html>` in the same handler that writes `data-theme`, with a CSS rule that kills transitions
-   while it is present, and drop it on the next frame.
+   `<html>` wherever the swap happens, with a CSS rule that kills transitions while it is present,
+   and drop it after the frame that paints the swap.
+
+   **Two corrections, both measured in step 3 after this item shipped broken with a green suite.**
+   (a) «Drop it on the next frame» — a single `requestAnimationFrame` — provably suppresses
+   **nothing**: it removes the marker before the frame's style recalculation, and the colours
+   interpolate anyway. It takes **two** frames. (b) «The same handler that writes `data-theme`» is
+   too narrow: when the OS preference flips while the theme is «Sistema», no attribute is written at
+   all — the CSS `@media` arm repaints — so the suppression must also hang off the
+   `prefers-color-scheme` listener. Both paths, or the one nobody clicks goes unsuppressed.
 
 **Why item 5 exists (decided at step 2's checkpoint; items 1 and 4 contradicted each other
 without it).** Any element carrying a `transition-*` utility interpolates its colours whenever

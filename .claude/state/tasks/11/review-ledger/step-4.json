@@ -1,0 +1,204 @@
+{
+  "version": 2,
+  "step": 4,
+  "criteria": [
+    {
+      "id": "R32",
+      "evidence": "EmptyState built on the primitives with `icon`, the three §5 tones (`neutral` semantic, `mint` through `success-foreground` which the contrast gate measures, `peach` through the primitive scale by `var()` because the token file declares no semantic accent family), a mandatory `title` and `size` = default/sm; Icon and Skeleton likewise. All three rendered and measured in the probe gallery against the production build. BottomNav/SideNav are Group 7's T23/T24, not this group's"
+    },
+    {
+      "id": "R33",
+      "evidence": "34 map entries = the design system's 14 names + the 19 the handoff §5 adds + `success`; the spec writes those names out by hand from the contract rather than deriving them from the map, so the count is not tautological, and a parametrised test renders each one and asserts a glyph. The glyph choices were read from the design system's own `iconMap` rather than guessed, which is why `album` is `layers`, `filter` is `funnel`, `help` is `circle-question-mark` and `pending` is `hourglass`"
+    },
+    {
+      "id": "R34",
+      "evidence": "both halves, from the two harnesses that can see them. Production: in the real production build, rendering `<Icon name=\"no-existe-este-icono\" />` produced zero error/unhandledrejection events, an empty container and a live page — silent, as D15 asks. Development: `import.meta.env.DEV` is true under Vitest and the spec drives the throw and asserts the offending name is in the message; the Map->object-indexing mutant turned 5 of those tests red, so the assertions are load-bearing rather than decorative"
+    },
+    {
+      "id": "R35",
+      "evidence": "PASS to the letter: `success` is the canonical entry and `check` an alias pointing at the same `CircleCheck`, asserted by identical outerHTML, so there are not two entries that can drift. The requirement's premise is false — `ui-handoff.md` §5, corrected in this very diff against the design system's own `iconMap`, says `check` and `success` are two different glyphs needing two separate entries and no alias. The implementation honours R35 as written, which means a future `check` call site will render a circle-check it did not ask for; Part 1 uses only `success`, so nothing visible changes today. Already routed to the Spec Author by the Orchestrator — reported in my verdict as a spec-side problem, explicitly not a reason to reject"
+    },
+    {
+      "id": "R36",
+      "evidence": "the usage rule is recorded where the rule lives: `icon.component.tsx`'s doc comment states that an accent-tinted icon never appears without an adjacent visible text label, carries the measured 1.56-2.87:1 range and names the two measured alternatives (`semantic.color.success-foreground` at 4.70-5.15, `semantic.color.link`) for an icon that must carry meaning alone. `EmptyState` then enforces it by construction, because `title` is a required prop — an accent-tinted icon cannot render there without a visible label beside it. T13 asked for the rule to be recorded, and it is"
+    },
+    {
+      "id": "R37",
+      "evidence": "`Skeleton` is built, `aria-hidden`, and `grep -rn 'Skeleton' apps/web/src` returns only its own definition — used by no screen, which this part satisfies trivially since it ships no screen yet. Its `motion-safe:animate-pulse` renders as `animation-name: pulse` and is admitted by amended §8 item 2 as a loading affordance outside the interaction budget; the doc comment no longer claims it inherits that budget already resolved, which was the previous review's finding and is now closed"
+    },
+    {
+      "id": "R71",
+      "evidence": "`FutureLink` is a real `<a href>` with `href` required rather than optional, behind a single grep target for Parts 2 and 3 to convert to a typed `Link`; rendered in the real build it is tab-focusable and carries the standard 2 px/2 px ring. `grep -rn 'href=\"#\"' apps/web/src` returns nothing, and no disabled control stands in for a missing route"
+    }
+  ],
+  "gates": [
+    {
+      "kind": "script",
+      "script": "typecheck",
+      "evidence": "green, re-run by me with TURBO_FORCE=true — 3 packages, `cache bypass, force executing` on each, `tsc --noEmit` plus the scripts project"
+    },
+    {
+      "kind": "script",
+      "script": "format:check",
+      "evidence": "green — `All matched files use Prettier code style!`"
+    },
+    {
+      "kind": "script",
+      "script": "test",
+      "evidence": "green, cache bypassed — 188 tests in 11 files (web: 170 in 6 files), including the new button.spec.tsx and focus-ring.spec.ts"
+    },
+    {
+      "kind": "script",
+      "script": "build",
+      "evidence": "green, cache bypassed — `built in 96ms`, nitro output generated; the only stderr is the pre-existing third-party MODULE_LEVEL_DIRECTIVE warning from @tanstack/react-router's `use client` files, not this change's"
+    },
+    {
+      "kind": "script",
+      "script": "design-tokens:validate",
+      "evidence": "green — 147 tokens, 43 files scanned, no hardcoded values, with only `tokens.generated.css` excluded (plus git-ignored build output)"
+    },
+    {
+      "kind": "script",
+      "script": "design-tokens:contrast",
+      "evidence": "green — `56 pair(s) meet their WCAG floor`"
+    },
+    {
+      "kind": "script",
+      "script": "design-tokens:css:check",
+      "evidence": "green — the committed projection is up to date; this diff does not touch Group 1's generator, token file or gate config"
+    },
+    {
+      "kind": "real-run",
+      "evidence": "production build served on a free port chosen by binding :0 (never 3000), served bytes grepped first for dev markers — viteClient/reactRefresh/devAttr all false on 25,249 bytes — then driven in real headless Chrome over CDP. For this group specifically: EmptyState in both the mint and peach tones and both sizes, Skeleton's rendered animation, FutureLink's geometry and focus ring under real Tab presses, and the unknown-icon production path exercised by a real click. A temporary probe route replaced routes/index.tsx under an EXIT trap and was restored; git status after each trip matched its starting state with no .bak left behind"
+    }
+  ],
+  "mutants": {
+    "basis": "no-declared-risk"
+  },
+  "passes": [
+    {
+      "name": "senior-review",
+      "outcome": "findings",
+      "examined": [
+        "apps/web/components.json",
+        "apps/web/package.json",
+        "apps/web/src/common/components/empty-state.component.tsx",
+        "apps/web/src/common/components/future-link.component.tsx",
+        "apps/web/src/common/components/icon.component.tsx",
+        "apps/web/src/common/components/skeleton.component.tsx",
+        "apps/web/src/common/components/ui/alert.tsx",
+        "apps/web/src/common/components/ui/avatar.tsx",
+        "apps/web/src/common/components/ui/badge.tsx",
+        "apps/web/src/common/components/ui/button.tsx",
+        "apps/web/src/common/components/ui/card.tsx",
+        "apps/web/src/common/components/ui/dropdown-menu.tsx",
+        "apps/web/src/common/components/ui/input.tsx",
+        "apps/web/src/common/components/ui/label.tsx",
+        "apps/web/src/common/components/ui/progress.tsx",
+        "apps/web/src/common/components/ui/toggle-group.tsx",
+        "apps/web/src/common/theme/theme-provider.component.tsx",
+        "apps/web/src/routes/index.tsx",
+        "apps/web/src/styles.css",
+        "pnpm-lock.yaml"
+      ],
+      "findings": [
+        {
+          "file": "apps/web/src/common/components/focus-ring.spec.ts",
+          "line": 21,
+          "summary": "the guard's scope is `src/common/components` only, so Groups 7-12's work under `src/pods/` will not be covered; and it matches the literal `outline-none`, while `outline-hidden`, `outline-0`, `outline-transparent` or `[--tw-outline-style:none]` would kill the ring identically and pass. None appears today. It also excludes `.spec.ts` but not `.spec.tsx`"
+        },
+        {
+          "file": "apps/web/src/common/components/icon.component.tsx",
+          "line": 148,
+          "summary": "throwing during render unmounts the subtree in development — which is what D15 asked \"fail loudly\" to mean; recorded so a later reader does not mistake it for an accident"
+        },
+        {
+          "file": "apps/web/src/common/theme/theme-provider.component.spec.tsx",
+          "line": 449,
+          "summary": "`toEqual([])` where the skill asks for `toStrictEqual` — the new R104 grep test; the step fixed the previous instance in icon.component.spec.tsx and introduced this one. Cosmetic for a string array"
+        }
+      ]
+    },
+    {
+      "name": "spec-compliance-check",
+      "outcome": "none",
+      "examined": [
+        "apps/web/components.json",
+        "apps/web/package.json",
+        "apps/web/src/common/components/empty-state.component.tsx",
+        "apps/web/src/common/components/future-link.component.tsx",
+        "apps/web/src/common/components/icon.component.tsx",
+        "apps/web/src/common/components/skeleton.component.tsx",
+        "apps/web/src/common/components/ui/alert.tsx",
+        "apps/web/src/common/components/ui/avatar.tsx",
+        "apps/web/src/common/components/ui/badge.tsx",
+        "apps/web/src/common/components/ui/button.tsx",
+        "apps/web/src/common/components/ui/card.tsx",
+        "apps/web/src/common/components/ui/dropdown-menu.tsx",
+        "apps/web/src/common/components/ui/input.tsx",
+        "apps/web/src/common/components/ui/label.tsx",
+        "apps/web/src/common/components/ui/progress.tsx",
+        "apps/web/src/common/components/ui/toggle-group.tsx",
+        "apps/web/src/common/theme/theme-provider.component.tsx",
+        "apps/web/src/routes/index.tsx",
+        "apps/web/src/styles.css",
+        "pnpm-lock.yaml"
+      ],
+      "reason": "all 7 of this group's requirements PASS; R35 passes to the letter while its premise is contradicted by the corrected §5 in the same diff, which is reported as a spec-side problem rather than an implementation failure"
+    },
+    {
+      "name": "security-review",
+      "outcome": "none",
+      "examined": [
+        "apps/web/components.json",
+        "apps/web/package.json",
+        "apps/web/src/common/components/empty-state.component.tsx",
+        "apps/web/src/common/components/future-link.component.tsx",
+        "apps/web/src/common/components/icon.component.tsx",
+        "apps/web/src/common/components/skeleton.component.tsx",
+        "apps/web/src/common/components/ui/alert.tsx",
+        "apps/web/src/common/components/ui/avatar.tsx",
+        "apps/web/src/common/components/ui/badge.tsx",
+        "apps/web/src/common/components/ui/button.tsx",
+        "apps/web/src/common/components/ui/card.tsx",
+        "apps/web/src/common/components/ui/dropdown-menu.tsx",
+        "apps/web/src/common/components/ui/input.tsx",
+        "apps/web/src/common/components/ui/label.tsx",
+        "apps/web/src/common/components/ui/progress.tsx",
+        "apps/web/src/common/components/ui/toggle-group.tsx",
+        "apps/web/src/common/theme/theme-provider.component.tsx",
+        "apps/web/src/routes/index.tsx",
+        "apps/web/src/styles.css",
+        "pnpm-lock.yaml"
+      ],
+      "reason": "run beyond the per-step floor (no group carries a `[risk: …]` tag, so the on-risk rows are not owed), for continuity with step 2's record and because this group introduces the application's entire interactive surface. Declared surfaces handed over: none — `tasks.md`'s preamble declares as a deliberate claim that this part has no auth, writes no data, spawns no process, moves no money, handles no secret and changes no file mode, and Group 4's rationale names its damage in prose instead: a seam whose failure mode is a nav item silently losing its meaning. That prose is the brief, and it is exactly what `Icon`'s loud-dev/silent-prod split answers. Nothing found: no user input, no network call, no subprocess, no secret, no destructive write, no file-mode change, no LLM in the loop; `FutureLink` passes `href` straight to an `<a>` with no interpolation into a sink, and the only new dependency is `lucide-react` 1.59.0 with an additive lockfile change"
+    },
+    {
+      "name": "silent-failure-hunter",
+      "outcome": "none",
+      "examined": [
+        "apps/web/components.json",
+        "apps/web/package.json",
+        "apps/web/src/common/components/empty-state.component.tsx",
+        "apps/web/src/common/components/future-link.component.tsx",
+        "apps/web/src/common/components/icon.component.tsx",
+        "apps/web/src/common/components/skeleton.component.tsx",
+        "apps/web/src/common/components/ui/alert.tsx",
+        "apps/web/src/common/components/ui/avatar.tsx",
+        "apps/web/src/common/components/ui/badge.tsx",
+        "apps/web/src/common/components/ui/button.tsx",
+        "apps/web/src/common/components/ui/card.tsx",
+        "apps/web/src/common/components/ui/dropdown-menu.tsx",
+        "apps/web/src/common/components/ui/input.tsx",
+        "apps/web/src/common/components/ui/label.tsx",
+        "apps/web/src/common/components/ui/progress.tsx",
+        "apps/web/src/common/components/ui/toggle-group.tsx",
+        "apps/web/src/common/theme/theme-provider.component.tsx",
+        "apps/web/src/routes/index.tsx",
+        "apps/web/src/styles.css",
+        "pnpm-lock.yaml"
+      ],
+      "reason": "run beyond the per-step floor: both rejected defects were silent-failure shapes — `outline-none` making three `focus-visible:` utilities dead code that read as compliance, and a hit area that swallows clicks on neighbouring text invisibly — so the invocation's own brief is a silent-failure brief, and this group's own rationale names a silent failure (an icon vanishing) as its damage. Nothing found: no `catch` anywhere in the diff, no `.catch(() => {})`, no floating promise, no success-shaped error return. `Icon`'s unknown-name path is the one place a silent failure would be legitimate and it is deliberately loud in development, silent only in production, per D15 — measured on both sides. `EmptyState`'s and `Avatar`'s `Map` lookups fall to an explicit documented default rather than to `undefined`, which closes the object-indexing shape Group 1 was rejected for twice. `Progress`'s `value ?? 0` is the one remaining dangerous-fallback shape and the human has judged it acceptable"
+    }
+  ]
+}
