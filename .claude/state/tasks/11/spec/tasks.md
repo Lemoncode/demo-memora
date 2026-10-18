@@ -63,15 +63,15 @@ the vocabulary, the rationale says what it is.
 
 ## Group 2 — Tema Claro / Oscuro / Sistema _(isolates a new seam with a real failure mode: the theme must be applied before first paint on a server-rendered page, so getting it wrong shows up as a flash or a hydration mismatch rather than as a test failure)_
 
-- [ ] T6 — Build `common/theme/theme.ts`: the three-theme vocabulary, `readStoredTheme` /
+- [x] T6 — Build `common/theme/theme.ts`: the three-theme vocabulary, `readStoredTheme` /
       `persistTheme` over `localStorage`, and a pure `resolveTheme` that maps a stored
       value plus the OS preference to the mode to paint. Unit-test the fallbacks —
       missing, corrupt, out-of-vocabulary, and a storage that throws — all resolving to
       «Sistema» without throwing (R20, R23, R24)
-- [ ] T7 — Wire `__root.tsx`: the Google Fonts `<link>`s for Inter and Plus Jakarta Sans
+- [x] T7 — Wire `__root.tsx`: the Google Fonts `<link>`s for Inter and Plus Jakarta Sans
       as the artboards do, and the small inline script that sets `data-theme` on `<html>`
       before first paint (R22, R75)
-- [ ] T8 — Add the theme provider: it initialises from the attribute already in the DOM,
+- [x] T8 — Add the theme provider: it initialises from the attribute already in the DOM,
       swaps `data-theme` instantly with no cross-fade, reacts to a live
       `prefers-color-scheme` change while the theme is «Sistema», and is the single state
       both theme controls will drive (R21, R26, R27)

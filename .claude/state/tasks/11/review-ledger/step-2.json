@@ -1,0 +1,160 @@
+{
+  "version": 2,
+  "step": 2,
+  "criteria": [
+    {
+      "id": "R20",
+      "evidence": "THEMES / THEME_ATTRIBUTE / DEFAULT_THEME in apps/web/src/common/theme/theme.ts are the single vocabulary; all three values observed on <html> in real Chrome against the production build on 127.0.0.1:3317 (stored dark -> dark, stored light -> light, stored/absent -> system, 15 scenarios); resolveTheme and THEME_BOOTSTRAP_SCRIPT suites cover the vocabulary exhaustively; hand probe 6 (resolveTheme system arm flipped) kills 17 tests and probe 7 (bootstrap indexOf !== -1 -> === -1) kills 17; the negative also measured in the browser (stored light + OS flipped to dark leaves bodyBg and the attribute unchanged)"
+    },
+    {
+      "id": "R21",
+      "evidence": "the matchMedia('(prefers-color-scheme: dark)') subscription in theme-provider.component.tsx lines 78-90; unit test 'refleja el cambio sin recargar mientras el tema es Sistema' plus the two 'ignora el cambio del sistema' rows; in Chrome with data-theme=system and the document mounted, Emulation.setEmulatedMedia prefers-color-scheme=dark moved the computed body background-color from rgb(248, 250, 252) to rgb(8, 15, 25) with no reload and the attribute still 'system', and flipping back returned to rgb(248, 250, 252); probe 9 (drop removeEventListener) kills the unmount test. Advisory S3: probe 10 (drop the post-subscription resync setSystemPrefersDark(query.matches)) survived 85/85 - the defensive resync line is unpinned"
+    },
+    {
+      "id": "R22",
+      "evidence": "proven in the browser rather than argued: a MutationObserver injected via Page.addScriptToEvaluateOnNewDocument (so it runs before any page script) records the first data-theme change as 'system->dark readyState=loading bodyExists=false bodyChildren=0' - <body> does not exist yet so nothing can have been painted; the second mutation is the provider's [theme] effect at readyState=interactive writing the same value, i.e. hydration does not revert it; served bytes show the bootstrap script as the single <script> in <head>, inline, not async, not defer, classic type, and no dev markers in the served HTML (grep for @vite/client|@react-refresh|vite/dist/client|__vite returns 0); zero console errors, zero Runtime.exceptionThrown and zero hydration warnings across all 15 scenarios"
+    },
+    {
+      "id": "R23",
+      "evidence": "persistTheme(next) in setTheme (theme-provider.component.tsx:107) plus persistTheme/readStoredTheme round-trip tests for all three themes; in Chrome, localStorage memora.theme='dark' then a fresh load renders dark (bodyBg rgb(8, 15, 25)) with the OS in light, and 'light' renders light with the OS in dark - i.e. the stored choice survives opening the document directly. Advisory S1: probe 5 (persistTheme skipped for 'system') survived 85/85 because the setTheme test seeds nothing into storage and the no-storage fallback is itself 'system', so that row of the parameterised test is vacuous; the code is one unconditional call with no branch and the plain deletion mutant (probe 3) still kills 2 tests, so this is a test-strength gap, not a behaviour defect. The group narrative's sentence claiming persistence is covered 'para los tres temas' is corrected in my progress.md evidence section"
+    },
+    {
+      "id": "R24",
+      "evidence": "isTheme accepts exactly the three literals (no trim, no case folding, no coercion) and both catch blocks return DEFAULT_THEME; unit: 14 hostile stored values for readStoredTheme, 14 for the bootstrap script, 11 non-string values for resolveTheme, and the three storage-failure forms (property access throws, getItem/setItem throws, localStorage absent) for read, persist and the script - each asserting not.toThrow; in Chrome, 8 hostile stored values (matcha, Dark, '', '   ', {\"theme\":\"dark\"}, 'null', 'LIGHT', ' dark ') all resolved to data-theme=system with zero page exceptions; hand probe A from the implementation (widening isTheme with trim/toLowerCase) reds 5 tests"
+    },
+    {
+      "id": "R26",
+      "evidence": "a single useMemo'd context value in ThemeProvider is the only state; the test 'el tema elegido en un control es el que lee el otro' mounts two sibling consumers and drives setTheme from each in turn, asserting both read the same theme/resolvedTheme. The two real controls (the mobile ToggleGroup and the desktop Menu) arrive in Groups 3/12, so provider-level single-state is the whole of what this group can own; the provider is mounted in __root.tsx rather than the _app shell so routes opened directly by URL are also inside it"
+    },
+    {
+      "id": "R27",
+      "evidence": "the attribute is written synchronously in the setTheme handler, not in an effect, and this is now constrained rather than merely implemented: the three new tests read document.documentElement's data-theme inside the act callback immediately after setTheme. Re-verified against mutants, not just by passing - probe 1 (delete applyThemeToDocument(next), the mutant that previously survived 82/82) now kills 3 tests; probe 2 (setTimeout(..., 0) around the same write, a genuinely frame-late implementation) kills the same 3; probe 13 (move the write into a useLayoutEffect keyed on [theme]) also kills the same 3, which shows the tests pin the handler-write mechanism D11 commits to rather than only the current source shape. No cross-fade: computed transition-duration is 0s on both <html> and <body> in all 15 browser scenarios"
+    },
+    {
+      "id": "R75",
+      "evidence": "the served production HTML carries <link rel=\"stylesheet\" href=\"https://fonts.googleapis.com/css2?family=Inter:wght@400..800&family=Plus+Jakarta+Sans:wght@400..800&display=swap\"> from __root.tsx's head.links and nothing else font-related; in Chrome the css2 request returns 200 and both woff2 files from fonts.gstatic.com return 200, document.fonts reports 'Inter|400 800|loaded' and 'Plus Jakarta Sans|400 800|loaded', and <body>'s computed font-family resolves Inter first - font delivery did not regress with the two preconnect hints removed. link[rel=preconnect] is empty in all 15 scenarios; neither ui-handoff.md nor requirements.md nor design.md mentions preconnect, so the removal contradicts no design contract. I did not re-derive the connection-reuse measurement that motivated the removal (the hints are gone and a shared connection pool across tabs makes connectionReused unreadable without a cold profile per probe) but I read every response for both hosts rather than the first, and the structural premise is confirmed by the served head order (meta, meta, link[stylesheet], link[stylesheet], title, link[modulepreload] x2, script): React hoists both stylesheets above everything else in the links array, so a preconnect declared there necessarily lands behind the sheet it was meant to warm. R75 asks for the <link> and is met either way; build and all seven gates are green, so neither build nor CI is affected"
+    }
+  ],
+  "gates": [
+    {
+      "kind": "script",
+      "script": "typecheck",
+      "evidence": "TURBO_FORCE=true pnpm typecheck - 3/3 tasks successful, 0 cached (@memora/web runs tsc --noEmit for both the app and scripts projects; the new global augmentation in vitest.setup.ts type-checks clean)"
+    },
+    {
+      "kind": "script",
+      "script": "format:check",
+      "evidence": "pnpm format:check - 'All matched files use Prettier code style!'"
+    },
+    {
+      "kind": "script",
+      "script": "test",
+      "evidence": "TURBO_FORCE=true pnpm test - 3/3 tasks, 0 cached; 115/115 in @memora/web across 4 files (theme.spec.ts 63, theme-provider.component.spec.tsx 22, generate-tokens-css.spec.ts 28, home-page.spec.tsx 2), 11 in packages/db, 7 in console-runner. Full stderr inspected for React warnings: zero occurrences of 'not configured to support act' and zero of 'not wrapped in act'"
+    },
+    {
+      "kind": "script",
+      "script": "build",
+      "evidence": "TURBO_FORCE=true pnpm build - successful, 0 cached, nitro output generated; the only warnings are the pre-existing rolldown MODULE_LEVEL_DIRECTIVE 'use client' notices from radix-ui packages, unchanged by this group"
+    },
+    {
+      "kind": "script",
+      "script": "design-tokens:validate",
+      "evidence": "exit 0 - 147 token(s), 30 file(s) scanned, no hardcoded values; 2 skipped paths (apps/web/.output git-ignored, tokens.generated.css via scan_exclude). The new theme files add no literal colour or dimension and are inside the scan"
+    },
+    {
+      "kind": "script",
+      "script": "design-tokens:contrast",
+      "evidence": "exit 0 - 56 pair(s) meet their WCAG floor (unchanged; this group edits no token)"
+    },
+    {
+      "kind": "script",
+      "script": "design-tokens:css:check",
+      "evidence": "exit 0 - apps/web/src/tokens.generated.css is up to date; this group correctly leaves Group 1's generated projection untouched"
+    },
+    {
+      "kind": "real-run",
+      "evidence": "SSR archetype, exercised for real rather than asserted. Built the production bundle and served it with PORT=3317 HOST=127.0.0.1 node .output/server/index.mjs - port chosen explicitly after confirming it free, and the served HTML checked for dev markers before being trusted (the stale-pnpm-dev-on-3000 trap was avoided; 3000 was never used). Drove headless Chrome 155 over CDP from my own harness outside the repo, 15 scenarios covering: no stored value with the OS light and dark, the three stored themes, 8 hostile stored values, a live prefers-color-scheme flip under 'system' (repaints without reload, attribute unchanged) and the same flip under explicit 'light' (does not move). Collected Page/Runtime/Log/Network per scenario: zero console errors, zero exceptions, zero hydration warnings; the only log is a pre-existing 404 for /favicon.ico. Pre-paint ordering proven with a MutationObserver injected before any page script, recording the first data-theme write at readyState=loading with document.body still null. Server and Chrome torn down afterwards; worktree and index restored to the reviewed state (git status --porcelain identical before and after, no stranded .bak files)"
+    }
+  ],
+  "mutants": {
+    "basis": "no-declared-risk"
+  },
+  "passes": [
+    {
+      "name": "senior-review",
+      "outcome": "findings",
+      "examined": [
+        "apps/web/src/common/theme/theme.ts",
+        "apps/web/src/common/theme/theme-provider.component.tsx",
+        "apps/web/src/routes/__root.tsx",
+        "apps/web/vitest.setup.ts"
+      ],
+      "findings": [
+        {
+          "file": "apps/web/src/common/theme/theme-provider.component.spec.tsx",
+          "line": 118,
+          "summary": "advisory S1: the «system» row of the it.each(THEMES) setTheme test cannot distinguish a persisted 'system' from no storage at all, because readStoredTheme's no-storage fallback is itself 'system'; probe 5 (persistTheme skipped for 'system') survives 85/85. Fix: seed a different theme before the act, or assert localStorage.getItem(THEME_STORAGE_KEY) directly"
+        },
+        {
+          "file": "apps/web/src/common/theme/theme-provider.component.tsx",
+          "line": 63,
+          "summary": "advisory S2: readSystemPrefersDark's '?? false' fallback for a missing matchMedia is unpinned - probe 8 (?? true) survives 85/85 because no provider test ever removes matchMedia from the environment. This is the line that makes the SSR half of the recorded Group 12 constraint true, so it deserves a test that stubs matchMedia away"
+        },
+        {
+          "file": "apps/web/src/common/theme/theme-provider.component.tsx",
+          "line": 87,
+          "summary": "advisory S3: the post-subscription resync setSystemPrefersDark(query.matches) - the line whose comment says the preference may have moved between first render and the subscription - is unpinned; probe 10 (delete it) survives 85/85 because the test double's matches never differs at effect time from first render"
+        },
+        {
+          "file": "apps/web/src/common/theme/theme-provider.component.tsx",
+          "line": 105,
+          "summary": "observation, not a defect: the three new R27 tests pin the handler-write mechanism rather than R27's literal «before paint» - probe 13 moved the write into a useLayoutEffect, which is still pre-paint in a browser, and the tests fail. Deliberate and consistent with D11 and the code comment, but a future refactor to a layout effect would read as a regression"
+        }
+      ]
+    },
+    {
+      "name": "spec-compliance-check",
+      "outcome": "none",
+      "examined": [
+        "apps/web/src/common/theme/theme.ts",
+        "apps/web/src/common/theme/theme-provider.component.tsx",
+        "apps/web/src/routes/__root.tsx",
+        "apps/web/vitest.setup.ts"
+      ]
+    },
+    {
+      "name": "security-review",
+      "outcome": "findings",
+      "examined": [
+        "apps/web/src/common/theme/theme.ts",
+        "apps/web/src/common/theme/theme-provider.component.tsx",
+        "apps/web/src/routes/__root.tsx",
+        "apps/web/vitest.setup.ts"
+      ],
+      "reason": "beyond the per-step floor (the group declares no [risk: ...] class, and tasks.md states that deliberately): run anyway because this group ships the application's only inline script, its only dangerouslySetInnerHTML sink and its only untrusted-input boundary parser (localStorage), and because the invocation asked for the storage fallbacks to be re-falsified under hostile values",
+      "findings": [
+        {
+          "file": "apps/web/src/common/theme/theme.ts",
+          "line": 30,
+          "summary": "low / hardening: THEME_BOOTSTRAP_SCRIPT is assembled with JSON.stringify, which does not escape '<' or '/'. Every interpolated value is a module literal today so nothing can break out of </script>, but the JSDoc explicitly invites editing THEMES ('añadir un tema al vocabulario lo añade a los dos'); a value containing </script> would escape the script element. One .replace(/</g, '\\\\u003c') over the serialised pieces closes it permanently"
+        },
+        {
+          "file": "apps/web/src/routes/__root.tsx",
+          "line": 75,
+          "summary": "low / hardening: dangerouslySetInnerHTML is sound here - no user input reaches it, and the stored value is whitelisted against THEMES before it is written, so data-theme can only ever hold one of the three literals. It does mean the app will need a CSP nonce or hash the day a CSP arrives; the [theme] reconciling effect already degrades that case to a possible flash rather than a broken page, and probe 4 proves that effect is tested"
+        }
+      ]
+    },
+    {
+      "name": "silent-failure-hunter",
+      "outcome": "none",
+      "examined": [
+        "apps/web/src/common/theme/theme.ts",
+        "apps/web/src/common/theme/theme-provider.component.tsx",
+        "apps/web/src/routes/__root.tsx",
+        "apps/web/vitest.setup.ts"
+      ],
+      "reason": "beyond the per-step floor (the group declares no [risk: ...] class): run anyway because the group's whole R24 surface is three catch blocks and a fallback chain over an untrusted storage value, and the invocation asked for the storage fallbacks under hostile values to be re-falsified. Clean: all three catches are R24-mandated, documented, and each driven by a test that forces the failure; globalThis.matchMedia?.(...).matches ?? false short-circuits the whole chain correctly; nothing async, so no floating promise, no Promise.all and no success-shaped error return; useTheme throws loudly and names the missing provider"
+    }
+  ]
+}

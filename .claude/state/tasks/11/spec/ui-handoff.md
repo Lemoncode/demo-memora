@@ -421,6 +421,24 @@ beyond it is over-delivering:
    so this is admitted explicitly rather than left to contradict the dial.
 4. The theme change itself: an instant `data-theme` swap on `<html>`. **No cross-fade** — a
    transition on every colour in the page is the kind of flourish this dial excludes.
+5. **Transitions are suppressed for the duration of a theme swap** — set a marker attribute on
+   `<html>` in the same handler that writes `data-theme`, with a CSS rule that kills transitions
+   while it is present, and drop it on the next frame.
+
+**Why item 5 exists (decided at step 2's checkpoint; items 1 and 4 contradicted each other
+without it).** Any element carrying a `transition-*` utility interpolates its colours whenever
+`data-theme` flips, whatever triggered the change — scoping `transition-all` down to
+`transition-colors` does not help, because the properties that change *are* the colours. So items
+1 and 4 cannot both hold unless the swap explicitly turns transitions off. Leaving them to collide
+was measured as the worst of the three outcomes available: backgrounds, cards and text snap
+instantly while buttons, links and nav items fade over 150 ms, which reads as a half-finished
+repaint rather than as either a crisp swap or a deliberate fade. Dropping item 1 instead was
+rejected because the design system's README asks for hover colour changes explicitly.
+
+The marker is **not** a new motion: it is what makes item 4 true. The pre-existing shadcn `Button`
+carries `transition-all`, so whoever dresses the primitives inherits this — scope that utility to
+the properties hover and focus actually need rather than `all`, *and* rely on item 5 for the swap.
+Both, not either.
 
 No entrance animation, no parallax on the collages, no scroll-driven effects.
 

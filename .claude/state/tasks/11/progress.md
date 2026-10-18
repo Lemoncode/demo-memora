@@ -7,12 +7,15 @@
 
 ## Active
 
-**Status**: implementing — Group 1 (proyección de tokens generada y sus tres gates), step-by-step,
+**Status**: implementing — Group 2 (tema Claro / Oscuro / Sistema), step-by-step,
 auto-commit **off** (save-points in the git index, zero commits).
 
-**Active subtask**: none — **Group 1 complete (T1–T5), fix-loop iteration 3 applied**, all seven
-gates green, everything staged and uncommitted, awaiting the human checkpoint. Group 2 not
-started.
+**Active subtask**: none — **Group 2 complete (T6–T8)**, all seven gates green, the real path
+exercised in Chrome against the production build, everything staged and uncommitted, awaiting
+the human checkpoint. Group 3 not started.
+
+Group 1 (T1–T5) is done, reviewed over three rounds and committed at `6ea1697`; its record
+below is kept verbatim.
 
 Design definition closed earlier: `ui-handoff.md` is at `Status: completed` (v2). The UI Designer
 **rejected v1** — it described only mobile for four of six screens and got the desktop shell
@@ -256,6 +259,271 @@ own `/// <reference types="node" />`).
 real module: every one throws and names the token path. Seven gates green, `audit` clean,
 every probe trap-restored with absolute paths.
 
+## Group 2 — Tema Claro / Oscuro / Sistema (T6–T8), 2026-10-18
+
+Tres tareas, treinta cycles de TDD en total contando los que salieron verdes de nacimiento
+(dicho abajo cuáles y por qué), 85 tests nuevos: 63 en `theme.spec.ts` y 22 en
+`theme-provider.component.spec.tsx` (19 + los 3 de la iteración 2). El suite de `@memora/web`
+pasa de 93 a 115.
+
+**Entorno de test declarado.** `theme.spec.ts` → **jsdom**, porque `readStoredTheme`,
+`persistTheme` y el script de arranque mueven `localStorage` y `document.documentElement`, que
+son DOM y no lógica pura. `theme-provider.component.spec.tsx` → **jsdom + Testing Library**,
+que es la convención que ya tiene el repo (`vitest.config.ts` con `environment: 'jsdom'`,
+`vitest.setup.ts` con el `cleanup`, `home-page.spec.tsx`, y D14). La tabla del skill `tdd`
+pide un navegador de verdad para los specs de componente; este repo no tiene browser mode por
+decisión explícita, así que se aplica la convención del repo y **queda dicho** aquí.
+
+**Playbooks cargados**: ninguno. `docs/playbooks/` sólo tiene el `README.md` de la convención
+de lookup; no hay ningún playbook de tema, y su ausencia no es un blocker.
+
+### T6 — `common/theme/theme.ts`
+
+Nueve cycles rojo → verde, uno por comportamiento, en el orden en que empujaron el código:
+
+1. `readStoredTheme` devuelve el tema guardado → el vocabulario `THEMES` y la clave.
+2. Sin nada guardado cae en «Sistema» → `DEFAULT_THEME` y el `??`.
+3. **Catorce valores hostiles** guardados (`matcha`, `espresso`, `Dark`, `LIGHT`, ` dark `,
+   `''`, `'   '`, `light,dark`, JSON, `'"dark"'`, `null`, `undefined`, `0`, `true`) → esto es
+   lo que mató el `??` y trajo `isTheme`. El conjunto aceptado es **exactamente** los tres
+   literales: ni se recorta, ni se baja a minúsculas, ni se coacciona. Deliberado, y es la
+   lección de las tres rondas del Grupo 1 — el conjunto que una guarda acepta tiene que ser
+   el que de verdad maneja, y estrechar es el lado seguro.
+4. Las **tres** formas en que el almacenamiento puede fallar → `try` + `?.`: el acceso a
+   `window.localStorage` lanza (modo privado), `getItem` lanza (datos de sitio bloqueados),
+   y no existe `localStorage` (fuera del navegador). Ninguna propaga.
+5. `persistTheme` ida y vuelta con los tres temas.
+6. `persistTheme` contra las mismas tres formas de fallo, más cuota agotada.
+7. `resolveTheme` con tema explícito ignora al sistema operativo.
+8. `resolveTheme('system', …)` sigue a `prefers-color-scheme`.
+9. `resolveTheme` con once valores no reconocidos (nulo, indefinido, `matcha`, `System`,
+   `''`, ` system `, `0`, `false`, un objeto, un array, `NaN`) sigue al sistema.
+
+**El cycle 9 salió verde de nacimiento, y conviene decir por qué.** El paso mínimo del cycle
+7 fue `stored === 'light' || stored === 'dark' ? stored : …`, que es **extensionalmente igual**
+a la guarda completa: no existe ninguna entrada que distinga las dos implementaciones, así que
+no había rojo posible. El refactor posterior pasó `resolveTheme` por `isTheme`, para que el
+vocabulario viva en un solo sitio y no en dos listas que puedan separarse.
+
+**Probe a mano (A)** — ensanchar `isTheme` con `.trim().toLowerCase()`: **5 tests en rojo**.
+La batería hostil muerde.
+
+### T7 — `__root.tsx`: fuentes y script de pre-pintado
+
+El script en línea **no se escribe a mano**: `THEME_BOOTSTRAP_SCRIPT` se genera en `theme.ts`
+interpolando `DEFAULT_THEME`, `THEME_STORAGE_KEY`, `THEMES` y `THEME_ATTRIBUTE`. Corre en el
+documento servido, antes de que exista ningún bundle, así que **duplica la lógica pero no los
+datos** — y por construcción el conjunto que acepta el script es el mismo que acepta `isTheme`.
+Añadir un tema al vocabulario lo añade a los dos a la vez. Decisión de diseño, no comodidad:
+era el sitio exacto donde dos listas se habrían separado en silencio.
+
+Tres cycles (10–12): el script pinta el tema guardado; cae en «Sistema» con los catorce
+valores hostiles y sin nada guardado; y pinta «Sistema» **sin lanzar** con las tres formas de
+almacenamiento inservible. Los cycles 11 y 12 **salieron verdes de nacimiento**, que es
+precisamente la consecuencia de haber generado el script desde el vocabulario en el cycle 10 —
+no puede ser más ancho. Como no hubo rojo, se probaron a mano:
+
+- **Probe B** — meter el `setAttribute` dentro del `try`: el `perl` dejó el script en error de
+  sintaxis en lugar de la mutación buscada (21 tests en rojo). Prueba que los tests cazan un
+  script roto, pero no la semántica que se quería; la cubre la C.
+- **Probe C** — quitar el `try/catch`: **3 tests en rojo**, los tres de almacenamiento
+  inservible. Es decir: si el error escapase, nunca se llegaría al `setAttribute` y `<html>`
+  se quedaría sin atributo — y eso se cazaría.
+
+El wiring de `__root.tsx` en sí es configuración (el skill `tdd` lo excluye explícitamente):
+se verifica ejecutando, no aseverando. Nueve comprobaciones estructurales sobre el documento
+**realmente servido** (dev y prod) en `check-prepaint.mjs`.
+
+**Un hallazgo del run real que cambió un comentario.** El script está escrito antes de
+`HeadContent`, pero **React 19 iza las hojas de estilo por encima** y en el documento servido
+acaba al final del `<head>`. Da igual para R22 — lo que garantiza el pre-pintado es que esté
+en el `<head>` y sea bloqueante, no su posición relativa — pero el comentario afirmaba lo
+contrario y se corrigió. Un comentario que miente es exactamente lo que una review falsadora
+encuentra.
+
+**Fuentes (R75)**: los dos `preconnect` que indica Google Fonts (`fonts.googleapis.com` para
+el CSS y `fonts.gstatic.com`, otro origen, con `crossorigin`) más una hoja `css2` con rangos
+de peso variables `400..800` por familia — cubre los cinco pesos que proyecta el fichero de
+tokens (400/500/600/700/800) con un fichero por familia en vez de uno por peso.
+
+### T8 — el proveedor de tema
+
+Seis cycles (13–18). Los reds de verdad: el proveedor no existía (13), `setTheme` no existía
+(14), `resolvedTheme` estaba cableado a `false` (15), no había suscripción a
+`prefers-color-scheme` (16), y el atributo del DOM podía quedarse suelto (17 — cuatro tests en
+rojo). El cycle 18 (la guarda de `useTheme` sin proveedor y R26 con dos consumidores) salió
+verde de nacimiento: el contexto y la guarda venían del primer verde del cycle 13.
+
+Las decisiones que no se leen en el código:
+
+- **Arranca del atributo, no del almacenamiento.** El script de pre-pintado ya decidió; volver
+  a leer `localStorage` en React crearía una segunda fuente de verdad que puede discrepar de la
+  primera (D11). El primer test del fichero lo falsa poniendo el atributo en `dark` y el
+  almacenamiento en `light`. **Probe D** — cambiar `readThemeFromDocument` por
+  `readStoredTheme`: **5 tests en rojo**.
+- **`setTheme` escribe el atributo de forma síncrona, en el manejador, no en un efecto.** Un
+  efecto pasivo corre *después* del pintado, así que el cambio se vería un fotograma tarde;
+  R27 pide instantáneo.
+- **Además hay un efecto con dependencia `[theme]` que reconcilia el atributo.** Cierra dos
+  huecos reales: que la hidratación revierta `<html>` al valor del servidor, y que el script en
+  línea no haya corrido (una CSP sin `unsafe-inline`, una extensión) o haya dejado basura —
+  en los dos casos el DOM se quedaría con un `data-theme` que ningún selector de
+  `tokens.generated.css` reconoce. En un cambio de tema es un no-op.
+- **El servidor sirve «Sistema»**, que es el único valor honesto sin leer nada del cliente y
+  además el que ya pinta bien por `prefers-color-scheme` gracias al brazo `@media` del Grupo 1.
+- **El proveedor se monta en la raíz, no en el shell `_app`**: el tema tiene que valer también
+  en las rutas que se abren directamente por URL y quedan fuera del shell (R23), y los dos
+  controles de `/profile` han de leer un único estado (R26).
+- **Superficie pensada para dos consumidores** (R26, sin construir ninguno): `theme` (lo que
+  marca el control), `resolvedTheme` (el modo que se pinta, «Sistema» ya resuelto — lo que el
+  botón «Tema: Sistema» de escritorio necesita para su icono) y `setTheme`. El test de R26
+  monta dos consumidores hermanos y cambia desde uno.
+- **`useMemo` en el valor del contexto**: un re-render del padre (un cambio de ruta mueve
+  `children`) no debe invalidar el contexto sin que el tema haya cambiado.
+
+**`suppressHydrationWarning`: medido, no supuesto.** El comentario original decía que era
+«obligado». **Probe E** lo quitó, rebuildeó y volvió a correr Chrome: con React 19.3 y el
+`shellComponent` de Start **no aparece ningún aviso**, y todo sigue funcionando. Se queda —
+la divergencia servidor/cliente en `<html>` es real y deliberada, y silenciarla no debe
+depender de que una versión de React siga sin avisar — pero el comentario se reescribió para
+decir lo que se midió. El primer intento de esta probe fue un **no-op** (el patrón no casaba
+con el JSX de una línea tras prettier) y se repitió; queda dicho para que nadie dé por
+medido lo que no se midió.
+
+### Verify — Grupo 2
+
+Los siete gates declarados, en orden, parando al primer fallo:
+
+| Gate                      | Resultado                                                           |
+| ------------------------- | ------------------------------------------------------------------- |
+| `typecheck`               | ✅                                                                  |
+| `format:check`            | ✅                                                                  |
+| `test`                    | ✅ 115 en `@memora/web` (93 → 115), 133 en el monorepo              |
+| `build`                   | ✅                                                                  |
+| `design-tokens:validate`  | ✅ 147 tokens, 30 ficheros, sin hardcodes                           |
+| `design-tokens:contrast`  | ✅ 56 pares                                                         |
+| `design-tokens:css:check` | ✅ `tokens.generated.css` al día (no se tocó)                       |
+
+`pnpm audit --audit-level=moderate` → sin vulnerabilidades conocidas. No hay linter (decisión
+explícita del proyecto: sólo Prettier).
+
+**El camino real, ejercitado y no aseverado** (archetype SSR). El riesgo de este grupo no está
+en los tests: un tema leído en React en vez de antes del primer pintado produce un destello o
+un desajuste de hidratación, y **ninguna de las dos cosas sale en rojo en un test**. Así que
+se levantó el build de producción (`node .output/server/index.mjs`) y se condujo **Chrome de
+verdad** por CDP sobre el `WebSocket` global de Node — sin añadir ninguna dependencia al repo.
+**25/25 comprobaciones**:
+
+- Sin nada guardado: `<html>` queda en «system», sin avisos de hidratación y sin excepciones.
+- Con «dark», «light» y «system» guardados: el documento **hidratado** se queda en el tema
+  guardado, los tres sin aviso de hidratación. Esto es lo que prueba que el pre-pintado
+  sobrevive a React, que es la pregunta de verdad.
+- Con `matcha`, `Dark`, `''`, `'  '`, `{"theme":"dark"}` y `null` guardados: los seis caen en
+  «system» y ninguno lanza en la página.
+- Ni `<html>` ni `<body>` tienen transición (`transition-duration: 0s`), así que el cambio de
+  `data-theme` no puede hacer cross-fade (R27).
+- Con «Sistema», emular `prefers-color-scheme: dark` **repinta sin recargar** (el
+  `background-color` computado de `<body>` cambia de verdad) y el atributo sigue siendo
+  «system» (R21).
+- Con «Claro» explícito, emular el SO en oscuro **no cambia nada** (R20).
+
+Los dos scripts del run quedan fuera del repo, en el scratchpad de la sesión:
+`check-prepaint.mjs` (estructura del documento servido) y `cdp-theme-check.mjs` (Chrome).
+
+Lo que **no** se pudo ejercitar en navegador: `setTheme` desde un control, porque en este
+grupo no hay control — `ToggleGroup` y `Menu` llegan en los grupos 3–4 y el control en el 12.
+En unit está cubierto que, para los tres temas, `setTheme` deja el atributo, la persistencia y
+el estado donde deben estar, **y que la escritura del atributo ocurre dentro del manejador,
+antes de que React vacíe los efectos** — lo segundo sólo desde la iteración 2, y la primera
+versión de esta frase afirmaba una garantía que ningún test imponía (ver abajo).
+
+### Lo que este grupo deja pendiente a otros, dicho antes de que sorprenda
+
+**El `transition-all` de los primitivos y R27.** §8 del handoff admite dos cosas a la vez:
+transiciones de color de 150 ms en hover/focus de botones, enlaces y nav (punto 1), y un
+cambio de tema **instantáneo y sin cross-fade** (punto 4). Hoy no hay conflicto: no existe
+control de tema, y ni `<html>` ni `<body>` tienen transición — medido arriba. Pero el `Button`
+de shadcn que ya está en el repo lleva `transition-all`, y una utilidad `transition-*` en un
+componente hace que **ese** componente sí interpole su color cuando `data-theme` cambia. No es
+de este grupo (el `Button` lo viste el Grupo 3 y el control lo monta el 12), y **no se ha
+inventado aquí ningún mecanismo** de supresión de transiciones: §8 dice que todo lo que no
+esté en su lista es over-delivering, y ese mecanismo no está en la lista. Queda anotado para
+que el Grupo 3 acote la transición a hover/focus en vez de a `all`, o para que el 12 lo
+resuelva a la vista del control real. Decidirlo aquí, sin control que mirar, habría sido
+improvisar.
+
+**`resolvedTheme` en SSR desacuerda con la hidratación — restricción para el Grupo 12.**
+`readSystemPrefersDark` devuelve `false` en el servidor (no hay `matchMedia`), así que el
+servidor resuelve siempre `system` → `'light'`, mientras que el render de hidratación del
+cliente resuelve la preferencia real. **Hoy el grupo está limpio**: nadie consume
+`resolvedTheme`, así que no hay nada que pueda desacordar. Pero el botón «Tema: Sistema» de
+`Profile-D` (§4 del handoff) renderiza exactamente eso, y en un sistema operativo en oscuro
+**hidratará en desacuerdo con el servidor**. Quien monte el control necesita una de dos: una
+puerta de montaje (no pintar el modo resuelto hasta después de montar) o `useSyncExternalStore`
+con un snapshot de servidor. **No se ha inventado aquí ese mecanismo** — no hay consumidor
+contra el que probarlo, y es la misma decisión que con el `transition-all`: construir sin nada
+que mirar es improvisar. Queda escrito aquí para que el Grupo 12 no pueda no verlo.
+
+**Clave de almacenamiento**: `memora.theme`. D11 fija `localStorage` pero no el nombre; no
+parecía un bifurcación que merezca un discovery.
+
+**Nota de la review que conviene no perder**: el vocabulario de temas vive en **cuatro**
+sitios, no tres — `theme.ts`, el script generado, la lectura del atributo en el proveedor y
+**el CSS** (`tokens.generated.css`, que es el cuarto). El cuarto queda fuera de alcance porque
+R20 fija tres temas y el CSS lo genera el Grupo 1 desde el fichero de tokens.
+
+### Fix-loop iteration 2 — review REJECT (rechazo 1 de 3 como máximo)
+
+**El hallazgo bloqueante, y tenía razón.** Borrar `applyThemeToDocument(next)` de `setTheme`
+dejaba el suite en **82/82 verde**. El efecto reconciliador con dependencia `[theme]` vuelve a
+poner el atributo y `act()` lo vacía antes de que corra cualquier aserción, así que **ningún
+test podía distinguir la escritura síncrona de una con un fotograma de retraso**. La
+implementación era correcta; lo que no existía era la restricción. Y lo que lo hacía
+bloqueante en vez de advisory: `progress.md` — el documento que el humano lee en el
+checkpoint — afirmaba que esa escritura síncrona estaba cubierta. Es la clase de defecto del
+Grupo 1 una capa más arriba: **una garantía afirmada más ancha que la garantía realmente
+impuesta**, esta vez en la prosa en lugar de en una guarda.
+
+Arreglado con tres tests (uno por tema) que leen el atributo **dentro** del callback de `act`,
+justo después de `setTheme`, que es el instante que vería un manejador de click real. Y
+**verificado contra el mutante**, no sólo pasando: con `applyThemeToDocument(next)` borrada,
+**3 tests en rojo** (85 → 3 failed / 82 passed) donde antes sobrevivía a 82/82.
+
+**Advisory 1 — arreglado, y el gate estaba sucio de verdad.** `TURBO_FORCE=true pnpm test`
+imprimía `The current testing environment is not configured to support act(...)`, y sólo se
+reproduce a través de turbo, que es exactamente como está declarado el gate y como corre CI.
+Causa: `theme-provider.component.spec.tsx` es el único spec que importa `act` de `'react'`
+directamente, y el `act` envuelto de Testing Library pone y restaura
+`IS_REACT_ACT_ENVIRONMENT` en cada llamada, así que el desnudo la encuentra sin poner. Con eso
+el suite entero perdía la red de React de «update not wrapped in act». Arreglado con una línea
+en `apps/web/vitest.setup.ts`. **Medido en los dos sentidos**: con la bandera **0** avisos;
+quitándola (probe con trap), **11** — 8 antes de los tres tests nuevos de esta iteración, que
+cuadra con lo que midió la review. El suite verde en los dos casos, así que los tests no eran
+inválidos; lo que faltaba era la red.
+
+**Advisory 3 — quitados los dos `preconnect`, y por medición.** React 19 iza los
+`<link rel="stylesheet">`, así que en el documento servido los dos `preconnect` acaban detrás
+de la hoja `css2` que debían precalentar. En vez de decidirlo por lectura, se midió en Chrome
+con el dominio `Network` de CDP contra el build de producción: la petición de `css2` **abre
+ella misma** la conexión a `fonts.googleapis.com` (`connectStart` 8,9 ms), y de los dos
+`.woff2` de `fonts.gstatic.com` **uno abre la conexión** (`connectStart` 0) y el otro la
+reutiliza. Conclusión: ninguno de los dos `preconnect` calentó nada. El primer sondeo parecía
+decir lo contrario — la primera respuesta de gstatic salía como «reutilizada» — y habría dado
+un comentario falso más; mirar **las dos** respuestas en vez de la primera es lo que lo
+deshizo. Se quitan. R75 sólo pide el `<link>` a Google Fonts y se sigue cumpliendo.
+
+Van ya **cuatro** afirmaciones de este grupo falsadas por un run real (el orden del script en
+el `<head>`, la necesidad de `suppressHydrationWarning`, la cobertura de la escritura síncrona
+y la utilidad de los `preconnect`). No es casualidad: en este grupo el comportamiento que
+importa no está en el suite, así que cualquier cosa que se afirme sin medir es una apuesta.
+
+**Trampa de entorno, anotada porque invalidó una medición de la review.** Había un `pnpm dev`
+viejo escuchando en `[::1]:3000`, y un `node .output/server/index.mjs` que se bindea a `*:3000`
+hace que `curl http://localhost:3000` resuelva al **servidor de desarrollo**. Todas las
+mediciones de esta iteración se hicieron en **puertos explícitos y libres**: `3241` para el run
+de fuentes y `3242` para el run final de producción. Al medir producción, puerto explícito
+siempre; `3000` no.
+
 ## Group 1 — what the human sees at the checkpoint
 
 Nothing visual changed: this group delivers the contract the rest is built on. What to look at:
@@ -359,13 +627,14 @@ changes. Resolved step numbers do not shift. The pairing:
 | 8 | 13 | the closer: smoke tests, a11y verification, gates |
 
 - step 1/8 (anchor 5cc92b0) — review ×3 (2 rejects: R6's `$type` gate bypassed by a `{token.path}` reference; R6 again — the gate consulted the prototype chain, and nothing guarded its "never silently omit" half) — ledger: criteria 20/20 (basis: requirements), gates 7/7 (basis: config), passes 2/2 → checkpoint: OK
+- step 2/8 (anchor 6ea1697) — review ×2 (1 reject: R27's synchronous write is constrained by no test — the mutant survives — while progress.md claimed it covered) — ledger: criteria 8/8 (basis: requirements), gates 7/7 (basis: config), passes 2/2 → checkpoint: OK
 
 ## Next action
 
-Grupo 1 **terminado** (T1–T5), siete gates en verde, todo en el índice y **sin commitear**:
-checkpoint humano. Con el OK, el Orchestrator commitea y despacha el Grupo 2 (tema
-Claro / Oscuro / Sistema, T6–T8). Si el humano pide cambios, la iteración entra sobre el
-índice tal cual está.
+Grupo 2 **terminado** (T6–T8), siete gates en verde, 25/25 comprobaciones en Chrome contra el
+build de producción, todo en el índice y **sin commitear**: checkpoint humano. Con el OK, el
+Orchestrator commitea y despacha el Grupo 3 (primitivos shadcn vestidos con los tokens,
+T9–T12). Si el humano pide cambios, la iteración entra sobre el índice tal cual está.
 
 ## Blockers
 
@@ -742,3 +1011,471 @@ The six items the invocation settled with earlier evidence, and the R6/D2
 the previous round recorded: gating on `THEME_SUBTREES` would make `primitive.color`
 itself unprojectable, so `PROJECTED_SUBTREES` is the only workable gate and the
 implementation is stronger than the requirement's letter.
+
+## Review evidence — step 2
+
+**Verdict: REJECT** — one blocking finding, two advisories. Anchor
+`6ea16975870a749628a08aba9df71cc3dbdfe00b`, group diff reviewed uncommitted from the index
+(worktree == index confirmed). Fresh context; nothing from the Implementer's record trusted
+without re-derivation. The tree was exactly as found at the end: no stranded mutant, no `.bak`,
+no change to the five reviewed files.
+
+### Gates re-run independently (all seven, `TURBO_FORCE=true`)
+
+| Gate | Result |
+| --- | --- |
+| `typecheck` | ✅ 3 packages, cache bypassed |
+| `format:check` | ✅ all matched files |
+| `test` | ✅ 112 in `@memora/web`, 130 in the monorepo — **but see advisory 1: 8 stderr errors** |
+| `build` | ✅ (the `"use client"` MODULE_LEVEL_DIRECTIVE warnings are radix's, pre-existing) |
+| `design-tokens:validate` | ✅ 147 tokens, 30 files, no hardcoded values, 1 excluded path |
+| `design-tokens:contrast` | ✅ 56 pairs |
+| `design-tokens:css:check` | ✅ `tokens.generated.css` untouched by this group |
+
+`pnpm audit --audit-level=moderate` not re-run as a gate (undeclared); no dependency was added
+by this group.
+
+### Real run — the production build in real Chrome, re-derived not trusted
+
+**A stale `pnpm dev` (vite, pid 67168) was listening on `[::1]:3000` throughout.** The first
+`node .output/server/index.mjs` bound `*:3000`, so `curl http://localhost:3000` resolved to the
+**dev** server and returned dev-marked HTML (`data-tanstack-router-dev-styles`,
+`/@id/virtual:tanstack-start-dev-client-entry`). Re-run on `PORT=3123` to measure the real
+production build. Anyone measuring "prod" on port 3000 on this machine is measuring dev.
+
+Served production bytes (`http://127.0.0.1:3123/`): `<html lang="es" data-theme="system">`, and
+the inline bootstrap is the **last element inside `<head>`**, a classic script with no `async`,
+no `defer`, no `type=module` — so it is parser-blocking and cannot be reached after `<body>`
+starts painting. R22's mechanism is sound in the bytes, not only in the comment. The two
+Google Fonts `preconnect`s and the `css2` stylesheet are there (R75).
+
+A CDP driver written for this review (`rev-cdp.mjs`, scratchpad) installs a `data-theme`
+`MutationObserver` **via `Page.addScriptToEvaluateOnNewDocument`, i.e. before the page's own
+inline script runs**, so a flicker (script sets `dark` → hydration reverts to `system` → effect
+restores `dark`) cannot hide behind a post-load snapshot. Chrome 155 headless,
+`Emulation.setEmulatedMedia` for the OS preference. **66/66 passed**:
+
+- **The attribute is set before first paint, measured.** stored `light`/`dark`/`system`: first
+  mutation at 73.2 / 69.9 / 61.3 ms, `first-contentful-paint` at 84 / 88 / 76 ms. The attribute
+  was already the stored value at the first `requestAnimationFrame` in all three.
+- **No flicker, ever.** The full mutation trace per load is exactly two entries and both carry
+  the same value — the script's set (`system`→`dark`) then the provider's effect re-asserting it
+  (`dark`→`dark`). Hydration never reverted `<html data-theme>`. This is the group's load-bearing
+  claim and it holds.
+- No hydration warning or page exception on any load (the only console error is
+  `/favicon.ico` 404 — pre-existing, no favicon is in scope yet).
+- 13 hostile stored values (`matcha`, `Dark`, `LIGHT`, `' dark '`, `''`, `'   '`, `light,dark`,
+  `{"theme":"dark"}`, `'"dark"'`, `null`, `undefined`, `0`, `true`) → all `system`, all already
+  `system` at the first rAF, none throwing.
+- Nothing stored → `system`, **and the provider wrote nothing into storage** — D11's "the
+  attribute is the only source" verified from the storage side, not just the read side.
+- A `Storage.prototype.getItem` that throws, installed in real Chrome before page scripts: the
+  page still renders and `data-theme` is a valid token.
+- R27's no-cross-fade half: `transition-duration` is `0s` on both `<html>` and `<body>`.
+- R21: under `system`, emulating `prefers-color-scheme: dark` repaints with no reload —
+  `<body>` background `rgb(248,250,252)` → `rgb(8,15,25)` — and the attribute stays `system`.
+- R20: with `light` stored, an OS switch to dark changes nothing (`rgb(248,250,252)` both
+  sides); with `dark` stored and the OS on light the page really is dark (`rgb(8,15,25)`).
+- R23 beyond the index route: `/profile` (a 404 today) still serves `data-theme="system"` and
+  the bootstrap script, so the pre-paint path rides the root shell and will cover every route
+  the later groups add.
+
+### The cross-layer vocabulary question — falsified, and it holds
+
+The theme vocabulary lives in four places, not three: `isTheme`, the generated bootstrap
+script, the provider's attribute read, and `tokens.generated.css` (`:root` light /
+`[data-theme='dark']` / `@media(dark) [data-theme='system']`, plus `styles.css`'s `dark:`
+variant). I looked for a value that one layer accepts and another does not:
+
+- The script's accepted set is `["light","dark","system"].indexOf(stored) !== -1` — SameValueZero
+  on strings, **generated from `THEMES`**, so it cannot be wider than `isTheme`. No trimming, no
+  case folding, no coercion in any of the three.
+- Every writer to `data-theme` is gated: the server JSX writes `DEFAULT_THEME`; the script writes
+  only vocabulary values; the effect writes `theme`, sourced either from the `isTheme`-gated
+  attribute read or from `setTheme`.
+- `setTheme` is the one writer with no runtime re-validation — its accepted set is `Theme`,
+  enforced by the compiler only. There is no caller yet and no `as` cast, so it is unreachable
+  today; a session-local garbage value would also self-heal on the next load (script → `system`).
+  Narrower than Group 1's defect, and deliberately on the safe side. Noted, not a finding.
+- The CSS vocabulary is **not** generated from `THEMES` (it comes from the token file's dark
+  block), so a fourth theme would reach `isTheme` and the script but not the CSS. R20 fixes
+  exactly three themes, so this is out of scope — but the code comment's "adding a theme to the
+  vocabulary adds it to both" is true only of the two JS layers.
+
+### Mutation probes (hand path; the group declares no `[risk: …]`, so all eight are beyond the floor)
+
+Each one composite trip, trap-guarded, `src/common/theme` as the focused suite (82 tests).
+
+| # | Mutation | Outcome |
+| --- | --- | --- |
+| M1 | `setTheme` loses its synchronous `applyThemeToDocument(next)` (line 106) | **SURVIVED — 82/82 green** |
+| M2 | the reconciling effect no longer applies the theme (line 99) | killed, 4 red |
+| M3 | `readStoredTheme`'s `isTheme` gate → a null check | killed, 14 red |
+| M4 | the bootstrap script accepts everything (`indexOf(...) !== -2`) | killed, 15 red |
+| M5 | `resolveTheme`'s `isTheme` gate → a null check | killed, 9 red |
+| M6 | the provider initialises from `readStoredTheme` instead of the attribute (D11) | killed, 5 red |
+| M7 | `readThemeFromDocument`'s `isTheme` gate dropped | killed, 3 red |
+| M8 | `useMemo` deps lose `systemPrefersDark` | killed, 1 red |
+
+Seven of eight killed, and the three hostile batteries bite hard — the Group-1 defect class
+(an accepted set wider than the handled set) is genuinely guarded here, in all three JS layers.
+M6 reproduces the Implementer's Probe D at the same count (5 red), so that claim checks out.
+
+**The project can buy the cheap batch**: declaring a `test:mutation` script in `package.json`
+(Stryker or any mutation tool) switches the next review to the scripted path instead of eight
+hand-probe round trips.
+
+### BLOCKING — M1: R27's "instantly" is constrained by nothing, and the record says otherwise
+
+Deleting `applyThemeToDocument(next)` from `setTheme` leaves **82/82 green**. The suite cannot
+tell the synchronous write from a frame-late one, because the `[theme]` reconciling effect
+re-applies the attribute and `act()` flushes it before any assertion runs. So R27's defining
+property — "swap `data-theme` **instantly**" — rests on a code comment, not on a test.
+
+The implementation is **correct**; the constraint is missing. What makes it blocking rather than
+advisory is the second half: `progress.md` tells the human, at the checkpoint, *"Su escritura
+síncrona está cubierta en unit (los tres temas, atributo + persistencia + estado)"*. That claim
+is false, and M1 is its counter-example — the same shape as Group 1's rejections, one layer up: a
+claimed guarantee wider than the guarantee actually imposed. The human is being asked to approve
+a checkpoint partly on it, and Group 12 is where the control that can break this property gets
+built — long after this step closes.
+
+**The gap is closable in one pass, and the test is written and verified.** Reading the attribute
+synchronously inside the `act` callback, before React flushes, separates the two
+implementations — `setThemeState` is batched and effects run at `act`'s exit, so only the
+synchronous write can have landed yet:
+
+```tsx
+describe('ThemeProvider · R27 — la escritura es síncrona con el gesto', () => {
+  it('el atributo ya está puesto antes de que React vacíe los efectos', () => {
+    document.documentElement.setAttribute(THEME_ATTRIBUTE, 'light');
+    renderConProveedor();
+
+    let atributoDuranteElManejador: string | null = null;
+    act(() => {
+      cambiarTema('dark');
+      atributoDuranteElManejador =
+        document.documentElement.getAttribute(THEME_ATTRIBUTE);
+    });
+
+    expect(atributoDuranteElManejador).toBe('dark');
+  });
+});
+```
+
+Measured both ways: **83/83 green on the real code**, and **1 failed / 82 passed against M1**.
+It kills the survivor. Take it or write a better one, and correct the coverage sentence in
+`progress.md` to say what is actually covered.
+
+### Advisory 1 — the `test` gate prints 8 errors to stderr, and the record calls it clean
+
+`TURBO_FORCE=true pnpm test` emits `The current testing environment is not configured to support
+act(...)` **8 times**, all from `theme-provider.component.spec.tsx`. Introduced by this group —
+it is the only spec importing `act` from `'react'` directly, and RTL's own wrapped `act` sets and
+then restores `IS_REACT_ACT_ENVIRONMENT`, so the bare one sees it unset.
+
+Reproduces only through turbo (`pnpm test` → 8; `pnpm --filter @memora/web test` → 0;
+`npx vitest run` → 0; `CI=true` → 0), i.e. exactly the way the project declares the gate and CI
+runs it. The tests are **not** invalid — removing an `act()` wrapper makes 2 tests fail, so `act`
+is really flushing — but the suite loses React's "an update was not wrapped in act" net, and a
+green gate that prints eight errors trains the reader to skim.
+
+Verified fix, one line in `apps/web/vitest.setup.ts`:
+
+```ts
+globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+```
+
+→ turbo warning count **8 → 0**, suite still green. (Importing `act` from
+`@testing-library/react` instead of `'react'` is the equivalent fix.)
+
+### Advisory 2 — `resolvedTheme` will hydration-mismatch the moment a control renders it
+
+`readSystemPrefersDark` returns `false` on the server (no `matchMedia`), so the server always
+resolves `system` → `'light'`, while the client's hydration render resolves the real preference.
+Nothing consumes `resolvedTheme` yet, so there is no mismatch today — this group is clean. But
+Group 12's «Tema: Sistema» button is specified to render exactly that (handoff §4, the `monitor`
+icon), and on a dark-preferring OS it will hydrate text/icon that disagrees with the server.
+Whoever builds it needs a mount-gate or a `useSyncExternalStore` with a server snapshot. Flagged
+here because this group installed the surface, not to be fixed here.
+
+### Advisory 3 — the `preconnect` hints land after the stylesheet they are for
+
+React 19 hoists stylesheets to the top of `<head>`, so in the served production HTML both
+`preconnect`s to `fonts.googleapis.com` / `fonts.gstatic.com` appear **after** the `css2`
+stylesheet `<link>` that triggers the connection. R75 asks only for `<link>` loading from
+`__root.tsx` and is satisfied; the hints are simply inert where they end up. Cosmetic.
+
+### Spec compliance — step 2's slice
+
+| Req | Summary | Status |
+| --- | --- | --- |
+| R20 | exactly three themes via `data-theme` on `<html>` | ✅ PASS — `THEMES`/`isTheme`; browser: explicit theme ignores the OS both ways |
+| R21 | while «Sistema», follow and react to `prefers-color-scheme` live | ✅ PASS — subscription + cleanup tested (M8 killed); browser repaint measured |
+| R22 | `data-theme` set **before first paint**, no flash, no hydration mismatch | ✅ PASS — parser-blocking classic script last in `<head>`; mutation at ~70 ms vs FCP ~84 ms; two-entry mutation trace, no wrong intermediate value, no warning |
+| R23 | persisted so a direct URL renders in that theme | ✅ PASS — round-trip tested; browser-verified across reloads for all three; script + attribute ride the root shell |
+| R24 | no / unreadable / out-of-vocabulary → «Sistema» without throwing | ✅ PASS — three layers × hostile battery × three storage-failure modes; browser-verified incl. a throwing `getItem` |
+| R26 | both controls drive one state | ✅ PASS for what this group owns — two sibling consumers of one context; provider at the root |
+| R27 | swap `data-theme` **instantly**, no cross-fade | ⚠️ **PARTIAL** — no cross-fade verified (`0s` on html/body); "instantly" unconstrained (M1 survives) |
+| R75 | Inter + Plus Jakarta Sans by `<link>` to Google Fonts from `__root.tsx` | ✅ PASS — verified in the served production HTML; build/CI unaffected |
+
+**Covered 7/8 · Partial 1 · Failing 0.** Every task references at least one requirement
+(T6 → R20/R23/R24, T7 → R22/R75, T8 → R21/R26/R27), so there is no un-referenced task to
+account for.
+
+### Quality pass — nothing else to report
+
+Test quality: happy / error / edge paths all present, AAA throughout, `toBe` correct here (every
+assertion is on a primitive), no mock-and-assert — the `matchMedia` double is a genuine fake that
+drives listeners the way the OS does, and the R21 test asserts the resulting state, not the fake.
+Listeners cleaned up on unmount and tested. No floating promises (nothing async), no `any` or
+unsafe cast in the source, no non-null assertions, no dead code. The two `catch` blocks in
+`theme.ts` and the empty one in the generated script are R24-mandated, each documented with why
+and each covered by a test that drives the failure — deliberate, not swallowed. `__root.tsx` is
+configuration and was verified by running rather than asserting, which is the right call.
+`resolvedTheme` is exposed without a consumer, justified by R26 and the handoff's desktop button.
+
+### Not re-raised
+
+`ring-[3px]` (Group 3/T12), `home-page.spec.tsx` (T9/T26), node globals in `src/` (pre-existing
+stack property), Group 1's token files and gates (untouched here, correctly), issue #13's missing
+shadow/letter-spacing families, and the `ui-handoff.md` §8 item 1 ↔ item 4 transition
+contradiction — which is a handoff defect routed to the human, not an implementation defect, and
+which no code can hit yet because this group ships no control.
+
+## Review evidence — step 2 (re-review, iteration 2)
+
+Fresh Reviewer, no prior context. Anchor `6ea1697`; auto-commit OFF, so the reviewed change is
+the staged, uncommitted diff against it: six files, 819 insertions. Worktree == index at review
+time and the tree was returned byte-identical afterwards (`git status --porcelain` before and
+after is the same eight lines; no stranded `.bak`). No issue comment — per-step.
+
+### The seven declared gates, re-run by me with the turbo cache bypassed
+
+`TURBO_FORCE=true`, in the declared order, stopping at the first failure. Nothing relayed.
+
+| Gate                      | Result                                                                     |
+| ------------------------- | -------------------------------------------------------------------------- |
+| `typecheck`               | ✅ 3/3 packages, 0 cached                                                  |
+| `format:check`            | ✅ all matched files use Prettier style                                    |
+| `test`                    | ✅ 115/115 in `@memora/web` (4 files), 133 in the monorepo, 0 cached       |
+| `build`                   | ✅ nitro output generated; only the pre-existing radix `"use client"` warns |
+| `design-tokens:validate`  | ✅ 147 tokens, 30 files, no hardcoded values                               |
+| `design-tokens:contrast`  | ✅ 56 pairs meet their WCAG floor                                          |
+| `design-tokens:css:check` | ✅ `tokens.generated.css` up to date (untouched by this group)             |
+
+`pnpm audit --audit-level=moderate` → no known vulnerabilities. No linter by project decision.
+
+### The real run — real Chrome against the production build, on an explicit free port
+
+The trap was respected: port `3000` was left alone, `node .output/server/index.mjs` was bound to
+`127.0.0.1:3317` (confirmed free beforehand), and the served bytes were checked for dev markers
+before anything was trusted — `grep -c '@vite/client|@react-refresh|vite/dist/client|__vite'`
+on the served HTML returns **0**. Headless Chrome 155 driven over CDP from my own harness
+(`$SCRATCH/cdp/theme-check.mjs`, outside the repo, no repo dependency), **15 scenarios**.
+
+**R22 — pre-paint, proven rather than argued.** A `MutationObserver` injected through
+`Page.addScriptToEvaluateOnNewDocument` (so it runs before any page script) records every
+`data-theme` change together with `document.readyState` and whether `document.body` exists yet.
+In every scenario the first mutation is:
+
+```
+system->dark  readyState=loading  bodyExists=false  bodyChildren=0
+```
+
+`<body>` does not exist yet, so nothing can have been painted. The second mutation is the
+provider's `[theme]` reconciling effect at `readyState=interactive` writing the **same** value
+(`dark->dark`) — i.e. hydration does not revert the attribute. Served `<html>` is
+`data-theme="system"`; the inline script is the single `<script>` in `<head>`, inline, **not**
+`async`, **not** `defer`, classic type. Served head order confirms the hoisting the code comment
+claims: `meta, meta, link[stylesheet], link[stylesheet], title, link[modulepreload] ×2, script`.
+
+**Per-scenario results** (`bodyBg` is the computed `background-color` of `<body>`):
+
+| Stored value       | OS    | attr after hydration | bodyBg               |
+| ------------------ | ----- | -------------------- | -------------------- |
+| (nothing)          | light | `system`             | `rgb(248, 250, 252)` |
+| (nothing)          | dark  | `system`             | `rgb(8, 15, 25)`     |
+| `dark`             | light | `dark`               | `rgb(8, 15, 25)`     |
+| `light`            | dark  | `light`              | `rgb(248, 250, 252)` |
+| `system`           | dark  | `system`             | `rgb(8, 15, 25)`     |
+| `matcha`           | dark  | `system`             | `rgb(8, 15, 25)`     |
+| `Dark`             | dark  | `system`             | `rgb(8, 15, 25)`     |
+| `''`               | dark  | `system`             | `rgb(8, 15, 25)`     |
+| `'   '`            | dark  | `system`             | `rgb(8, 15, 25)`     |
+| `{"theme":"dark"}` | dark  | `system`             | `rgb(8, 15, 25)`     |
+| `null` (string)    | dark  | `system`             | `rgb(8, 15, 25)`     |
+| `LIGHT`            | dark  | `system`             | `rgb(8, 15, 25)`     |
+| `' dark '`         | light | `system`             | `rgb(248, 250, 252)` |
+
+**Zero** console errors, **zero** `Runtime.exceptionThrown`, **zero** hydration warnings in all
+15 scenarios. The only browser log is `404 /favicon.ico` — pre-existing, nothing to do with this
+group (`__root.tsx` declared no icon before this change either).
+
+**R21, live.** Stored `system`, OS light: `Emulation.setEmulatedMedia prefers-color-scheme=dark`
+with the document mounted moves `bodyBg` `rgb(248, 250, 252)` → `rgb(8, 15, 25)` with no reload,
+the attribute stays `system`, and flipping back returns to `rgb(248, 250, 252)`.
+
+**R20, the negative.** Stored `light`, OS flipped to dark with the document mounted: `bodyBg`
+does **not** move (`rgb(248, 250, 252)` before and after), attribute stays `light`.
+
+**R27, no cross-fade.** `transition-duration` is `0s` on both `<html>` and `<body>` in every
+scenario, so a `data-theme` swap cannot interpolate at the document level.
+
+**R75, fonts, re-derived not trusted.** Served bytes carry the `css2` stylesheet link and
+**no** `preconnect` (`document.querySelectorAll('link[rel=preconnect]')` is empty in all 15
+scenarios). Network: `css2` → **200**, `fonts.gstatic.com/.../inter/...woff2` → **200**,
+`.../plusjakartasans/...woff2` → **200**; `document.fonts` reports `Inter|400 800|loaded` **and**
+`Plus Jakarta Sans|400 800|loaded`, and `<body>`'s computed `font-family` resolves to `Inter`
+first. **Font delivery did not regress** — the `css2` link alone satisfies R75, which asks for
+the `<link>` and nothing more. Neither `ui-handoff.md` nor `requirements.md` nor `design.md`
+mentions `preconnect` anywhere, so removing it contradicts no design contract. I did **not**
+re-derive the connection-reuse measurement that motivated the removal (the hints are gone, and
+a shared Chrome connection pool across tabs makes `connectionReused` unreadable without a cold
+profile per probe): I read every response for both hosts rather than the first, which is the trap
+named, and the only claim I can and do confirm is the structural premise — the served head order
+above shows React hoisting both stylesheets **above** everything else in `links`, so a
+`preconnect` declared in that array necessarily lands behind the sheet it was meant to warm.
+That is an optimisation rationale, not a requirement; R75 is met either way.
+
+### The rejected finding, re-verified against the mutant
+
+Ten hand probes, one composite trip each, `EXIT` trap installed before the mutation
+(hand-probe path: `package.json` declares no `test:mutation`).
+
+| #   | Mutation                                                                          | Outcome                           |
+| --- | --------------------------------------------------------------------------------- | --------------------------------- |
+| 1   | delete `applyThemeToDocument(next)` from `setTheme` (**the mutant that survived**) | **killed** — 3 failed / 82 passed |
+| 2   | `setTimeout(() => applyThemeToDocument(next), 0)` — a frame-late write             | **killed** — 3 failed / 82 passed |
+| 3   | delete `persistTheme(next)` from `setTheme`                                        | killed — 2 failed / 83 passed     |
+| 4   | delete `applyThemeToDocument(theme)` from the `[theme]` effect                     | killed — 4 failed / 81 passed     |
+| 5   | `if (next !== 'system') persistTheme(next)`                                        | **survived — 85/85**              |
+| 6   | `resolveTheme` flips the «Sistema» arm                                             | killed — 17 failed                |
+| 7   | bootstrap script `indexOf(stored) !== -1` → `=== -1`                               | killed — 17 failed                |
+| 8   | `readSystemPrefersDark` `?? false` → `?? true`                                     | **survived — 85/85**              |
+| 9   | drop the `removeEventListener` cleanup                                             | killed — 1 failed                 |
+| 10  | drop `setSystemPrefersDark(query.matches)` after subscribing                        | **survived — 85/85**              |
+
+**The rejection is answered.** Probe 1 is exactly the mutant that previously survived 82/82; it
+now kills the three new R27 tests. And it is not shape-matching: probe 2 replaces the synchronous
+write with a genuinely frame-late one and dies the same way. A third probe (13) moved the write
+into a `useLayoutEffect` keyed on `[theme]` — still before paint in a real browser, but after
+React processes the update — and that **also** fails the three tests. So the new tests pin
+*"written inside the handler, before React flushes"*, which is narrower than R27's literal «before
+paint» but is precisely the mechanism D11 and the code comment commit to. That is a deliberate,
+documented over-constraint, not a defect; worth knowing because a future refactor to a layout
+effect would read as a regression.
+
+### What the three survivors mean (all on lines this change added → advisories, not side-findings)
+
+**S1 (probe 5) — the «Sistema» row of the `setTheme` test is vacuous.** The test seeds nothing
+into storage and then asserts `readStoredTheme()).toBe(tema)`; for `tema === 'system'` the
+no-storage fallback *is* `'system'`, so the assertion passes whether or not the choice was
+persisted. Consequence if the code were wrong: pick «Oscuro», then pick «Sistema», reload — and
+«Oscuro» comes back, an R23 violation no test could see. The code is right (one unconditional
+`persistTheme(next)`, no branch — the deletion mutant of probe 3 still dies on the other two
+rows), and the mutant had to *introduce* a conditional that does not exist in order to survive,
+which is weaker evidence than a deletion that survives. One-line fix: seed a different theme
+first (`persistTheme('dark')` before the `act`) or assert
+`window.localStorage.getItem(THEME_STORAGE_KEY)` directly.
+
+**The record still overstates this one.** The Group 2 narrative says «en unit está cubierto que,
+**para los tres temas**, `setTheme` deja el atributo, la persistencia y el estado donde deben
+estar». For the attribute and the state that is true of all three; for **persistence** it is true
+of two of three. Stated here so the human reads the accurate version at the checkpoint.
+Unlike iteration 1's finding, this one is not the defining property of the requirement and
+nothing in the browser run depends on it — hence an advisory and not a second rejection.
+
+**S2 (probe 8) — the no-`matchMedia` fallback is unpinned.** `readSystemPrefersDark()` returning
+`true` instead of `false` when `matchMedia` is absent passes 85/85, because no provider test ever
+removes `matchMedia` (jsdom always supplies one). The comment claims «la respuesta honesta es
+claro: es el valor base de `:root`» — a claim no test imposes. It is also the exact line that
+makes the SSR half of the recorded Group 12 constraint true, so it deserves a test: stub
+`matchMedia` away and assert `system/light`.
+
+**S3 (probe 10) — the post-subscription resync is unpinned.** Deleting
+`setSystemPrefersDark(query.matches)` (the line whose comment says the preference may have moved
+between first render and the subscription) passes 85/85, because the double's `matches` never
+differs at effect time from first render. Killable with a double that changes `matches` between
+the two.
+
+### The `act`-environment flag: a fix, not a muzzle — measured in both directions
+
+The flag's semantics are the opposite of hiding: React only arms its *«update not wrapped in
+act»* net when `IS_REACT_ACT_ENVIRONMENT` is true, and it complains *«not configured to support
+act»* when a bare `act` runs without it. Both halves verified:
+
+- **Probe 11c** — comment the flag out and run through **turbo**, exactly as the gate is declared
+  (`TURBO_FORCE=true pnpm test`): **11** occurrences of «The current testing environment is not
+  configured to support act(...)», suite still 115/115. With the flag: **0**. The Implementer's
+  measurement reproduces exactly. (Worth noting for whoever repeats this: running the package
+  script directly with `pnpm -s --filter` swallows that stderr — only the turbo path shows it,
+  which is also the path CI takes.)
+- **Probe 12** — with the flag **on**, unwrap one `act()` in the R26 test
+  (`control('movil')('dark')` bare): React emits **1** «not wrapped in act» warning. So the net
+  is live, not suppressed. Nothing is being hidden; the suite is now strictly stricter than before
+  this change, and with the flag on there are zero warnings of either kind across all 115 tests.
+
+### Spec compliance — R20–R24, R26, R27, R75
+
+| Req | Verdict | Where it is proven                                                                                                                                     |
+| --- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| R20 | ✅ PASS | `THEMES`/`THEME_ATTRIBUTE` in `theme.ts`; all three values observed on `<html>` in Chrome; `resolveTheme` + bootstrap suites; probes 6–7 kill 17 each   |
+| R21 | ✅ PASS | the `matchMedia` subscription in the provider; live CDP flip moves `bodyBg` with the attribute unchanged; unit R21 test + probe 9                       |
+| R22 | ✅ PASS | the inline classic `<script>` in `<head>`; first mutation at `readyState=loading` with `document.body === null`; no hydration warning in 15 scenarios   |
+| R23 | ✅ PASS | `persistTheme` in `setTheme`; stored `dark` renders dark on a fresh load, stored `light` renders light with the OS dark. **Caveat S1** on the test       |
+| R24 | ✅ PASS | `isTheme` + the two `catch`es; 14 hostile values and 3 storage-throw forms in unit; 8 hostile values in the browser, zero exceptions                    |
+| R26 | ✅ PASS | one `useMemo`'d context; the two-sibling-consumer test drives from each side. The real controls are Groups 3/12 — provider-level is all this group owns |
+| R27 | ✅ PASS | synchronous write in the handler (probes 1, 2 and 13 all kill); `transition-duration: 0s` on `<html>` and `<body>` measured in all 15 scenarios         |
+| R75 | ✅ PASS | the `css2` `<link>` in the served bytes; 200/200/200 and both families `loaded` in `document.fonts`; build and all seven gates green                    |
+
+**Covered 8/8 · Partial 0 · Failing 0.** No unspecified behaviour: nothing in the diff lacks a
+backing requirement, and no design decision was taken that `design.md` does not describe.
+
+### Security and silent-failure passes (run beyond the per-step floor — the group declares no `[risk: …]`)
+
+Run because this group ships the app's **only** inline script and its **only** boundary parser.
+Nothing critical, high or medium. Two hardening notes:
+
+- `theme.ts:30–39` — the bootstrap script is assembled with `JSON.stringify`, which does **not**
+  escape `<` or `/`. Today every interpolated value is a module literal, so nothing can break out
+  of `</script>`. But the JSDoc promises «añadir un tema al vocabulario lo añade a los dos», which
+  invites a future edit to `THEMES`: a value containing `</script>` would escape the script
+  element. One `.replace(/</g, '\\u003c')` over the serialised pieces closes it permanently.
+- `__root.tsx:75` — `dangerouslySetInnerHTML` is sound here (no user input reaches it, and the
+  stored value is whitelisted against `THEMES` **before** it is written, so `data-theme` can only
+  ever hold one of the three literals). It does mean the app will need a CSP nonce or hash the day
+  a CSP arrives; the `[theme]` reconciling effect already degrades that case to a possible flash
+  rather than a broken page, and probe 4 proves that effect is tested.
+
+Silent failures: clean. The three `catch` blocks are R24-mandated, two carry a comment saying so
+and all three are driven by tests that force the failure. `globalThis.matchMedia?.(…).matches ??
+false` short-circuits the whole chain correctly. No floating promises (nothing async), no
+`Promise.all`, no success-shaped error return, no `switch` without a default. `useTheme` throws
+loudly and names the missing provider.
+
+### The two recorded pendings — clear, with one gap worth closing
+
+Both are correctly left unbuilt and both are written down in «Lo que este grupo deja pendiente a
+otros», naming the group that inherits them and why no mechanism was invented here. I agree with
+all of that. Two notes for the checkpoint:
+
+1. **The SSR constraint is recorded narrower than it is.** The note says `resolvedTheme` disagrees
+   between server and hydration. So does **`theme`** itself: the server renders with
+   `DEFAULT_THEME` (`readThemeFromDocument` sees no `document`), the client's hydration render
+   reads `dark` off the attribute. Group 12's `ToggleGroup` renders *which option is checked* from
+   `theme`, not from `resolvedTheme` — so a mount gate applied only to the desktop button's icon
+   would still mismatch on the mobile control. Worth widening the sentence to «`theme` **and**
+   `resolvedTheme`».
+2. **Both pendings live only in `progress.md`.** `tasks.md` T12 (Group 3) and T40/T41 (Group 12)
+   carry no pointer, and this file is already 1244 lines with eleven groups still to go. Neither is
+   the Implementer's to add — `tasks.md` is the spec — so this is for the human at this
+   checkpoint: a one-line note on T12 and on T41 would make them unmissable.
+
+### Not re-raised
+
+Everything the invocation settled: `ring-[3px]` (Group 3/T12), `home-page.spec.tsx` (T9/T26),
+node globals in `src/` (pre-existing stack property), Group 1's token files, generator, gates,
+`harness.config.yml`, `ci.yml` and `.prettierignore` (untouched here, correctly), issue #13's
+missing shadow / `letter-spacing` families, and the `ui-handoff.md` §8 item 1 ↔ item 4 transition
+contradiction (a handoff defect for the human, and no code can hit it until a control exists).
