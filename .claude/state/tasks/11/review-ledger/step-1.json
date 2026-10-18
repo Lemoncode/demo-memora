@@ -1,0 +1,199 @@
+{
+  "version": 2,
+  "step": 1,
+  "criteria": [
+    {
+      "id": "R1",
+      "evidence": "docs/design-tokens.json is the only literal source: `design-tokens validate` scans 26 files under the repo and reports 147 tokens with no hardcoded values; the only CSS under apps/web/src carrying literals is the generated projection, and styles.css carries none (grep for hex/rgb/hsl/oklch/px over apps/web/src returns nothing outside tokens.generated.css)"
+    },
+    {
+      "id": "R2",
+      "evidence": "apps/web/src/tokens.generated.css is staged (A), written by the staged committed script apps/web/scripts/generate-tokens-css.ts; regenerated it myself with `pnpm design-tokens:css` and the committed bytes came back identical (sha1 a0a81cf5d4638750bb12a20fdbe554f63db12cc1)"
+    },
+    {
+      "id": "R3",
+      "evidence": "HEADER at generate-tokens-css.ts:136-144 names docs/design-tokens.json, the script and `pnpm design-tokens:css:check`, and says do not edit by hand; ran the generator twice over the unchanged token file — same sha1 both times and `git status` clean for that path; the spec also asserts no date, clock or GMT/UTC/\"generated on\" reaches the output"
+    },
+    {
+      "id": "R4",
+      "evidence": "counted the generated file's blocks: :root 147 declarations, [data-theme='dark'] 22, [data-theme='system'] 22 (inside @media (prefers-color-scheme: dark)), @theme inline 47, @theme 1; styles.css read in full — three @imports, the @custom-variant dark and @layer base only, zero colour and zero dimension literals, and `validate` names only two skipped paths (.output/ as git-ignored and the generated file), so styles.css stays inside the scan"
+    },
+    {
+      "id": "R5",
+      "evidence": "all 147 leaves of the real file reach :root (asserted by the suite's leaf-count test and confirmed by my own independent walk of the JSON: 147 leaves, 147 declarations, no duplicate property names); unit tests cover fontFamily as a quoted comma list, cubicBezier as cubic-bezier(), unitless number/fontWeight, 8-digit hex in base and dark, {token.path} -> var(--…), and com.lemony.modes.dark in both dark blocks"
+    },
+    {
+      "id": "R6",
+      "evidence": "probed the generator directly rather than reading it. Unknown $type throws naming the path for a literal value AND for a reference value (round-1 defect closed: the type gate at projectValue:252 precedes the reference branch at 254). Prototype-inherited $type names are closed structurally by the Map: all 8 of constructor/toString/valueOf/hasOwnProperty/__proto__/isPrototypeOf/propertyIsEnumerable/toLocaleString, each with a literal and with a reference value — 16/16 threw naming the token path. Unmapped subtree throws naming the path and the generator file. Three structural assertions verified: non-object where a token belongs, no-$value-no-children, and every key under com.lemony.modes. Injected an unknown mode (matcha) into the REAL token file: 5 tests red and css:check red. Injected a GROUP-level com.lemony.modes into the real file — validate green, css:check green, i.e. the exact all-gates-green shape — and the new node-based guard went red naming semantic.color, which proves it is independent of the generator's leaf rule rather than tautological. Residual routes recorded as advisories (see the senior-review findings and progress.md); none of them is live in the current file and the headline one is caught by design-tokens validate as a named malformed-token-file violation"
+    },
+    {
+      "id": "R7",
+      "evidence": "exercised both failure directions for real against the committed tree. Edited one colour in docs/design-tokens.json without regenerating: rc=1, \"is stale — it no longer matches docs/design-tokens.json. Run `pnpm design-tokens:css` and commit the result.\" Moved the generated file aside: rc=1, \"does not exist. Run `pnpm design-tokens:css` to write it, and commit the result.\" Clean tree: rc=0. The comparison itself is unit-tested through the exported pure checkProjection (3 tests)"
+    },
+    {
+      "id": "R8",
+      "evidence": ".github/workflows/ci.yml runs `pnpm design-tokens:css:check` (line 66) and nowhere runs the writing script; `design-tokens:css` is absent from harness.config.yml `gates:` and from ci.yml, and the CI comment states the intent"
+    },
+    {
+      "id": "R9",
+      "evidence": "grep over the generated file: 0 occurrences of oklch( and 0 of --sidebar; the dark values are present as 22 overrides in each dark block; the suite asserts the same negatives"
+    },
+    {
+      "id": "R10",
+      "evidence": "the generated file carries :root at line 11, [data-theme='dark'] at 162, @media (prefers-color-scheme: dark) at 188 with [data-theme='system'] nested at 189; both dark blocks hold the same 22 declarations, and the suite asserts the media query precedes the system selector"
+    },
+    {
+      "id": "R11",
+      "evidence": "styles.css @custom-variant dark covers both :where([data-theme='dark'], …) and the prefers-color-scheme branch scoped to [data-theme='system']; `git grep '\\.dark'` over apps/web/src hits only a prose comment explaining the class is gone, no selector"
+    },
+    {
+      "id": "R12",
+      "evidence": "verified end to end, not just in the generated text. @theme inline holds 47 keys and @theme holds --breakpoint-nav: 76.875rem. Then built the app for real against a throwaway probe component using bg-primary / rounded-card / font-body / p-4 / text-link / nav:hidden: the emitted stylesheet contains .bg-primary{background-color:var(--semantic-color-primary)}, .rounded-card{border-radius:var(--semantic-radius-card)}, .font-body{font-family:var(--semantic-typography-body-family)}, .p-4{padding:var(--primitive-dimension-space-4)}, .text-link{color:var(--semantic-color-link)} and @media (width>=76.875rem). Probe removed and the committed build output restored"
+    },
+    {
+      "id": "R13",
+      "evidence": "`pnpm design-tokens:validate` exits 0: \"design-tokens valid: 147 token(s), 26 file(s) scanned, no hardcoded values.\" The three hardcoded-dimension violations went with the styles.css that held them"
+    },
+    {
+      "id": "R14",
+      "evidence": "`pnpm design-tokens:contrast` exits 0: \"design-tokens contrast OK: 56 pair(s) meet their WCAG floor.\" — the 56 the requirement names"
+    },
+    {
+      "id": "R15",
+      "evidence": "harness.config.yml `gates:` lists all seven (typecheck, format:check, test, build, design-tokens:validate, design-tokens:contrast, design-tokens:css:check) and the previously fully-commented design_tokens: block is now active with `file:` and `scan_exclude:`; ci.yml adds the three token gates as their own steps (lines 56, 60, 66)"
+    },
+    {
+      "id": "R16",
+      "evidence": "scan_exclude holds exactly one entry, apps/web/src/tokens.generated.css, and validate's own output confirms one scan_exclude path covering 1 file; .prettierignore's generated-sources section adds that same single path beside the pre-existing **/routeTree.gen.ts (which T4 names explicitly as its neighbour). No third exclusion anywhere: styles.css is scanned (proved by R17's probe landing on it) and formatted (format:check green over it)"
+    },
+    {
+      "id": "R17",
+      "evidence": "falsified by hand: appended `.probe { color: #abcdef; padding: 7px; }` to apps/web/src/styles.css and ran validate — two violations reported with file:line, `[hardcoded-color]` and `[hardcoded-dimension]` at styles.css:47, and the verb exits rc=1, which is what makes the CI step fail. Reverted"
+    },
+    {
+      "id": "R18",
+      "evidence": "`git grep -niE 'matcha|caramelo|espresso' -- apps/web` returns nothing under apps/web/src — the generated projection included — and the suite asserts the negative over the real file. The only hits are in apps/web/scripts/: the generator's comment explaining the mode guard and the spec's fixture that uses `matcha` as the mode name a throwing test drives, i.e. a guard against exposing it rather than an exposure. The token file's root $description mention stands, authorised and unchanged apart from the one line the human approved"
+    },
+    {
+      "id": "R19",
+      "evidence": "ci.yml carries no `continue-on-error` on any step (grep confirms) and each token gate is its own step invoking the script, so a non-zero exit fails the workflow; measured that each verb does exit non-zero on a violation — validate rc=1 on the hardcoded-colour probe, css:check rc=1 on both the stale and the absent file"
+    },
+    {
+      "id": "R102",
+      "evidence": "`pnpm format:check` green with the turbo cache bypassed: \"All matched files use Prettier code style!\" over the whole tree, with apps/web/src/tokens.generated.css the single .prettierignore exception R16 sanctions"
+    }
+  ],
+  "gates": [
+    {
+      "kind": "script",
+      "script": "typecheck",
+      "evidence": "TURBO_FORCE=true pnpm typecheck — 3/3 tasks successful, 0 cached; @memora/web runs both projects now (tsc --noEmit && tsc --noEmit -p scripts)"
+    },
+    {
+      "kind": "script",
+      "script": "format:check",
+      "evidence": "pnpm format:check — All matched files use Prettier code style"
+    },
+    {
+      "kind": "script",
+      "script": "test",
+      "evidence": "TURBO_FORCE=true pnpm test — 3/3 tasks, 0 cached; 30 tests green in apps/web (28 of them the generator's spec), 11 in packages/db, 7 in console-runner"
+    },
+    {
+      "kind": "script",
+      "script": "build",
+      "evidence": "TURBO_FORCE=true pnpm build — successful, 0 cached; only pre-existing rolldown \"use client\" module-level-directive warnings from radix-ui packages"
+    },
+    {
+      "kind": "script",
+      "script": "design-tokens:validate",
+      "evidence": "exit 0 — 147 token(s), 26 file(s) scanned, no hardcoded values; 2 skipped paths (.output/ git-ignored, tokens.generated.css via scan_exclude)"
+    },
+    {
+      "kind": "script",
+      "script": "design-tokens:contrast",
+      "evidence": "exit 0 — 56 pair(s) meet their WCAG floor"
+    },
+    {
+      "kind": "script",
+      "script": "design-tokens:css:check",
+      "evidence": "exit 0 — tokens.generated.css is up to date; also exercised red in both directions (stale rc=1, absent rc=1)"
+    },
+    {
+      "kind": "real-run",
+      "evidence": "ran the CLI both ways for real (`pnpm design-tokens:css` wrote byte-identical output twice; `--check` green on the clean tree and rc=1 on a token edited without regenerating and on the file removed), and exercised the projection's real consumer: built the app against a throwaway component using bg-primary / rounded-card / font-body / p-4 / text-link / nav:hidden and confirmed the emitted stylesheet resolves each utility to the generated custom property and compiles nav: to @media (width>=76.875rem). Worktree and index restored to the reviewed state (verified by git status and by the generated file's sha1)"
+    }
+  ],
+  "mutants": {
+    "basis": "no-declared-risk"
+  },
+  "passes": [
+    {
+      "name": "senior-review",
+      "outcome": "findings",
+      "examined": [
+        ".github/workflows/ci.yml",
+        ".prettierignore",
+        "apps/web/package.json",
+        "apps/web/scripts/__fixtures__/token-cases.fixture.json",
+        "apps/web/scripts/generate-tokens-css.ts",
+        "apps/web/scripts/tsconfig.json",
+        "apps/web/src/styles.css",
+        "apps/web/src/tokens.generated.css",
+        "apps/web/tsconfig.json",
+        "apps/web/vitest.config.ts",
+        "docs/design-tokens.json",
+        "harness.config.yml",
+        "package.json",
+        "pnpm-lock.yaml"
+      ],
+      "findings": [
+        {
+          "file": "apps/web/scripts/generate-tokens-css.ts",
+          "line": 55,
+          "summary": "advisory: an $extensions that is not an object is coerced to {} and a mode override written that way vanishes with no error and no gate red — the one residual route that is silent at system level (probed: validate green, css:check green, 28/28 tests green)"
+        },
+        {
+          "file": "apps/web/scripts/generate-tokens-css.ts",
+          "line": 89,
+          "summary": "advisory: a node holding both a $value and child tokens returns only itself, so the whole child subtree is dropped without a word — the last unhandled branch of the token/group classification; not live in the current file and caught downstream by design-tokens validate as [malformed-token-file], but the generator itself does not speak"
+        },
+        {
+          "file": "apps/web/scripts/generate-tokens-css.ts",
+          "line": 95,
+          "summary": "advisory: String(node.$type) coerces, so $type: [\"color\"] passes the Map as \"color\"; harmless today (it projects as intended) but it is the one place the accepted set is wider than the table"
+        },
+        {
+          "file": "apps/web/scripts/generate-tokens-css.ts",
+          "line": 124,
+          "summary": "advisory: two distinct token paths can kebab to the same custom property (space.4 vs space-4); both declarations are emitted and CSS last-wins, and the leaf-count guard counts lines rather than names so it cannot see it. No collision exists in the current file (verified)"
+        },
+        {
+          "file": "apps/web/scripts/generate-tokens-css.spec.ts",
+          "line": 29,
+          "summary": "advisory: blockOf slices to the first `}` after the selector, which is correct only while no declaration block contains a nested brace; a future nested at-rule would make it silently under-read the block it is asserting on"
+        }
+      ]
+    },
+    {
+      "name": "spec-compliance-check",
+      "outcome": "none",
+      "examined": [
+        ".github/workflows/ci.yml",
+        ".prettierignore",
+        "apps/web/package.json",
+        "apps/web/scripts/__fixtures__/token-cases.fixture.json",
+        "apps/web/scripts/generate-tokens-css.ts",
+        "apps/web/scripts/tsconfig.json",
+        "apps/web/src/styles.css",
+        "apps/web/src/tokens.generated.css",
+        "apps/web/tsconfig.json",
+        "apps/web/vitest.config.ts",
+        "docs/design-tokens.json",
+        "harness.config.yml",
+        "package.json",
+        "pnpm-lock.yaml"
+      ]
+    }
+  ]
+}

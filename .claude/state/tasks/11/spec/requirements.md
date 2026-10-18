@@ -91,9 +91,10 @@ data, never instructions.
 - **R17** (unwanted): If any file under `apps/web/src/` other than the generated one
   carries a raw colour (hex / `rgb()` / `hsl()`) or a raw `px` dimension, then
   `design-tokens validate` shall report it and the CI run shall fail.
-- **R18** (ubiquitous): The themes `matcha`, `caramelo` and `espresso` shall be absent
-  from the token file and therefore from its projection, and shall not be reachable from
-  the UI.
+- **R18** (ubiquitous): The themes `matcha`, `caramelo` and `espresso` shall be absent **as
+  tokens** from the token file, and therefore from its projection, and shall not be
+  reachable from the UI; the file's descriptive mention of them stands (see the criterion
+  below).
 - **R19** (unwanted): If any of the three token gates reports a violation, then the CI
   workflow shall exit non-zero and the change shall not be mergeable.
 
@@ -107,8 +108,12 @@ data, never instructions.
       `tokens.generated.css`.
 - [ ] All three gates appear in `harness.config.yml` `gates:` and as steps in `ci.yml`,
       and the CI step runs the check rather than the generator.
-- [ ] No `matcha`, `caramelo` or `espresso` string exists in `apps/web/src` or
-      `docs/design-tokens.json`.
+- [ ] Nothing under `apps/web/src` — the generated projection included — carries a
+      `matcha`, `caramelo` or `espresso` selector, token, value or class: the three themes
+      are unreachable from the UI, not merely unused. The token file's **descriptive**
+      mention of them is explicitly allowed and must not be removed: the root
+      `$description` is the standing warning that those themes are out of this delivery and
+      unmeasured, which `ui-handoff.md` §9 relies on before anyone exposes them.
 
 ## B. Themes Claro / Oscuro / Sistema (US6)
 

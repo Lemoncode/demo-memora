@@ -24,11 +24,11 @@ the vocabulary, the rationale says what it is.
 
 ## Group 1 — Proyección de tokens generada y sus tres gates _(isolates the contract every other group is built on; five tasks rather than four because the generator, its output and the three gates that enforce it are one indivisible risk — splitting them across checkpoints would present the human a half-wired contract that looks green)_
 
-- [ ] T1 — Confirm the baseline before building on it: the four original gates are green
+- [x] T1 — Confirm the baseline before building on it: the four original gates are green
       on the branch (the Orchestrator formatted the two artifacts the DEFINE phase had
       committed unformatted), and `design-tokens validate` still reports its three
       violations in the `styles.css` this group replaces. A check, not a fix (R102)
-- [ ] T2 — Write the generator at `apps/web/scripts/generate-tokens-css.ts` around a pure
+- [x] T2 — Write the generator at `apps/web/scripts/generate-tokens-css.ts` around a pure
       `projectTokens(tokenFile): string`, and extend `apps/web/vitest.config.ts` to
       collect `scripts/**/*.spec.ts`. Unit-test each `$type`'s projection — the
       `fontFamily` array as a quoted comma list, the `cubicBezier` array as
@@ -37,7 +37,7 @@ the vocabulary, the rationale says what it is.
       `com.lemony.modes`, byte-stability across two runs over the same input, and the loud
       failure, naming the token path, on an unknown `$type` or a subtree outside the
       committed Tailwind-namespace map (R2, R4, R5, R6)
-- [ ] T3 — Run the generator to produce the committed `apps/web/src/tokens.generated.css`
+- [x] T3 — Run the generator to produce the committed `apps/web/src/tokens.generated.css`
       — the do-not-edit header with no timestamp or other volatile content, the `:root`
       base block, the `[data-theme='dark']` overrides, the same overrides under
       `@media (prefers-color-scheme: dark)` scoped to `[data-theme='system']`, and the
@@ -48,13 +48,13 @@ the vocabulary, the rationale says what it is.
       `new-york` / `neutral` palette survives, `matcha` / `caramelo` / `espresso` are
       absent, and `styles.css` carries no colour and no dimension literal
       (R1, R3, R9, R10, R11, R12, R18)
-- [ ] T4 — Wire the regeneration gate: the root scripts `design-tokens:css` (writes) and
+- [x] T4 — Wire the regeneration gate: the root scripts `design-tokens:css` (writes) and
       `design-tokens:css:check` (compares and fails, naming the file stale and the script
       to run), its CI step running the **check** and never the generator, and the two
       exclusions that stop other gates fighting it — `scan_exclude` in the
       `design_tokens:` block and `.prettierignore` beside `**/routeTree.gen.ts` — naming
       the generated file and nothing else (R7, R8, R16)
-- [ ] T5 — Declare all three token gates in `harness.config.yml`'s `gates:` and as their
+- [x] T5 — Declare all three token gates in `harness.config.yml`'s `gates:` and as their
       own steps in `.github/workflows/ci.yml`, with the `design_tokens:` block active, and
       prove them: `validate` exits 0 with the old `styles.css` violations gone and only
       the generated file excluded, `contrast` exits 0 reporting 56 pairs, and the
