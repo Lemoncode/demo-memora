@@ -55,12 +55,35 @@ Closed after the critique:
   `NotFound-D`.
 - Los cinco supuestos del checkpoint del grill siguen en pie sin cambios.
 
+## Approval gate
+
+Portada presentada el 2026-10-18. El humano **aprobó con un cambio**, así que la tarea sigue en
+`harness:status:spec-ready` y no hay código escrito. Respuestas dadas en el gate, que aplican
+cuando el gate se cierre tras la revisión:
+
+**Mode**: step-by-step
+**Auto-commit**: off
+
+Cambio pedido, enrutado al Spec Author (dueño del spec):
+
+1. **D1 se reescribe.** En vez de excluir a mano `apps/web/src/styles.css` del escaneo
+   anti-hardcode, la proyección se **genera** desde `docs/design-tokens.json` con un script, más
+   un gate que comprueba que está al día (regenerar + `git diff --exit-code`). Así la desviación
+   entre el JSON y el CSS deja de ser posible en vez de quedar a cargo de la revisión humana, y
+   `scan_exclude` pasa a describir lo que de verdad es: salida generada que se comitea.
+2. **Las obligaciones de accesibilidad bajan a cada grupo de pantalla** (9–12) y T43 se queda
+   como pasada de verificación. Se incluye porque el modo elegido es paso a paso: tal como estaba,
+   los checkpoints de las cuatro pantallas se validarían antes de que tuvieran `aria-describedby`,
+   los `aria-label` de los botones solo-icono y el `aria-hidden` de la decoración. El humano puede
+   vetarlo cuando se le vuelva a presentar la portada.
+
 ## Next action
 
-1. Decisión del humano: re-verificar el handoff v2 con la UI Designer, o pasar ya al spec.
-2. Quitar `harness:needs-design`, flip a `harness:status:spec-ready`, commit + push del estado.
-3. Spec Author: `prd-to-spec` + `spec-to-issue`.
-4. Capturar el stub de «recuperar contraseña» (sin diseño en todo el canvas).
+1. Spec Author: reescribir D1 y el Grupo 1, bajar la accesibilidad a los grupos 9–12, rerun
+   `spec-to-issue`.
+2. Volver a presentar la portada del spec al humano.
+3. Con su aprobación: flip a `harness:status:in-progress`, emitir `spec_approved`, y arrancar el
+   bucle paso a paso por el Grupo 1 con auto-commit apagado.
 
 ## Blockers
 

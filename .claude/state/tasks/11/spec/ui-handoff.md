@@ -548,18 +548,27 @@ foto se hayan borrado.» · «Volver a Mis círculos» · desktop also «**Ir a 
 `docs/design-tokens.json` — the canonical, client-owned source of truth, a 3-tier W3C-DTCG model
 (`primitive` → `semantic` → `component`) with `base` (Claro) and `dark` (Oscuro) modes. Derived in
 this task from the design system's own `tokens.json` / `tokens.css`, with the three deliberate
-departures §9 records, each carrying its reasoning in the token's own `$description`.
-`apps/web/src/styles.css` is its **projection**, not a peer source: every colour, radius, spacing and
-font in the app references a token from this file.
+departures §9 records, each carrying its reasoning in the token's own `$description`. The CSS is its
+**projection**, not a peer source: every colour, radius, spacing and font in the app references a
+token from this file.
+
+**The projection is generated, and it is split in two** (spec decisions D1/D2 — this paragraph
+replaces what v2 of this handoff predicted, which measurement proved false):
+`apps/web/src/tokens.generated.css` is written by a script from the token file and holds **every
+literal**; `apps/web/src/styles.css` is slim and hand-written, with the imports, the `dark:` custom
+variant and `@layer base`, and **no literal values at all**. So drift between the JSON and the CSS is
+impossible by construction rather than left to a human reader, and the anti-hardcode scan still
+guards the hand-written layer — only the generated file is excluded from it. Never edit the generated
+file; change the token file and regenerate.
 
 No design-tool binding (`com.lemony.design-tool`): this project is **pure-code**.
 
-Gates: `lemony design-tokens validate` (well-formedness + the anti-hardcode scan over UI source) and
-`lemony design-tokens contrast` (56 declared pairs). `contrast` is green. `validate` reports three raw
-dimensions in the **existing** `styles.css` — shadcn's `calc(var(--radius) ± 4px)` at lines 111, 112
-and 114 — which this part replaces with the Memora radius scale. **`harness.config.yml`'s
-`design_tokens:` block is still fully commented out**: both gates run today by convention on the
-default path, and declaring them in the config and in CI is this task's work, per the PRD.
+Gates, seven in all once this part lands: the repo's four (`typecheck`, `format:check`, `test`,
+`build`) plus `lemony design-tokens validate` (well-formedness + the anti-hardcode scan over
+hand-written UI source), `lemony design-tokens contrast` (56 declared pairs, green) and the
+regeneration check, which fails when `tokens.generated.css` is stale. Declaring them in
+`harness.config.yml` — whose `design_tokens:` block is still commented out — and in
+`.github/workflows/ci.yml` is this task's work, per the PRD.
 
 ## Open questions
 
