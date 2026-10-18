@@ -35,9 +35,9 @@ jobs:
       - name: Install
         run: pnpm install --frozen-lockfile
 
-      # The four declared gates (harness.config.yml `gates:`), each its own step so
+      # The seven declared gates (harness.config.yml `gates:`), each its own step so
       # a red one is obvious. No `continue-on-error` anywhere: any non-zero exit
-      # fails the workflow (R53).
+      # fails the workflow (R53, and #11 R19 for the three token gates).
       - name: Typecheck
         run: pnpm typecheck
 
@@ -49,3 +49,18 @@ jobs:
 
       - name: Build
         run: pnpm build
+
+      # Well-formedness of docs/design-tokens.json plus the anti-hardcode scan over the
+      # hand-written UI source.
+      - name: Design tokens — validate
+        run: pnpm design-tokens:validate
+
+      # The declared WCAG pairs, measured from the token values themselves.
+      - name: Design tokens — contrast
+        run: pnpm design-tokens:contrast
+
+      # The **check**, never the generator (#11 R8): a commit whose generated CSS is
+      # stale fails here rather than being silently regenerated into a passing build
+      # nobody reviewed.
+      - name: Design tokens — CSS projection up to date
+        run: pnpm design-tokens:css:check

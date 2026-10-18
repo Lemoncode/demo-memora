@@ -1,0 +1,269 @@
+/* Memora design tokens — generated file, do not edit by hand.
+ *
+ * Source:    docs/design-tokens.json — the canonical, client-owned token file
+ * Generator: apps/web/scripts/generate-tokens-css.ts (pnpm design-tokens:css)
+ * Gate:      pnpm design-tokens:css:check — fails when this file is stale
+ *
+ * To change a value, edit the token file and regenerate; never edit this file.
+ * The header carries no timestamp or version on purpose: the gate compares bytes.
+ */
+
+:root {
+  --primitive-color-brand-50: #f0efff;
+  --primitive-color-brand-100: #e2dfff;
+  --primitive-color-brand-200: #c8c3ff;
+  --primitive-color-brand-300: #aaa2ff;
+  --primitive-color-brand-400: #8980fa;
+  --primitive-color-brand-500: #6c63ff;
+  --primitive-color-brand-600: #584fe5;
+  --primitive-color-brand-700: #463ec1;
+  --primitive-color-brand-800: #39349a;
+  --primitive-color-brand-900: #302d78;
+  --primitive-color-accent-pink-base: #ff39c6;
+  --primitive-color-accent-pink-hover: #ff00b8;
+  --primitive-color-accent-pink-strong: #e000a2;
+  --primitive-color-accent-pink-soft: #fff0fb;
+  --primitive-color-accent-pink-border: #ffb8ed;
+  --primitive-color-accent-peach-base: #ff9500;
+  --primitive-color-accent-peach-hover: #ff6a00;
+  --primitive-color-accent-peach-strong: #f05a00;
+  --primitive-color-accent-peach-soft: #fff4e5;
+  --primitive-color-accent-peach-border: #ffd69a;
+  --primitive-color-accent-mint-base: #00e6a0;
+  --primitive-color-accent-mint-hover: #00db99;
+  --primitive-color-accent-mint-strong: #007d58;
+  --primitive-color-accent-mint-soft: #e8fff6;
+  --primitive-color-accent-mint-border: #a8f7db;
+  --primitive-color-signal-danger: #f87171;
+  --primitive-color-signal-danger-strong: #e03131;
+  --primitive-color-signal-rating: #fbbf24;
+  --primitive-color-signal-heart: #ef4444;
+  --primitive-color-ground-page: #f8fafc;
+  --primitive-color-ground-surface: #ffffff;
+  --primitive-color-ground-elevated: #f1f5f9;
+  --primitive-color-ground-subtle: #f8fafc;
+  --primitive-color-ink-primary: #0f172a;
+  --primitive-color-ink-secondary: #475569;
+  --primitive-color-ink-muted: #5e6c7e;
+  --primitive-color-ink-inverse: #ffffff;
+  --primitive-color-line-subtle: #e2e8f0;
+  --primitive-color-line-strong: #cbd5e1;
+  --primitive-color-line-control: #7d8da3;
+  --primitive-color-footer-background: #080f19;
+  --primitive-color-footer-foreground: #f8fafc;
+  --primitive-color-glass-background: #ffffffd1;
+  --primitive-color-glass-border: #e2e8f0cc;
+  --primitive-color-static-white: #ffffff;
+  --primitive-color-static-black: #000000;
+  --primitive-dimension-space-1: 0.25rem;
+  --primitive-dimension-space-2: 0.5rem;
+  --primitive-dimension-space-3: 0.75rem;
+  --primitive-dimension-space-4: 1rem;
+  --primitive-dimension-space-5: 1.25rem;
+  --primitive-dimension-space-6: 1.5rem;
+  --primitive-dimension-space-8: 2rem;
+  --primitive-dimension-space-10: 2.5rem;
+  --primitive-dimension-space-12: 3rem;
+  --primitive-dimension-space-16: 4rem;
+  --primitive-dimension-space-20: 5rem;
+  --primitive-dimension-space-28: 7rem;
+  --primitive-dimension-radius-xs: 0.375rem;
+  --primitive-dimension-radius-sm: 0.5rem;
+  --primitive-dimension-radius-md: 0.75rem;
+  --primitive-dimension-radius-lg: 1rem;
+  --primitive-dimension-radius-xl: 1.25rem;
+  --primitive-dimension-radius-2xl: 1.5rem;
+  --primitive-dimension-radius-3xl: 2rem;
+  --primitive-dimension-radius-full: 9999px;
+  --primitive-dimension-blur-glass: 16px;
+  --primitive-dimension-layout-content-max: 80rem;
+  --primitive-dimension-layout-header-height: 5rem;
+  --primitive-dimension-layout-breakpoint-nav: 76.875rem;
+  --primitive-dimension-layout-card-container: 13rem;
+  --primitive-dimension-layout-touch-target: 2.75rem;
+  --primitive-font-family-display: 'Plus Jakarta Sans', Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --primitive-font-family-sans: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --primitive-font-family-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  --primitive-font-weight-normal: 400;
+  --primitive-font-weight-medium: 500;
+  --primitive-font-weight-semibold: 600;
+  --primitive-font-weight-bold: 700;
+  --primitive-font-weight-extrabold: 800;
+  --primitive-number-leading-none: 1;
+  --primitive-number-leading-tight: 1.15;
+  --primitive-number-leading-snug: 1.35;
+  --primitive-number-leading-normal: 1.5;
+  --primitive-number-leading-relaxed: 1.625;
+  --primitive-number-z-sidenav: 40;
+  --primitive-number-z-header: 50;
+  --primitive-number-z-modal: 60;
+  --primitive-number-z-toast: 70;
+  --primitive-duration-fast: 150ms;
+  --primitive-duration-normal: 250ms;
+  --primitive-duration-slow: 350ms;
+  --primitive-cubic-bezier-standard: cubic-bezier(0.16, 1, 0.3, 1);
+  --semantic-color-background: var(--primitive-color-ground-page);
+  --semantic-color-foreground: var(--primitive-color-ink-primary);
+  --semantic-color-card: var(--primitive-color-ground-surface);
+  --semantic-color-card-foreground: var(--primitive-color-ink-primary);
+  --semantic-color-popover: var(--primitive-color-ground-surface);
+  --semantic-color-popover-foreground: var(--primitive-color-ink-primary);
+  --semantic-color-elevated: var(--primitive-color-ground-elevated);
+  --semantic-color-primary: var(--primitive-color-brand-600);
+  --semantic-color-primary-foreground: var(--primitive-color-static-white);
+  --semantic-color-secondary: var(--primitive-color-ground-elevated);
+  --semantic-color-secondary-foreground: var(--primitive-color-ink-primary);
+  --semantic-color-accent: var(--primitive-color-ground-elevated);
+  --semantic-color-accent-foreground: var(--primitive-color-ink-primary);
+  --semantic-color-muted: var(--primitive-color-ground-subtle);
+  --semantic-color-muted-foreground: var(--primitive-color-ink-muted);
+  --semantic-color-body-foreground: var(--primitive-color-ink-secondary);
+  --semantic-color-link: var(--primitive-color-brand-600);
+  --semantic-color-success-foreground: var(--primitive-color-accent-mint-strong);
+  --semantic-color-pill: var(--primitive-color-brand-100);
+  --semantic-color-pill-foreground: var(--primitive-color-brand-700);
+  --semantic-color-destructive: var(--primitive-color-signal-danger);
+  --semantic-color-destructive-border: var(--primitive-color-signal-danger-strong);
+  --semantic-color-border: var(--primitive-color-line-subtle);
+  --semantic-color-input: var(--primitive-color-line-control);
+  --semantic-color-ring: var(--primitive-color-brand-500);
+  --semantic-color-footer: var(--primitive-color-footer-background);
+  --semantic-color-footer-foreground: var(--primitive-color-footer-foreground);
+  --semantic-color-glass: var(--primitive-color-glass-background);
+  --semantic-color-glass-border: var(--primitive-color-glass-border);
+  --semantic-radius-control: var(--primitive-dimension-radius-md);
+  --semantic-radius-card: var(--primitive-dimension-radius-lg);
+  --semantic-radius-panel: var(--primitive-dimension-radius-2xl);
+  --semantic-radius-pill: var(--primitive-dimension-radius-full);
+  --semantic-motion-duration: var(--primitive-duration-normal);
+  --semantic-motion-easing: var(--primitive-cubic-bezier-standard);
+  --semantic-typography-heading-family: var(--primitive-font-family-display);
+  --semantic-typography-body-family: var(--primitive-font-family-sans);
+  --component-bottom-nav-background: var(--semantic-color-card);
+  --component-bottom-nav-border: var(--semantic-color-border);
+  --component-bottom-nav-item-active: var(--semantic-color-link);
+  --component-bottom-nav-item-inactive: var(--primitive-color-ink-muted);
+  --component-side-nav-background: var(--semantic-color-card);
+  --component-side-nav-item-active-background: var(--semantic-color-pill);
+  --component-side-nav-item-active-foreground: var(--primitive-color-brand-700);
+  --component-field-background: var(--semantic-color-card);
+  --component-field-border: var(--semantic-color-input);
+  --component-field-border-invalid: var(--semantic-color-destructive-border);
+  --component-field-radius: var(--semantic-radius-control);
+  --component-field-height: 3rem;
+  --component-photo-badge-dark-background: #00000080;
+  --component-photo-badge-dark-foreground: var(--primitive-color-static-white);
+  --component-photo-badge-light-background: #ffffff80;
+  --component-photo-badge-light-foreground: var(--primitive-color-static-black);
+  --component-not-found-numerals: var(--primitive-color-brand-200);
+}
+
+/* Theme «Oscuro» — chosen explicitly. */
+[data-theme='dark'] {
+  --primitive-color-accent-pink-soft: #2b1b29;
+  --primitive-color-accent-pink-border: #3d2338;
+  --primitive-color-accent-peach-soft: #2b201b;
+  --primitive-color-accent-peach-border: #3d2a20;
+  --primitive-color-accent-mint-soft: #0f2720;
+  --primitive-color-accent-mint-border: #1b3d32;
+  --primitive-color-signal-danger-strong: #f87171;
+  --primitive-color-ground-page: #080f19;
+  --primitive-color-ground-surface: #111b27;
+  --primitive-color-ground-elevated: #172332;
+  --primitive-color-ground-subtle: #1b2939;
+  --primitive-color-ink-primary: #f8fafc;
+  --primitive-color-ink-secondary: #cbd5e1;
+  --primitive-color-ink-muted: #94a3b8;
+  --primitive-color-ink-inverse: #0f172a;
+  --primitive-color-line-subtle: #223347;
+  --primitive-color-line-strong: #263648;
+  --primitive-color-line-control: #5a7190;
+  --primitive-color-glass-background: #080f19d9;
+  --primitive-color-glass-border: #263648bf;
+  --semantic-color-link: var(--primitive-color-brand-300);
+  --semantic-color-success-foreground: var(--primitive-color-accent-mint-base);
+}
+
+/* Theme «Sistema» — the same overrides, behind the OS preference (R10). */
+@media (prefers-color-scheme: dark) {
+  [data-theme='system'] {
+    --primitive-color-accent-pink-soft: #2b1b29;
+    --primitive-color-accent-pink-border: #3d2338;
+    --primitive-color-accent-peach-soft: #2b201b;
+    --primitive-color-accent-peach-border: #3d2a20;
+    --primitive-color-accent-mint-soft: #0f2720;
+    --primitive-color-accent-mint-border: #1b3d32;
+    --primitive-color-signal-danger-strong: #f87171;
+    --primitive-color-ground-page: #080f19;
+    --primitive-color-ground-surface: #111b27;
+    --primitive-color-ground-elevated: #172332;
+    --primitive-color-ground-subtle: #1b2939;
+    --primitive-color-ink-primary: #f8fafc;
+    --primitive-color-ink-secondary: #cbd5e1;
+    --primitive-color-ink-muted: #94a3b8;
+    --primitive-color-ink-inverse: #0f172a;
+    --primitive-color-line-subtle: #223347;
+    --primitive-color-line-strong: #263648;
+    --primitive-color-line-control: #5a7190;
+    --primitive-color-glass-background: #080f19d9;
+    --primitive-color-glass-border: #263648bf;
+    --semantic-color-link: var(--primitive-color-brand-300);
+    --semantic-color-success-foreground: var(--primitive-color-accent-mint-base);
+  }
+}
+
+/* The token-backed Tailwind utilities the screens use (R12). */
+@theme inline {
+  --spacing-1: var(--primitive-dimension-space-1);
+  --spacing-2: var(--primitive-dimension-space-2);
+  --spacing-3: var(--primitive-dimension-space-3);
+  --spacing-4: var(--primitive-dimension-space-4);
+  --spacing-5: var(--primitive-dimension-space-5);
+  --spacing-6: var(--primitive-dimension-space-6);
+  --spacing-8: var(--primitive-dimension-space-8);
+  --spacing-10: var(--primitive-dimension-space-10);
+  --spacing-12: var(--primitive-dimension-space-12);
+  --spacing-16: var(--primitive-dimension-space-16);
+  --spacing-20: var(--primitive-dimension-space-20);
+  --spacing-28: var(--primitive-dimension-space-28);
+  --color-background: var(--semantic-color-background);
+  --color-foreground: var(--semantic-color-foreground);
+  --color-card: var(--semantic-color-card);
+  --color-card-foreground: var(--semantic-color-card-foreground);
+  --color-popover: var(--semantic-color-popover);
+  --color-popover-foreground: var(--semantic-color-popover-foreground);
+  --color-elevated: var(--semantic-color-elevated);
+  --color-primary: var(--semantic-color-primary);
+  --color-primary-foreground: var(--semantic-color-primary-foreground);
+  --color-secondary: var(--semantic-color-secondary);
+  --color-secondary-foreground: var(--semantic-color-secondary-foreground);
+  --color-accent: var(--semantic-color-accent);
+  --color-accent-foreground: var(--semantic-color-accent-foreground);
+  --color-muted: var(--semantic-color-muted);
+  --color-muted-foreground: var(--semantic-color-muted-foreground);
+  --color-body-foreground: var(--semantic-color-body-foreground);
+  --color-link: var(--semantic-color-link);
+  --color-success-foreground: var(--semantic-color-success-foreground);
+  --color-pill: var(--semantic-color-pill);
+  --color-pill-foreground: var(--semantic-color-pill-foreground);
+  --color-destructive: var(--semantic-color-destructive);
+  --color-destructive-border: var(--semantic-color-destructive-border);
+  --color-border: var(--semantic-color-border);
+  --color-input: var(--semantic-color-input);
+  --color-ring: var(--semantic-color-ring);
+  --color-footer: var(--semantic-color-footer);
+  --color-footer-foreground: var(--semantic-color-footer-foreground);
+  --color-glass: var(--semantic-color-glass);
+  --color-glass-border: var(--semantic-color-glass-border);
+  --radius-control: var(--semantic-radius-control);
+  --radius-card: var(--semantic-radius-card);
+  --radius-panel: var(--semantic-radius-panel);
+  --radius-pill: var(--semantic-radius-pill);
+  --font-heading: var(--semantic-typography-heading-family);
+  --font-body: var(--semantic-typography-body-family);
+}
+
+/* Resolved at build time, so these are literals, not var() references. */
+@theme {
+  --breakpoint-nav: 76.875rem;
+}

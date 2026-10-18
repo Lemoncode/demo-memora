@@ -1,7 +1,12 @@
 {
   "extends": "../../tsconfig.base.json",
   "include": ["**/*.ts", "**/*.tsx"],
-  "exclude": ["dist", ".output", ".nitro", ".tanstack"],
+  // `scripts/` has its own project (scripts/tsconfig.json): it runs on Node, and this one
+  // does not ask for node's globals. Note what `types` below does NOT buy — node's
+  // globals stay reachable from `src/` anyway, because vite's and nitro's own typings
+  // reference them; see the measurement recorded in scripts/tsconfig.json. Both projects
+  // are checked by `pnpm typecheck`.
+  "exclude": ["dist", ".output", ".nitro", ".tanstack", "scripts"],
   "compilerOptions": {
     "jsx": "react-jsx",
     "lib": ["ES2023", "DOM", "DOM.Iterable"],

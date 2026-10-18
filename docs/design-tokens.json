@@ -1,5 +1,5 @@
 {
-  "$description": "Memora design tokens. Canonical, client-owned source of truth; apps/web/src/styles.css is its projection. Derived from the `memora` design system that ships with the screen canvas (https://claude.ai/artifact/55PWqQU14xwwAifgCqbgeb). Modes: base = theme Claro, dark = theme Oscuro. The design system also defines matcha, caramelo and espresso; they are NOT in this delivery and NOT measured — see tasks/11/spec/ui-handoff.md §9 before exposing them.",
+  "$description": "Memora design tokens. Canonical, client-owned source of truth; apps/web/src/tokens.generated.css is its projection, generated from this file by apps/web/scripts/generate-tokens-css.ts and kept honest by the `design-tokens:css:check` gate — never edit it by hand. apps/web/src/styles.css is the slim hand-written companion (imports, the dark variant, @layer base) and holds no literal values. Derived from the `memora` design system that ships with the screen canvas (https://claude.ai/artifact/55PWqQU14xwwAifgCqbgeb). Modes: base = theme Claro, dark = theme Oscuro. The design system also defines matcha, caramelo and espresso; they are NOT in this delivery and NOT measured — see tasks/11/spec/ui-handoff.md §9 before exposing them.",
   "primitive": {
     "color": {
       "brand": {

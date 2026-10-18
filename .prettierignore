@@ -25,3 +25,7 @@ coverage/
 
 # Generated sources
 **/routeTree.gen.ts
+# Written by `pnpm design-tokens:css` from docs/design-tokens.json. Formatting it would
+# put `format:check` and the regeneration gate in permanent disagreement about the file
+# (#11 R16): Prettier would rewrite the bytes the generator then reports as stale.
+apps/web/src/tokens.generated.css

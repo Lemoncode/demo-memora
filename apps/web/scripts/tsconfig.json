@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  // The build scripts are the only code in this workspace that runs on Node, so this is
+  // the only project that DECLARES node's globals (#11, review of Group 1).
+  //
+  // What that buys, stated honestly: the app project no longer asks for node types. It
+  // does not make them unreachable from `src/` — `vite/dist/node/index.d.ts` and nitro's
+  // typings carry their own `/// <reference types="node" />`, measured by moving
+  // apps/web/node_modules/@types/node aside and watching a `process.cwd()` probe in
+  // `src/` still typecheck. Making them unreachable needs a `typeRoots` restriction that
+  // leaves those framework references unresolvable, i.e. a red `typecheck`; that is a
+  // decision about the stack. `pnpm typecheck` runs this project and ../tsconfig.json.
+  "extends": "../../../tsconfig.base.json",
+  "include": ["**/*.ts"],
+  "compilerOptions": {
+    "lib": ["ES2023"],
+    "types": ["node"]
+  }
+}

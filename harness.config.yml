@@ -79,12 +79,20 @@ rollback:
 # propose this list from your manifest at the approval gate — confirmed by a human
 # and added by hand (this block is the shape); no tool writes it for you.
 # This project has no linter by explicit decision (Prettier only), so `typecheck`
-# carries the weight a linter would. All four are enforced by .github/workflows/ci.yml.
+# carries the weight a linter would. All seven are enforced by .github/workflows/ci.yml.
+# The last three are the token gates (#11 D6/R15): well-formedness plus the anti-hardcode
+# scan, the WCAG contrast pairs, and the check that the generated CSS projection is not
+# stale. `design-tokens:css` — the script that WRITES the projection — is deliberately
+# not a gate: it is what a developer runs after editing a token, and CI runs only the
+# check (R8).
 gates:
   - typecheck
   - 'format:check'
   - test
   - build
+  - 'design-tokens:validate'
+  - 'design-tokens:contrast'
+  - 'design-tokens:css:check'
 
 # Design tokens (the `design-tokens` verbs, and the token lines of `doctor` / `status`).
 # `scan_extensions`: the anti-hardcode scan inspects a built-in set of UI/style
@@ -116,3 +124,13 @@ gates:
 #   file: design/tokens.json
 #   scan_exclude:
 #     - src/design/
+
+design_tokens:
+  file: docs/design-tokens.json
+  # The one excluded path, and it is excluded because it is generated output we commit
+  # (#11 D1/R16): `pnpm design-tokens:css` writes it from the token file, and
+  # `design-tokens:css:check` fails the build when it is stale. Every other file under
+  # apps/web/src/ — styles.css included — stays scanned, so a hardcoded colour added by
+  # hand is still caught.
+  scan_exclude:
+    - apps/web/src/tokens.generated.css

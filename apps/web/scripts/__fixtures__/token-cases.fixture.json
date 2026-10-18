@@ -1,0 +1,73 @@
+{
+  "$description": "Token-file fixtures for generate-tokens-css.spec.ts. Each case holds `tokens` (a complete, minimal DTCG token file exercising one projection rule) and `expected` (the literals the spec asserts on). Both live in JSON rather than inline in the spec because the anti-hardcode scan reads .ts anywhere in the repo and tokens.generated.css is the only path allowed to be excluded from it (#11 R16); JSON is outside the scan, and a token file is JSON by nature.",
+  "singleColor": {
+    "tokens": {
+      "primitive": {
+        "color": {
+          "brand": {
+            "500": { "$type": "color", "$value": "#6c63ff" }
+          }
+        }
+      }
+    },
+    "expected": {
+      "brand500": "#6c63ff"
+    }
+  },
+  "darkOverride": {
+    "tokens": {
+      "primitive": {
+        "color": {
+          "brand": {
+            "300": { "$type": "color", "$value": "#aaa2ff" },
+            "600": { "$type": "color", "$value": "#584fe5" }
+          },
+          "ground": {
+            "page": {
+              "$type": "color",
+              "$value": "#f8fafc",
+              "$extensions": { "com.lemony.modes": { "dark": "#080f19" } }
+            }
+          },
+          "static": {
+            "white": { "$type": "color", "$value": "#ffffff" }
+          }
+        }
+      },
+      "semantic": {
+        "color": {
+          "link": {
+            "$type": "color",
+            "$value": "{primitive.color.brand.600}",
+            "$extensions": {
+              "com.lemony.modes": { "dark": "{primitive.color.brand.300}" }
+            }
+          }
+        }
+      }
+    },
+    "expected": {
+      "pageBase": "#f8fafc",
+      "pageDark": "#080f19"
+    }
+  },
+  "alphaHex": {
+    "tokens": {
+      "primitive": {
+        "color": {
+          "glass": {
+            "background": {
+              "$type": "color",
+              "$value": "#ffffffd1",
+              "$extensions": { "com.lemony.modes": { "dark": "#080f19d9" } }
+            }
+          }
+        }
+      }
+    },
+    "expected": {
+      "base": "#ffffffd1",
+      "dark": "#080f19d9"
+    }
+  }
+}
