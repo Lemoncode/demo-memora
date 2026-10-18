@@ -226,23 +226,25 @@ which is also the seam that disappears when a backend answers.
   reviewer. Consequence: the behaviour differs between dev and the production build, which
   R34's test asserts for the dev path only.
 - **D16 — The transition-suppression rule lives in the hand-written `styles.css`
-  `@layer base`, and the marker is written in the theme provider's existing
-  `data-theme` effect rather than in a new handler or as React state.** [open]
-  `ui-handoff.md` §8 item 5 — added at step 2's checkpoint — fixes the *mechanism* (a
-  marker attribute on `<html>`, a CSS rule while it is present, dropped on the next frame)
-  but not where either half lives, and in this repo that is not a free choice. The CSS half
-  **cannot** go in `tokens.generated.css`: the generator owns that file byte-for-byte and
-  the regeneration gate (R7) would report any hand edit as stale, so it goes in the
-  hand-written layer D2 carved out for exactly this kind of rule — which also keeps it
-  inside the anti-hardcode scan. The marker half goes in the provider's existing effect,
-  the one place `data-theme` is already written, so suppression covers **every** swap
-  including one triggered by the OS preference changing while the theme is «Sistema»;
-  a control's click handler would miss that path. Alternatives for the marker: React state
-  plus a conditional class — a re-render on every swap, and it still needs the same effect
-  to cover the OS path; or swapping a stylesheet — heavier and racier than an attribute.
-  Consequence: T46 reaches into a file Group 2 owns (its task text says so), and the
-  suppression rule is one of the few hand-written CSS rules in the project, so it is
-  reviewed as code rather than regenerated.
+  `@layer base`, and the marker is written inside the theme provider — on both of its swap
+  paths — rather than in a control's handler or as React state.** [open]
+  `ui-handoff.md` §8 item 5 — added at step 2's checkpoint and corrected twice in step 3 —
+  fixes the *mechanism* (a marker attribute on `<html>`, a CSS rule while it is present,
+  dropped after the frame that paints the swap, which takes **two** `requestAnimationFrame`
+  callbacks) but not where either half lives, and in this repo that is not a free choice.
+  The CSS half **cannot** go in `tokens.generated.css`: the generator owns that file
+  byte-for-byte and the regeneration gate (R7) would report any hand edit as stale, so it
+  goes in the hand-written layer D2 carved out for exactly this kind of rule — which also
+  keeps it inside the anti-hardcode scan. The marker half goes in the provider, which is
+  the only place that sees **both** swap paths: the effect that writes `data-theme`, and
+  the `prefers-color-scheme` listener, where the OS flips the painted theme while
+  «Sistema» is selected and **no attribute is written at all**. A control's click handler
+  would miss that second path entirely. Alternatives for the marker: React state plus a
+  conditional class — a re-render on every swap, and it still needs the same two hooks; or
+  swapping a stylesheet — heavier and racier than an attribute. Consequence: T46 reaches
+  into a file Group 2 owns (its task text says so), and the suppression rule is one of the
+  few hand-written CSS rules in the project, so it is reviewed as code rather than
+  regenerated.
 
 ## Files
 
@@ -320,10 +322,12 @@ which is also the seam that disappears when a backend answers.
   sections, conditional «Círculos» section, identity row (R54, R55, R56, R57, R58, R59)
 - `apps/web/src/common/components/empty-state.component.tsx` — created — icon + tone +
   title + body + size (R32)
-- `apps/web/src/common/components/icon.component.tsx` — created — name → lucide map (R33,
-  R34, R35)
+- `apps/web/src/common/components/icon.component.tsx` — created in Group 4, **corrected by
+  Group 14's T47** — name → lucide map, with `check` and `success` as two independent
+  entries and no alias (R33, R34, R35)
 - `apps/web/src/common/components/icon.component.spec.tsx` — created — the unknown-name
-  path (R34)
+  path, plus T47's assertion that `check` and `success` resolve to different components
+  (R34, R35)
 - `apps/web/src/common/components/skeleton.component.tsx` — created — unused here, Part 2
   consumes it (R37)
 - `apps/web/src/common/components/future-link.component.tsx` — created — the anchor for a
@@ -415,13 +419,17 @@ which is also the seam that disappears when a backend answers.
 - Stored theme missing, corrupt, or `localStorage` throwing (private mode, blocked site
   data) → «Sistema» (R24)
 - OS flips `prefers-color-scheme` while the app is open and the theme is «Sistema» → the
-  page re-paints without a reload, and the suppression marker covers that swap too because
-  it is written in the provider's effect rather than in a control's click handler (R21,
-  R103)
+  page re-paints without a reload, and the suppression marker covers that swap too —
+  **this path writes no `data-theme` at all** (the CSS `@media` arm repaints), so the
+  marker hangs off the `prefers-color-scheme` listener as well as off the attribute write
+  (R21, R103)
 - A theme swap with a `transition-*` utility in the tree → suppressed for the swap and
-  restored on the next frame; if the marker outlived the frame, hover and focus
-  transitions would die silently everywhere, which is why section B's criteria check a
-  button still transitions on hover **after** a swap (R103)
+  restored after the frame that paints it, which needs **two** `requestAnimationFrame`
+  callbacks: with one, the marker is gone before that frame's style recalculation and the
+  colours interpolate anyway — measured in step 3, where the one-frame version shipped
+  broken with a green suite. In the other direction, a marker that outlived the swap would
+  kill hover and focus motion silently everywhere, which is why section B's criteria check
+  a button still transitions on hover **after** a swap (R103)
 - A theme control rendering `theme` or `resolvedTheme` during hydration → both disagree
   with the server (no `document`, no `matchMedia` there), so the control needs a mount gate
   or `useSyncExternalStore` with a server snapshot; T40 and T41 carry the constraint and

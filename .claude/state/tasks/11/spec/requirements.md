@@ -140,15 +140,20 @@ data, never instructions.
 - **R28** (ubiquitous): The desktop theme menu shall carry menu semantics —
   `aria-haspopup`, `aria-expanded`, `role="menuitemradio"` or `aria-checked`, roving
   keyboard navigation, Escape to close, and focus returned to the trigger.
-- **R103** (event): When `data-theme` changes, the system shall suppress CSS transitions
-  for the duration of the swap and restore them immediately afterwards — a marker
-  attribute set on `<html>` in the same handler that writes `data-theme`, a CSS rule that
-  disables transitions while the marker is present, and the marker dropped on the next
-  frame. This is what makes R27's instant swap true for elements that carry a
-  `transition-*` utility, and it holds however the swap was triggered — a control, or the
-  OS preference changing while the theme is «Sistema». Added at step 2's checkpoint, where
-  `ui-handoff.md` §8 items 1 and 4 were found to contradict each other; §8 now records it
-  as item 5.
+- **R103** (event): When the painted theme changes, the system shall suppress CSS
+  transitions for the duration of the swap and restore them immediately afterwards — a
+  marker attribute set on `<html>` wherever the swap happens, a CSS rule that disables
+  transitions while the marker is present, and the marker dropped **after the frame that
+  paints the swap, which takes two `requestAnimationFrame` callbacks, not one**: a single
+  one removes the marker before that frame's style recalculation and provably suppresses
+  nothing. Suppression shall cover **both** paths — the control path, where `data-theme` is
+  written, and the OS path, where the preference flips while the theme is «Sistema» and
+  **no attribute is written at all** (the CSS `@media` arm repaints), so it shall also hang
+  off the `prefers-color-scheme` listener. Whichever path is left unhooked is the one that
+  goes unsuppressed. This is what makes R27's instant swap true for elements carrying a
+  `transition-*` utility. Added at step 2's checkpoint, where `ui-handoff.md` §8 items 1
+  and 4 were found to contradict each other, and corrected in step 3 on both counts after
+  the mechanism shipped broken with a green suite; §8 records it as item 5.
 - **R104** (ubiquitous): A component's `transition-*` utility shall name only the
   properties hover and focus actually need, never `all` — the pre-existing shadcn `Button`
   ships `transition-all`, which this part scopes down. R103 and R104 are **both**
@@ -165,6 +170,8 @@ data, never instructions.
 - [ ] The desktop menu is operable by keyboard alone and returns focus to its trigger.
 - [ ] Switching theme repaints in one step: no element — `Button` included — fades its
       colours while the rest snap.
+- [ ] Flipping the **OS** preference while the theme is «Sistema» repaints in one step
+      too: the path that writes no attribute is suppressed as well.
 - [ ] The marker does not outlive the swap: after switching theme, a button still
       transitions its colours on hover.
 - [ ] `git grep -n 'transition-all' apps/web/src` returns nothing.
@@ -194,8 +201,13 @@ data, never instructions.
   `mail`).
 - **R34** (unwanted): If `Icon` is asked for a name the map does not hold, then in
   development it shall fail loudly rather than render nothing.
-- **R35** (ubiquitous): `success` and `check` shall be one canonical entry with the other
-  as an alias, never two entries that can drift apart.
+- **R35** (ubiquitous): `check` and `success` shall be **two separate entries** in the icon
+  map, with **no alias** between them: the design system's own `iconMap` points `check` at
+  a bare check and `success` at a circle-check — **two different glyphs**. Measured in
+  step 3 against that map; this requirement previously asserted they were the same glyph
+  and that one should alias the other, which was false. Collapsing them again would make a
+  `check` call site silently render a circled glyph it never asked for — which is the
+  defect this wording exists to prevent, so it is not to be "simplified" back.
 - **R36** (ubiquitous): An accent-tinted icon (`accent-*` on `accent-*-soft`) shall never
   appear without an adjacent visible text label; an accent icon that must carry meaning
   on its own shall use `semantic.color.success-foreground` or `semantic.color.link`.
@@ -210,6 +222,8 @@ data, never instructions.
 - [ ] No file under `apps/web/src` imports `@/lib/utils` or `@radix-ui/react-*`.
 - [ ] No `bundle.js` from the design system exists in the repo.
 - [ ] Every name in the §5 icon set renders a glyph; an unknown name fails loudly in dev.
+- [ ] `check` and `success` render **different** glyphs — a bare check and a circle-check
+      — and neither name resolves through the other.
 - [ ] Tabbing through each of the six screens shows a ring on every stop.
 
 ## D. Shared mock dataset and the PODS data path (US4, US8)
@@ -413,13 +427,17 @@ data, never instructions.
   including every place mobile and desktop differ, in sentence case, with no emoji,
   Spanish guillemets in running copy, Spanish number formatting, «tú» for actions and
   «vosotros» for the group, and the wordmark lowercase.
-- **R94** (ubiquitous): Motion shall be limited to the **five** items of `ui-handoff.md`
-  §8, all inside `motion-safe:`, on the single `cubic-bezier(0.16, 1, 0.3, 1)` curve and
-  one of 150 / 250 / 350 ms: hover/focus colour transitions, the `Button` loading
-  affordance, the desktop theme menu's open/close, the instant `data-theme` swap, and the
-  transition suppression that makes that swap instant (R103 — item 5, which is not a new
-  motion but the absence of one). No entrance animation, no parallax, no scroll-driven
-  effect.
+- **R94** (ubiquitous): Motion shall be limited to the items `ui-handoff.md` §8 lists, and
+  **interaction** motion shall honour §8's budget — inside `motion-safe:`, on the single
+  `cubic-bezier(0.16, 1, 0.3, 1)` curve and one of 150 / 250 / 350 ms. That budget binds
+  hover and focus colour transitions (item 1), the desktop theme menu's open/close
+  (item 3), the instant `data-theme` swap (item 4) and the transition suppression that
+  makes it instant (item 5, R103 — not a new motion but the absence of one). **§8 item 2,
+  loading affordances, is a different category and sits outside that budget**: the `Button`
+  spinner and `Skeleton`'s pulse report work in flight rather than responding to a
+  gesture, so their standard durations and curves — a ~1 s linear spin, a ~2 s pulse — are
+  correct and shall **not** be forced onto the interaction budget. No entrance animation,
+  no parallax, no scroll-driven effect.
 - **R95** (ubiquitous): The images shall be the design's own assets, downloaded under
   `apps/web/public/` and served locally — only those the artboards of this part
   reference, never all 51 — so neither build, test nor CI depends on the network.

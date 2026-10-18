@@ -416,9 +416,12 @@ to reflow — in `/login` and `/register` the surfaces genuinely differ (sheet v
 
 ## 8. Motion / interaction
 
-Motion = low. Everything that moves is wrapped in `motion-safe:`, uses the single
-`cubic-bezier(0.16, 1, 0.3, 1)` curve, and one of 150 / 250 / 350 ms. The complete list — anything
-beyond it is over-delivering:
+Motion = low. Everything that moves is wrapped in `motion-safe:`. **Interaction** motion — anything
+that answers a gesture — uses the single `cubic-bezier(0.16, 1, 0.3, 1)` curve and one of
+150 / 250 / 350 ms; the **loading affordances** of item 2 are a different category and carry their
+own timing, as that item says. (This sentence used to bind *everything* to that budget, which item 2
+made false the moment it was widened — the budget is about interaction, not about every animation
+in the app.) The complete list — anything beyond it is over-delivering:
 
 1. Colour/background transitions on hover and focus for links, buttons and nav items (150 ms).
 2. **Loading affordances**, which are a different category from interaction motion and do not take

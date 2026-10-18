@@ -7,12 +7,17 @@
 
 Order matters and runs bottom-up: tokens → themes → components → data → shell → screens.
 Nothing above can be built honestly before the contract below it exists, which is why the
-PRD put the token dump in this part. The thirteen groups are deliberate for a part this
-size: each one leaves a surface the human can open and judge at a checkpoint, and the four
-screens are separate groups because each is an independently reviewable deliverable.
+PRD put the token dump in this part. The fourteen groups are deliberate for a part this
+size: each one isolates a risk, and the four screens are separate groups because each is an
+independently reviewable deliverable.
+
+**Groups are not steps here.** The human merged affine groups at step 1's checkpoint, so
+the fourteen groups run in **eight steps**; Group 14 is merged into step 8 with Group 13,
+which is why file order is not execution order at the very end (see the note under
+Group 14).
 
 **Each screen group owns its own accessibility obligations.** Implementation is
-step-by-step, so every group ends at a human checkpoint — and a checkpoint that presents a
+step-by-step, so every step ends at a human checkpoint — and a checkpoint that presents a
 screen whose invalid fields have no `aria-describedby`, whose collage is not `aria-hidden`
 and whose icon-only buttons have no label is asking the human to approve something that is
 not finished. Group 13's sweep therefore **verifies**; it does not implement.
@@ -105,7 +110,8 @@ the vocabulary, the rationale says what it is.
       `all`, **and** implement the suppression: a marker attribute set on `<html>` in the
       same handler that writes `data-theme`, a CSS rule in the hand-written `styles.css`
       `@layer base` that kills transitions while the marker is present, and the marker
-      dropped on the next frame so hover transitions survive. Both, not either — scoping
+      dropped after the frame that paints the swap — two `requestAnimationFrame` callbacks,
+      not one — so hover transitions survive. Both, not either — scoping
       alone cannot fix the swap, because the properties that interpolate on a theme change
       are the colours.
       **This task reaches into a file Group 2 owns**,
@@ -118,7 +124,7 @@ the vocabulary, the rationale says what it is.
 
 - [x] T13 — Build `Icon` as a closed name → `lucide-react` map covering the design
       system's fourteen names and the nineteen further ones the design contract lists,
-      with `success` and `check` as one canonical entry plus an alias. An unknown name
+      with `check` and `success` as two separate entries, no alias. An unknown name
       fails loudly in development and renders nothing in production; unit-test the
       development path. Record the usage rule that an accent-tinted icon never appears
       without an adjacent visible label (R33, R34, R35, R36)
@@ -335,3 +341,18 @@ the vocabulary, the rationale says what it is.
       `design-tokens:validate`, `design-tokens:contrast` and `design-tokens:css:check` all
       green together, with no raw colour or `px` literal anywhere in `apps/web/src`
       outside the generated file (R17, R100, R101)
+
+## Group 14 — Corrección del mapa de iconos _(isolates a one-file correction of a requirement that shipped with a known-latent defect: R35 asserted `check` and `success` were one glyph, the design system says they are two, and the icon map honoured the requirement as written and flagged it. No remaining group touches the icon map, and Group 12's `Menu` cannot absorb it — its check indicator imports `CheckIcon` straight from `lucide-react`, not through `Icon` — so a fix placed there would have no consumer)_
+
+- [ ] T47 — Split the icon map's check entries: `check` → the bare check glyph and
+      `success` → `CircleCheck`, as two independent entries with **no alias** between
+      them, and rewrite the comment block at `icon.component.tsx:88–99`, which currently
+      records the old premise and its accepted consequence («un futuro `check` saldrá como
+      `circle-check`»). Add the unit test that makes section C's criterion executable: the
+      two names resolve to **different** components. Nothing in Part 1 calls `check`, so
+      this changes no screen — it removes a trap for Parts 2 and 3 (R35)
+
+> **Cadence note.** This group is merged into **step 8 together with Group 13**, so the
+> part still runs in eight steps, not nine. File order is therefore not execution order
+> for these two: T47 should land **before** T45's final gate run, so the gates close over
+> the finished tree.
