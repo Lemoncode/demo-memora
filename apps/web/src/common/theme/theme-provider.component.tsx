@@ -52,6 +52,15 @@ const readThemeFromDocument = (): Theme => {
   return isTheme(attribute) ? attribute : DEFAULT_THEME;
 };
 
+/**
+ * El marcador que vive en `<html>` **sólo durante** el cambio de tema (R103, §8
+ * punto 5). La regla que lo lee está en el `@layer base` de `styles.css`, que es
+ * donde D16 la puso: no puede ir en `tokens.generated.css`, porque el generador es
+ * dueño de ese fichero byte a byte y el gate de regeneración reportaría la edición
+ * como obsoleta.
+ */
+export const THEME_SWITCHING_ATTRIBUTE = 'data-theme-switching';
+
 /** La consulta que `tokens.generated.css` usa para el brazo «Sistema». */
 const PREFERS_DARK_QUERY = '(prefers-color-scheme: dark)';
 
@@ -61,6 +70,47 @@ const PREFERS_DARK_QUERY = '(prefers-color-scheme: dark)';
  */
 const readSystemPrefersDark = (): boolean =>
   globalThis.matchMedia?.(PREFERS_DARK_QUERY).matches ?? false;
+
+/**
+ * Apaga las transiciones mientras el tema cambia (R103). Sin esto, R27 («cambio
+ * instantáneo, sin cross-fade») y el punto 1 de §8 («transiciones de color de 150 ms
+ * en hover y foco») se contradicen: lo que interpola al cambiar `data-theme` son
+ * precisamente los colores, así que acotar `transition-*` no basta — por eso R103 y
+ * R104 son las dos mitades de lo mismo y no una u otra.
+ */
+const suppressTransitionsForSwap = (): void => {
+  const root = document.documentElement;
+
+  root.setAttribute(THEME_SWITCHING_ATTRIBUTE, '');
+
+  const drop = () => root.removeAttribute(THEME_SWITCHING_ATTRIBUTE);
+
+  // **Dos fotogramas, y la razón está medida.** §8 punto 5 dice «suéltalo en el
+  // fotograma siguiente», y con un solo `requestAnimationFrame` eso no suprime nada:
+  // su callback corre *antes* del recálculo de estilo del fotograma, así que el
+  // marcador ya no está cuando el navegador computa los colores nuevos y la
+  // transición arranca igual — el mecanismo puesto y sin ningún efecto, con todos los
+  // tests en verde. Medido en Chrome sobre una página aislada con las seis variantes:
+  // sin supresión interpola; un rAF interpola también, tanto forzando el estilo
+  // computado del root como forzando layout; y sólo suprimen el rAF **doble** y el
+  // flush *después* de escribir el tema.
+  //
+  // Se toma el rAF doble por dos razones: no depende del orden de las escrituras — el
+  // camino del sistema operativo no escribe ningún atributo tras el que flushear, así
+  // que allí no hay «después» — y no fuerza un reflow sincrónico en cada cambio. El
+  // marcador vive así el fotograma que pinta el cambio y se suelta en el siguiente,
+  // unos 33 ms, que es lo que §8 pide de verdad: el tiempo que dura el cambio.
+  //
+  // Sin `requestAnimationFrame` (servidor, un entorno de test pelado) se suelta en el
+  // acto: allí no hay transiciones que suprimir, y lo que no puede pasar nunca es que
+  // el marcador sobreviva — entonces morirían en silencio todas las transiciones de
+  // hover y foco de la aplicación.
+  if (typeof globalThis.requestAnimationFrame === 'function') {
+    globalThis.requestAnimationFrame(() => globalThis.requestAnimationFrame(drop));
+  } else {
+    drop();
+  }
+};
 
 const applyThemeToDocument = (theme: Theme): void => {
   document.documentElement.setAttribute(THEME_ATTRIBUTE, theme);
@@ -80,7 +130,18 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
 
     if (query === undefined) return;
 
-    const onChange = (event: MediaQueryListEvent) => setSystemPrefersDark(event.matches);
+    const onChange = (event: MediaQueryListEvent) => {
+      // R103 por el camino del sistema operativo. Aquí `data-theme` no cambia: con el
+      // tema en «Sistema» el repintado lo hace el brazo `@media` del CSS, así que el
+      // efecto con dependencia `[theme]` no corre y la supresión tiene que colgarse
+      // de este oyente — que es la razón por la que la letra de D16 («en el efecto
+      // que ya escribe `data-theme`») no cubre este caso aunque su intención sí lo
+      // pida. Se suprime incluso con un tema explícito, donde no hay repintado: un
+      // fotograma sin transiciones no se ve, y la alternativa era una ref con el tema
+      // que puede quedarse vieja.
+      suppressTransitionsForSwap();
+      setSystemPrefersDark(event.matches);
+    };
 
     query.addEventListener('change', onChange);
     // La preferencia pudo cambiar entre el primer render y esta suscripción.
@@ -103,6 +164,7 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
   // corre después del pintado, así que el cambio se vería un fotograma tarde. R27 pide
   // un cambio instantáneo, y esto es una escritura síncrona con el gesto.
   const setTheme = useCallback((next: Theme) => {
+    suppressTransitionsForSwap();
     applyThemeToDocument(next);
     persistTheme(next);
     setThemeState(next);

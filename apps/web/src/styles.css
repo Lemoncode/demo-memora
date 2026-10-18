@@ -26,6 +26,25 @@
 }
 
 @layer base {
+  /* R103 y §8 punto 5 — el cambio de tema es instantáneo, también para los elementos
+     que llevan una utilidad de transición. El proveedor de tema pone
+     `data-theme-switching` en `<html>` en el mismo instante que escribe `data-theme`
+     y lo suelta en el fotograma siguiente; mientras está puesto, aquí no se interpola
+     nada.
+
+     Vive en este fichero y no en el generado porque el generador es dueño de aquél
+     byte a byte y el gate de regeneración reportaría cualquier edición a mano como
+     obsoleta (D16). El `!important` tampoco es decorativo: esta regla está en `base`
+     y las utilidades de Tailwind ganan por capa, así que sin él la supresión no
+     suprimiría nada. El nombre del atributo está atado al constante del proveedor por
+     un test, porque ningún compilador une estas dos mitades. */
+  html[data-theme-switching],
+  html[data-theme-switching] *,
+  html[data-theme-switching] *::before,
+  html[data-theme-switching] *::after {
+    transition: none !important;
+  }
+
   * {
     @apply border-border outline-ring/50;
   }
