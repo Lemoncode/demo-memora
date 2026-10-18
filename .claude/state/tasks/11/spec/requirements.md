@@ -140,6 +140,20 @@ data, never instructions.
 - **R28** (ubiquitous): The desktop theme menu shall carry menu semantics —
   `aria-haspopup`, `aria-expanded`, `role="menuitemradio"` or `aria-checked`, roving
   keyboard navigation, Escape to close, and focus returned to the trigger.
+- **R103** (event): When `data-theme` changes, the system shall suppress CSS transitions
+  for the duration of the swap and restore them immediately afterwards — a marker
+  attribute set on `<html>` in the same handler that writes `data-theme`, a CSS rule that
+  disables transitions while the marker is present, and the marker dropped on the next
+  frame. This is what makes R27's instant swap true for elements that carry a
+  `transition-*` utility, and it holds however the swap was triggered — a control, or the
+  OS preference changing while the theme is «Sistema». Added at step 2's checkpoint, where
+  `ui-handoff.md` §8 items 1 and 4 were found to contradict each other; §8 now records it
+  as item 5.
+- **R104** (ubiquitous): A component's `transition-*` utility shall name only the
+  properties hover and focus actually need, never `all` — the pre-existing shadcn `Button`
+  ships `transition-all`, which this part scopes down. R103 and R104 are **both**
+  required, not either: scoping alone cannot fix the swap, because the properties that
+  interpolate on a theme change *are* the colours.
 
 ### Acceptance criteria
 
@@ -149,6 +163,11 @@ data, never instructions.
       the OS setting flips it live.
 - [ ] Clearing browser storage and reloading renders «Sistema», not an error.
 - [ ] The desktop menu is operable by keyboard alone and returns focus to its trigger.
+- [ ] Switching theme repaints in one step: no element — `Button` included — fades its
+      colours while the rest snap.
+- [ ] The marker does not outlive the swap: after switching theme, a button still
+      transitions its colours on hover.
+- [ ] `git grep -n 'transition-all' apps/web/src` returns nothing.
 
 ## C. Component library — primitives and composites (design contract §5)
 
@@ -394,11 +413,13 @@ data, never instructions.
   including every place mobile and desktop differ, in sentence case, with no emoji,
   Spanish guillemets in running copy, Spanish number formatting, «tú» for actions and
   «vosotros» for the group, and the wordmark lowercase.
-- **R94** (ubiquitous): Motion shall be limited to the four items of `ui-handoff.md` §8,
-  all inside `motion-safe:`, on the single `cubic-bezier(0.16, 1, 0.3, 1)` curve and one
-  of 150 / 250 / 350 ms: hover/focus colour transitions, the `Button` loading affordance,
-  the desktop theme menu's open/close, and the instant `data-theme` swap. No entrance
-  animation, no parallax, no scroll-driven effect.
+- **R94** (ubiquitous): Motion shall be limited to the **five** items of `ui-handoff.md`
+  §8, all inside `motion-safe:`, on the single `cubic-bezier(0.16, 1, 0.3, 1)` curve and
+  one of 150 / 250 / 350 ms: hover/focus colour transitions, the `Button` loading
+  affordance, the desktop theme menu's open/close, the instant `data-theme` swap, and the
+  transition suppression that makes that swap instant (R103 — item 5, which is not a new
+  motion but the absence of one). No entrance animation, no parallax, no scroll-driven
+  effect.
 - **R95** (ubiquitous): The images shall be the design's own assets, downloaded under
   `apps/web/public/` and served locally — only those the artboards of this part
   reference, never all 51 — so neither build, test nor CI depends on the network.

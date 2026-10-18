@@ -76,7 +76,7 @@ the vocabulary, the rationale says what it is.
       `prefers-color-scheme` change while the theme is «Sistema», and is the single state
       both theme controls will drive (R21, R26, R27)
 
-## Group 3 — Primitivos shadcn vestidos con los tokens _(mechanical but it relocates the component tree and edits `components.json`, which borders open issue #5; it also retires the «Hola Mundo» of task #1, so the checkpoint is the first one where the app looks like Memora)_
+## Group 3 — Primitivos shadcn vestidos con los tokens _(mechanical but it relocates the component tree and edits `components.json`, which borders open issue #5; it also retires the «Hola Mundo» of task #1, so the checkpoint is the first one where the app looks like Memora; five tasks because T46 was added at step 2's checkpoint and belongs with the `Button` whose `transition-all` it scopes, not in a group of its own)_
 
 - [ ] T9 — Move `button.tsx` and `card.tsx` to `src/common/components/ui/`, point
       `components.json`'s `components` and `ui` aliases at the new paths while leaving
@@ -92,8 +92,27 @@ the vocabulary, the rationale says what it is.
       menu's motion inside the system's 150 ms / single-curve budget (R29, R31, R94)
 - [ ] T12 — Dress `Button` with the variants and sizes the artboards use — `default`,
       `secondary`, `soft`, `ghost`, `link`; `lg`, `sm`, `icon`; the `loading` affordance;
-      `asChild` — and give every interactive element the 2 px ring at 2 px offset
+      `asChild` — and give every interactive element the 2 px ring at 2 px offset.
+      **Inherited constraint:** the `Button` already in the repo ships `transition-all`,
+      which is why a theme swap would fade this component's colours while the rest of the
+      page snaps; scoping it is T46's subject, not this task's to improvise (per R104)
       (R31, R38)
+- [ ] T46 — **Make the theme swap instant, both halves of it.** `ui-handoff.md` §8 items 1
+      and 4 contradicted each other — 150 ms hover/focus colour transitions versus an
+      instant `data-theme` swap — and the human resolved it at step 2's checkpoint with
+      §8's new item 5: suppress transitions for the duration of the swap. Scope every
+      `transition-*` utility to the properties hover and focus actually need rather than
+      `all`, **and** implement the suppression: a marker attribute set on `<html>` in the
+      same handler that writes `data-theme`, a CSS rule in the hand-written `styles.css`
+      `@layer base` that kills transitions while the marker is present, and the marker
+      dropped on the next frame so hover transitions survive. Both, not either — scoping
+      alone cannot fix the swap, because the properties that interpolate on a theme change
+      are the colours.
+      **This task reaches into a file Group 2 owns**,
+      `apps/web/src/common/theme/theme-provider.component.tsx`, because the marker has to
+      be written where `data-theme` already is — in that provider's effect, so it also
+      covers a swap triggered by the OS preference rather than by a control
+      (R103, R104)
 
 ## Group 4 — Compuestos comunes _(isolates the pieces every screen and both later parts consume; `Icon` in particular is a seam whose failure mode is a nav item silently losing its meaning)_
 
@@ -265,13 +284,29 @@ the vocabulary, the rationale says what it is.
       `brand-50` panel, the two-row link list and the full-width «Cerrar sesión» that
       navigates to `/login`. The content scrolls and reserves 100 px under the bottom bar,
       there is no horizontal scroll at 390 px and every target clears 44 px; the PWA
-      button renders and does nothing (R25, R53, R65, R73, R87, R89, R92)
+      button renders and does nothing.
+      **Inherited constraint — the theme state disagrees between server and hydration.**
+      Group 2 built the provider without a consumer, so nothing could mismatch yet; this
+      `ToggleGroup` is the first. Both values disagree, not just one: `theme` renders as
+      the default on the server (the provider reads the attribute off `document`, which the
+      server does not have) while the client's hydration render reads the real value, and
+      `resolvedTheme` resolves «Sistema» to light on the server (no `matchMedia`) while the
+      client resolves the real preference. Rendering *which option is checked* comes from
+      `theme`, so on a dark-preferring OS this control mismatches even if the desktop
+      button in T41 is fixed on its own. Needs a mount gate or `useSyncExternalStore` with
+      a server snapshot — pick one and apply it to both controls (per R22)
+      (R25, R53, R65, R73, R87, R89, R92)
 - [ ] T41 — Build `Profile-D`, a different screen: the h1 «Perfil y preferencias», the
       header row whose right-aligned «Tema: Sistema» button opens the theme **`Menu`** with
       full menu semantics — `aria-haspopup`, `aria-expanded`, checkable items, roving
       keyboard, Escape, focus returned to the trigger — and the two-column body of a form
       card beside the panel column with Almacenamiento, the **instructional** PWA card with
-      its «Enviarme el enlace» button, and «Cerrar sesión» (R25, R28, R86, R89)
+      its «Enviarme el enlace» button, and «Cerrar sesión».
+      **Inherited constraint — same SSR/hydration disagreement as T40**, and this is the
+      control that first exposes it: the «Tema: Sistema» label and its `monitor` icon
+      render `resolvedTheme`, which the server always resolves to light. Use the same
+      mechanism chosen in T40 rather than a second one (per R22)
+      (R25, R28, R86, R89)
 - [ ] T42 — Build the states. Plain `/profile` at desktop width is the mobile section
       stack in the two-column grid beside the rail, **not** the edit form. «Editar» reveals
       the «Tus datos» form in place as `editando`, which is not a route. `error` is

@@ -225,6 +225,24 @@ which is also the seam that disappears when a backend answers.
   otherwise — a missing glyph must stop a developer, but must not blank a screen for a
   reviewer. Consequence: the behaviour differs between dev and the production build, which
   R34's test asserts for the dev path only.
+- **D16 — The transition-suppression rule lives in the hand-written `styles.css`
+  `@layer base`, and the marker is written in the theme provider's existing
+  `data-theme` effect rather than in a new handler or as React state.** [open]
+  `ui-handoff.md` §8 item 5 — added at step 2's checkpoint — fixes the *mechanism* (a
+  marker attribute on `<html>`, a CSS rule while it is present, dropped on the next frame)
+  but not where either half lives, and in this repo that is not a free choice. The CSS half
+  **cannot** go in `tokens.generated.css`: the generator owns that file byte-for-byte and
+  the regeneration gate (R7) would report any hand edit as stale, so it goes in the
+  hand-written layer D2 carved out for exactly this kind of rule — which also keeps it
+  inside the anti-hardcode scan. The marker half goes in the provider's existing effect,
+  the one place `data-theme` is already written, so suppression covers **every** swap
+  including one triggered by the OS preference changing while the theme is «Sistema»;
+  a control's click handler would miss that path. Alternatives for the marker: React state
+  plus a conditional class — a re-render on every swap, and it still needs the same effect
+  to cover the OS path; or swapping a stylesheet — heavier and racier than an attribute.
+  Consequence: T46 reaches into a file Group 2 owns (its task text says so), and the
+  suppression rule is one of the few hand-written CSS rules in the project, so it is
+  reviewed as code rather than regenerated.
 
 ## Files
 
@@ -267,8 +285,9 @@ which is also the seam that disappears when a backend answers.
   R10, R12, R18)
 - `apps/web/src/styles.css` — **rewritten, slim and hand-written** — the three `@import`s
   (Tailwind, `tw-animate-css`, `./tokens.generated.css`), the redefined `dark:` custom
-  variant and the `@layer base` rules. No colour and no dimension literal; stays inside
-  the anti-hardcode scan (R1, R4, R11, R13)
+  variant, the `@layer base` rules and the transition-suppression rule keyed on the theme
+  swap's marker attribute. No colour and no dimension literal; stays inside the
+  anti-hardcode scan (R1, R4, R11, R13, R103)
 
 ### Root, router and routes
 
@@ -311,8 +330,10 @@ which is also the seam that disappears when a backend answers.
   route that does not exist yet (R71)
 - `apps/web/src/common/theme/theme.ts` + `theme.spec.ts` — created — the three-theme
   vocabulary, read/persist, resolution of «Sistema» (R20, R21, R23, R24)
-- `apps/web/src/common/theme/theme-provider.component.tsx` — created — holds the current
-  theme, writes `data-theme`, listens to `prefers-color-scheme` (R21, R26, R27)
+- `apps/web/src/common/theme/theme-provider.component.tsx` — created in Group 2, **amended
+  by Group 3's T46** — holds the current theme, writes `data-theme`, listens to
+  `prefers-color-scheme`, and sets/drops the transition-suppression marker in the same
+  effect that writes the attribute (R21, R26, R27, R103)
 - `apps/web/src/common/formatters/date.formatter.ts` + `.spec.ts` — created — «24 de
   octubre» (R43, R97)
 - `apps/web/src/common/formatters/storage.formatter.ts` + `.spec.ts` — created — «3,1 GB de
@@ -394,7 +415,17 @@ which is also the seam that disappears when a backend answers.
 - Stored theme missing, corrupt, or `localStorage` throwing (private mode, blocked site
   data) → «Sistema» (R24)
 - OS flips `prefers-color-scheme` while the app is open and the theme is «Sistema» → the
-  page re-paints without a reload (R21)
+  page re-paints without a reload, and the suppression marker covers that swap too because
+  it is written in the provider's effect rather than in a control's click handler (R21,
+  R103)
+- A theme swap with a `transition-*` utility in the tree → suppressed for the swap and
+  restored on the next frame; if the marker outlived the frame, hover and focus
+  transitions would die silently everywhere, which is why section B's criteria check a
+  button still transitions on hover **after** a swap (R103)
+- A theme control rendering `theme` or `resolvedTheme` during hydration → both disagree
+  with the server (no `document`, no `matchMedia` there), so the control needs a mount gate
+  or `useSyncExternalStore` with a server snapshot; T40 and T41 carry the constraint and
+  must pick the same mechanism (R22)
 - The shared dataset holds no circles → `SideNav` omits the whole «Círculos» section and
   the rest of the rail is unaffected; this is the `NotFound-D` shape, and the two artboards
   are reconciled by that conditional (R56, R57)
