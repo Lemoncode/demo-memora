@@ -1,0 +1,177 @@
+{
+  "version": 2,
+  "step": 7,
+  "criteria": [
+    {
+      "id": "R38",
+      "evidence": "Tab walk with real CDP Input.dispatchKeyEvent (so :focus-visible matches), ring box = rect inflated by outline-offset+outline-width (measured 2px+2px, rgb(108,99,255) solid), compared on ALL FOUR edges against the window AND every clipping ancestor. 390x844: 0 of 6 clipped (bar cols ring left 0 / right 390 / bottom 844, flush, uncut). 1230x560 (rail genuinely scrolls, scrollHeight 460 > clientHeight 399): 0 of 12 clipped; «Ayuda» ring bottom 491 == scroller clip edge 491. 1230x900: 0 of 12. Negative control (px-1 and scroll-py-1 reverted, rebuilt, re-measured) reproduces the rejection exactly: left -4, right 394, «Ayuda» bottom 495 > 491, 2 of 6 and 1 of 12 clipped."
+    },
+    {
+      "id": "R40",
+      "evidence": "Pod file set read: api/navigation.api-model.ts, api/navigation.api.ts, app-shell.mapper.ts, app-shell.model.ts, app-shell.repository.ts, app-shell.pod.tsx. No business file — the shell resolves no ?estado=, so none is needed (PODS creates only what the feature needs)."
+    },
+    {
+      "id": "R41",
+      "evidence": "appShellRepository.getNavigation is the only exported data entry point; it awaits the api and returns mapNavigationFromApi's output, typed Promise<Navigation>. app-shell.repository.spec.ts crosses the seam with vi.spyOn on the api boundary and asserts the whole ViewModel with toStrictEqual."
+    },
+    {
+      "id": "R42",
+      "evidence": "git grep -ln api-model over apps/web/src returns only api/navigation.api.ts, app-shell.mapper.ts, app-shell.mapper.spec.ts (the repository hit is the literal inside its own comment, read with comments in view — not an import). No route, loader, component or .pod.tsx imports an api-model or the mapper."
+    },
+    {
+      "id": "R43",
+      "evidence": "Mapper renames full_name/avatar_url/cover_url, drops email and derives initials. Verified at the real SSR boundary, not asserted: the served HTML of the 404 carries 0 occurrences of email, sofia.martin@, full_name, avatar_url, cover_url and 0 ISO date strings, while initials, avatarUrl, coverUrl x4 and \"SM\" are present. app-shell.mapper.spec.ts covers 5 degenerate name forms including empty and whitespace-only."
+    },
+    {
+      "id": "R44",
+      "evidence": "routes/_app.tsx loader is `() => appShellRepository.getNavigation()` and nothing else; the component reads loader data plus useRouterState and composes the pod around <Outlet/>. routes/_app/$.tsx has no loader at all."
+    },
+    {
+      "id": "R45",
+      "evidence": "Every intra-pod import is relative ('./app-shell.model', './api/navigation.api'); the #/ alias appears only where the pod crosses into common/ (mock-data in api/, components in the pod). git grep -rn '#/pods' apps/web/src/pods returns nothing."
+    },
+    {
+      "id": "R46",
+      "evidence": "No cross-pod import exists: not-found.pod.tsx imports only from #/common/*, and app-shell.pod.tsx only from #/common/* plus its own relative model."
+    },
+    {
+      "id": "R47",
+      "evidence": "File-name audit of the diff: .component.tsx on bottom-nav/side-nav, .pod.tsx on app-shell and not-found, framework filenames kept for routes/_app.tsx and routes/_app/$.tsx."
+    },
+    {
+      "id": "R50",
+      "evidence": "Enforced by the file tree, not a conditional: _app/$.tsx is the splat child of the pathless layout. Measured over HTTP against the production build: /nope/deep/path and /circles render the shell; /login, /register, /invite/abc123 are not yet routes (Group 9) so they land on the same splat — the shell's absence there is not observable until those routes exist, which is the approved group order."
+    },
+    {
+      "id": "R51",
+      "evidence": "Measured in Chrome against the production build at three viewports. 390x844: side-nav display:none / width 0, bottom-nav display:block / height 61. 1230x560 and 1230x900: side-nav display:flex / 264px, bottom-nav display:none. Never both. The choice is CSS (nav:hidden / hidden nav:flex), so display:none also removes the other from the accessibility tree — no duplicate 'Navegación principal' landmark."
+    },
+    {
+      "id": "R52",
+      "evidence": "Order read from the DOM: Círculos→/circles, Subidas→/uploads, Ayuda→/help, Perfil→/profile. nav is position:fixed on the bottom edge (rect bottom 844 == innerHeight), border-top 1px rgb(226,232,240), background rgb(255,255,255). Four equal columns measured 95.5px x 56px each (≥44 on both axes) after the px-1 fix. padding-bottom resolves to max(env(safe-area-inset-bottom), 4px) — 4px measured on a notchless viewport."
+    },
+    {
+      "id": "R53",
+      "evidence": "not-found.pod.tsx mobile wrapper computes padding-bottom: 140px (pb-[8.75rem]) — measured, matching the 140 the contract names for NotFound-M. The bar is 61px tall with top at 783; the CTA's bottom is 592.8, so 190px of clearance, and the reserve is on the min-h-dvh wrapper, so content cannot extend into the last 140px even when it grows. /profile's 100px is Group 12's."
+    },
+    {
+      "id": "R54",
+      "evidence": "Measured rail: 264px wide, border-right 1px, position sticky, three stacked parts. Wordmark 34px mark (size-[2.125rem]) linking /circles at the top; three sections; identity row (avatar sm + «Sofía Martín») above a top border, href /profile. Four seeded circles render with their covers (/mock/circle-*.jpg)."
+    },
+    {
+      "id": "R55",
+      "evidence": "Checked item for item in the served bytes, not inferred: «Mis círculos» x3 vs «Círculos» as the section label, «Privacidad» appears exactly once (rail only), «Perfil» exactly once (bar only). No user-icon item in the rail; the identity row is the profile entry. The two sets are not made to match."
+    },
+    {
+      "id": "R56",
+      "evidence": "side-nav.spec.tsx asserts the «Círculos» list is present with its cover when circles exist (getByRole('list', {name:'Círculos'})). Confirmed live: four circle rows in the rail at both desktop viewports."
+    },
+    {
+      "id": "R57",
+      "evidence": "side-nav.spec.tsx asserts the section is omitted entirely on an empty list — both the list role and the bare text «Círculos» are absent — and that the other four items plus the identity row survive. The Implementer's probe making the section unconditional went red; the branch is real."
+    },
+    {
+      "id": "R58",
+      "evidence": "aria-current='page' is driven by the pod's esLaRutaActual, never by colour alone (the active item also changes font weight and, in the rail, gets a pill background). side-nav.spec.tsx asserts exactly one marked link, that it is the identity row and that its href is /profile. On the 404 the served HTML carries 0 occurrences of aria-current — the deepest match is /$, which is no item's href, so marking nothing is the truth. Browser-level observability of the /profile case waits on Group 12."
+    },
+    {
+      "id": "R59",
+      "evidence": "Both composites render <nav aria-label=\"Navegación principal\"> with the name baked in rather than passed as a prop, and every item is a real <a href> through FutureLink. No div+onClick anywhere in either file."
+    },
+    {
+      "id": "R60",
+      "evidence": "The bar is position:fixed and neither composite registers a scroll, resize or matchMedia listener (read, not assumed). The only animation is the colour transition FutureLink carries: measured transition-property 'color, background-color', duration 0.15s, cubic-bezier(0.16, 1, 0.3, 1) — §8 item 1 exactly. The <nav>'s own computed transition-property 'all' at duration 0s is the CSS initial value, not a transition-all utility; git grep transition-all over apps/web/src returns nothing."
+    }
+  ],
+  "gates": [
+    {
+      "kind": "script",
+      "script": "typecheck",
+      "evidence": "TURBO_FORCE=1, 3/3 packages pass. tsc --version is 7.0.2 (the native port), which is why it finishes in well under a second — the speed was checked rather than trusted."
+    },
+    {
+      "kind": "script",
+      "script": "format:check",
+      "evidence": "«All matched files use Prettier code style!»"
+    },
+    {
+      "kind": "script",
+      "script": "test",
+      "evidence": "TURBO_FORCE=1: 229/229 in 16 files in @memora/web, plus db 11 and console-runner 7. Pre-existing ten files sum to 186, so the six new files add 43 (estado 21, mapper 9, repository 3, routes/index 2, side-nav 3, app-shell.pod 5) — the counts progress.md now claims."
+    },
+    {
+      "kind": "script",
+      "script": "build",
+      "evidence": "TURBO_FORCE=1, nitro output written; only the pre-existing radix \"use client\" directive advisories."
+    },
+    {
+      "kind": "script",
+      "script": "design-tokens:validate",
+      "evidence": "147 tokens, 72 files scanned, no hardcoded values; the only skipped path is tokens.generated.css (scan_exclude) plus git-ignored .output/."
+    },
+    {
+      "kind": "script",
+      "script": "design-tokens:contrast",
+      "evidence": "«56 pair(s) meet their WCAG floor.»"
+    },
+    {
+      "kind": "script",
+      "script": "design-tokens:css:check",
+      "evidence": "«tokens.generated.css is up to date.»"
+    },
+    {
+      "kind": "script",
+      "script": "pnpm audit --audit-level=moderate",
+      "evidence": "Beyond the declared list, recorded because it ran: «No known vulnerabilities found»."
+    },
+    {
+      "kind": "real-run",
+      "evidence": "Production build served from apps/web/.output/server/index.mjs on an OS-assigned port (53297, never 3000); served bytes carry 0 occurrences of @vite/client, __vite_ping, /@react-refresh and @vite/env. Chrome headless over CDP with --remote-debugging-port=0 (port read from DevToolsActivePort) under a fresh throwaway profile. Every visit asserted, before any number was believed: innerWidth equals the requested width, document.styleSheets non-empty with >=50 rules, and getComputedStyle(body).fontFamily resolving to Inter — all visits reported 2 sheets / 72 rules / Inter. Exercised at 390x844, 1230x560, 1230x900 and in dark mode at 390x844 and 1230x900. No value that was judged was truncated."
+    }
+  ],
+  "mutants": {
+    "basis": "no-declared-risk"
+  },
+  "passes": [
+    {
+      "name": "senior-review",
+      "outcome": "none",
+      "examined": [
+        "apps/web/src/common/components/bottom-nav.component.tsx",
+        "apps/web/src/common/components/side-nav.component.tsx",
+        "apps/web/src/common/routing/estado.ts",
+        "apps/web/src/pods/app-shell/api/navigation.api-model.ts",
+        "apps/web/src/pods/app-shell/api/navigation.api.ts",
+        "apps/web/src/pods/app-shell/app-shell.mapper.ts",
+        "apps/web/src/pods/app-shell/app-shell.model.ts",
+        "apps/web/src/pods/app-shell/app-shell.pod.tsx",
+        "apps/web/src/pods/app-shell/app-shell.repository.ts",
+        "apps/web/src/pods/not-found/not-found.pod.tsx",
+        "apps/web/src/routeTree.gen.ts",
+        "apps/web/src/routes/_app.tsx",
+        "apps/web/src/routes/_app/$.tsx",
+        "apps/web/src/routes/index.tsx"
+      ]
+    },
+    {
+      "name": "spec-compliance-check",
+      "outcome": "none",
+      "examined": [
+        "apps/web/src/common/components/bottom-nav.component.tsx",
+        "apps/web/src/common/components/side-nav.component.tsx",
+        "apps/web/src/common/routing/estado.ts",
+        "apps/web/src/pods/app-shell/api/navigation.api-model.ts",
+        "apps/web/src/pods/app-shell/api/navigation.api.ts",
+        "apps/web/src/pods/app-shell/app-shell.mapper.ts",
+        "apps/web/src/pods/app-shell/app-shell.model.ts",
+        "apps/web/src/pods/app-shell/app-shell.pod.tsx",
+        "apps/web/src/pods/app-shell/app-shell.repository.ts",
+        "apps/web/src/pods/not-found/not-found.pod.tsx",
+        "apps/web/src/routeTree.gen.ts",
+        "apps/web/src/routes/_app.tsx",
+        "apps/web/src/routes/_app/$.tsx",
+        "apps/web/src/routes/index.tsx"
+      ]
+    }
+  ]
+}

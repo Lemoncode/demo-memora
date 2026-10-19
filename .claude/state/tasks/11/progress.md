@@ -7,22 +7,40 @@
 
 ## Active
 
-**Status**: implementing — **Grupos 5 y 6** (dataset mock compartido, formateadores en
-español y assets del diseño), paso 4 de 8, step-by-step, auto-commit **off** (save-points en el
-índice de git, cero commits).
+**Status**: implementing — **Grupos 7 y 8** (el shell: pod `app-shell`, `BottomNav`,
+`SideNav`; y las rutas base: `/` → `/login` y el 404 dentro del shell), paso 5 de 8,
+step-by-step, auto-commit **off** (save-points en el índice de git, cero commits).
 
-**Active subtask**: ninguna — **Grupos 5 y 6 completos (T17–T20, T21)**, a la primera, sin
-discoveries. Los siete gates en verde con la caché de turbo saltada, `pnpm audit` limpio, y el
-camino real ejercitado contra el build de producción en un puerto libre explícito: los 17 assets
-servidos en local con 200 y el `content-length` del origen, y las fixtures atravesando los
-formateadores de verdad. 186 tests (16 nuevos). Todo en el índice y **sin commitear**, a la espera
-del checkpoint humano. El **Grupo 7 no se ha empezado**.
+**Active subtask**: ninguna — **Grupos 7 y 8 completos (T22–T25, T26–T28)** y
+**arreglados tras la review (iteración 1 de 3)**, sin discoveries. La review **rechazó**
+el paso por cinco cosas, tres de ellas la misma familia: un anillo de foco recortado por
+un borde que no se midió. Las cinco están arregladas y la sección «arreglo tras la
+review» de abajo lleva los números vueltos a medir, **con control negativo** (revertir
+los arreglos y comprobar que el instrumento los ve, porque el harness anterior decía
+«ninguno recortado» estando roto).
 
-Este paso no renderiza nada: son datos y bytes. `/` sigue devolviendo `null` hasta T26 (Grupo 8).
-El informe de peso de los assets — 1,79 MiB en 17 ficheros, con el tamaño de dibujo de cada uno y
-cuáles son desproporcionados — está en la sección «Grupos 5 y 6» de abajo, y es material del
-checkpoint: **no he redimensionado ni recomprimido nada**, porque eso es decisión del humano y el
-momento de tomarla es ahora, antes del primer commit.
+Los siete gates en verde con la caché de turbo saltada, `pnpm audit` limpio, y el camino
+real ejercitado contra el build de producción en un puerto libre explícito y en Chrome a
+390×844, 1230×560 y 1230×900 — **1230×560 es el ancho que importa**: a 1230×900 el raíl no
+desplaza y el defecto del `overflow` medía en verde. **229 tests en `@memora/web`, 43
+nuevos** (`estado` 21, `mapper` 9, `repository` 3, `index` 2, `side-nav` 3,
+`app-shell.pod` 5). **Corregido tras la review**: donde esto decía «224 (26 nuevos)», los
+nuevos eran **38** y no 26 — mal contado, no inflado, pero mal. Todo en el índice y **sin
+commitear**, a la espera del checkpoint humano. El **Grupo 9 no se ha empezado**.
+
+**Este es el primer paso que se puede abrir y pulsar.** `GET /` devuelve **307** con
+`Location: /login`; el shell se pinta a los dos anchos (barra inferior por debajo de
+1230 px, raíl de 264 px por encima, nunca las dos); y cualquier URL que no empareja —
+`/login`, `/register`, `/invite/...`, `/profile`, `/circles` — da el **404 diseñado dentro
+del shell** con la URL intacta en la barra de direcciones, que es el patrón que §3 fija
+hasta que los Grupos 9 a 12 creen esas pantallas.
+
+Dos cosas que el checkpoint debería mirar, ninguna bloqueante, ambas detalladas en la
+sección «Grupos 7 y 8» de abajo: el **destino de las filas de círculo** del raíl (apuntan
+a `/circles` porque la fixture no tiene `id` a propósito, R48) y que **R58 no es
+observable en el navegador hasta el Grupo 12** — `aria-current` en la fila de identidad
+está construido y testeado, pero hoy `/profile` pinta el 404 y marcar algo ahí sería
+mentir.
 
 Group 1 (T1–T5) is done, reviewed over three rounds and committed at `6ea1697`; its record
 below is kept verbatim.
@@ -1275,6 +1293,367 @@ Ni pantallas ni rutas (`/` sigue en `null` hasta T26). No se han tocado `docs/de
 ficheros del tema ni la biblioteca de componentes. No se ha tocado el mapa de iconos. El Grupo 7
 **no se ha empezado**. Ni un commit, ni un push: todo en el índice.
 
+## Grupos 7 y 8 — el shell y las primeras rutas (T22–T28), paso 5/8
+
+**A la primera, sin discoveries.** Siete gates en verde con la caché de turbo saltada,
+`pnpm audit` limpio, y **el primer paso que se puede abrir y pulsar**: `/` redirige, el
+shell se pinta a los dos anchos y una URL que no empareja da el 404 diseñado dentro de
+él. **229 tests en `@memora/web`, 43 nuevos** (eran 38 antes del arreglo de la review,
+no los «26» que esta línea dijo primero; ver la corrección arriba). Todo en el índice,
+**sin commitear**.
+
+### Lo entregado, por tarea
+
+- **T22 — el pod `app-shell` de punta a punta.** `api/navigation.api-model.ts` (forma de
+  backend: `full_name`, `avatar_url`, `cover_url` y un `email` que ninguna pantalla del
+  raíl dibuja), `api/navigation.api.ts` leyendo las fixtures compartidas,
+  `app-shell.model.ts` (el ViewModel `{ identity, circles }`), `app-shell.mapper.ts`
+  (renombra, **tira `email`** y **deriva las iniciales**) y `app-shell.repository.ts`
+  como único punto de entrada a los datos.
+- **T23 — `BottomNav`.** Cuatro columnas iguales en orden fijo, barra `card` al borde con
+  filete arriba, enlaces de verdad de 44 px + inset de área segura, `aria-current` y
+  nunca sólo color, sin esconderse al hacer scroll y animando sólo el color.
+- **T24 — `SideNav`.** Columna `card` de 264 px con filete a la derecha, en tres partes:
+  logotipo, la navegación en **tres secciones** y la fila de identidad que **es** el
+  perfil en escritorio. La sección «Círculos» es condicional.
+- **T25 — `routes/_app.tsx`.** Layout sin path: `loader` → repositorio, y el pod
+  alrededor del `<Outlet/>`.
+- **T26 — `routes/index.tsx`.** La redirección a `/login`, sin componente propio.
+- **T27 — el pod `not-found` + `routes/_app/$.tsx`.** UI pura (sin repositorio, mapper ni
+  api, D13) montada en la splat.
+- **T28 — el contrato `?estado=`.** `common/routing/estado.ts`: `parseEstado`, los cinco
+  vocabularios de R77 y `validateEstado`, el `validateSearch` que los Grupos 9 a 12
+  ponen en una línea cada uno.
+
+### La trampa de orden de T26, resuelta sin castear y sin inventar `/login`
+
+`redirect({ to: '/login' })` **no compila**, y está medido, no supuesto — con `to` el
+typecheck dice:
+
+```
+src/routes/index.tsx(33,20): error TS2322:
+  Type '"/login"' is not assignable to type '"." | ".." | "/" | "/$"'.
+```
+
+La salida es **`href`**, que **no es un hueco por el que colarse**: es una opción de
+primera clase de `RedirectOptions` (`href?: string`), documentada para destinos que el
+árbol de rutas no tipa. Leído el runtime antes de usarlo: `resolveRedirect` sólo marca
+`reloadDocument` cuando el `href` trae esquema, y `/login` no lo trae, así que en cliente
+sale navegación normal del router. **Medido sobre HTTP real contra el build**:
+`GET /` → **307** con `Location: /login`. Ni aserción de tipo ni ruta de pega.
+
+Hasta el Grupo 9, `/login` cae en el 404 diseñado — **coherente, no un fallo**: es el
+patrón que §3 fija para todo enlace hacia delante.
+
+> **CORRECCIÓN (review del paso 5).** Esta sección decía que al existir la ruta «esa
+> línea pasa a `to` sin que cambie nada más», y **no es verdad**: `redirect` pone la
+> cabecera `Location` **sólo si llega `href`**, así que al cambiar a `to` la aserción
+> `headers.get('Location')` de `index.spec.ts` se pone en **rojo**. Son dos líneas, no
+> una — y la segunda es un fallo **bueno**: salta exactamente cuando el contrato cambia,
+> en vez de dejarlo pasar en silencio. El comentario del fichero dice ya esto mismo.
+>
+> **La factura honesta de haber elegido `href`, apuntada aquí porque es donde se busca:
+> con `href` el `basepath` se salta en el camino de servidor.** `resolveRedirect` toma
+> `options.href` tal cual y **nunca** llama a `buildLocation`, así que la cabecera
+> `Location` no lleva el prefijo del `basepath`. En cliente no pasa, porque la rama
+> `href` de `buildLocation` vuelve a pasar por la reescritura del `basepath`.
+> `router.tsx` **no declara `basepath`**, así que esto es **latente, no vivo** — pero es
+> la nota al pie de la decisión de T26 y vive al lado de ella. (Por lo mismo, un
+> `search` o un `hash` puestos junto a un `href` se sobrescriben con lo que traiga el
+> propio `href`.)
+
+### T25 y T27 están acoplados mecánicamente (medido)
+
+Una ruta de layout sin path **y sin hijos** colapsa a `fullPath: '/'` y choca con
+`index.tsx`; el generador se niega:
+
+```
+Conflicting configuration paths were found for the following routes: "/", "/".
+Conflicting files: .../routes/index.tsx  .../routes/_app.tsx
+```
+
+Así que `_app.tsx` no puede llegar a verde solo: necesita su hija splat. Las dos tareas
+llegaron a verde juntas. No es un problema del spec — las dos están en este paso —, pero
+queda escrito porque el orden de `tasks.md` sugiere lo contrario.
+
+### La decisión que hace honesto el ítem activo: ruta **emparejada**, no `pathname`
+
+El pod recibe `activePath` = el `fullPath` del match más profundo, que `_app.tsx` saca de
+`useRouterState`. Comparar contra `location.pathname` habría marcado «Mis círculos» como
+**página actual mientras se dibuja un 404** — `aria-current` diciendo algo falso. Con la
+ruta emparejada, hoy `/circles` empareja la splat (`fullPath` = `/$`), no coincide con
+ningún `href` y **el 404 no marca nada**; verificado en los bytes servidos
+(`aria-current` ausente en las cinco URLs probadas). Cuando el Grupo 12 cree `/profile`,
+el mismo cálculo empieza a marcar su fila de identidad sin tocar una línea.
+
+**Consecuencia que el checkpoint debe saber:** el criterio de aceptación «en `/profile` a
+1230 px, `aria-current="page"` está en la fila de identidad» (R58) queda **satisfecho por
+construcción y fijado por test unitario**, pero **no se puede ver en el navegador hasta el
+Grupo 12**, porque hoy esa URL pinta el 404. Marcarla ahora sería mentir.
+
+### El límite PODS, probado a mano (no sólo aseverado)
+
+El test que T22 pide recorre el ViewModel entero en vez de enumerar campos. Los dos
+mutantes murieron:
+
+| Mutación en el mapper | Resultado |
+| --- | --- |
+| filtrar `email` al ViewModel | **3 tests rojos** — muerto |
+| no renombrar `cover_url` → `coverUrl` | **3 tests rojos** — muerto |
+
+Y los otros cuatro probes del paso, todos muertos: quitar `aria-current` de la fila de
+identidad (1 rojo), hacer la sección «Círculos» incondicional (1 rojo), hacer que
+`parseEstado` lance fuera del vocabulario (**11 rojos**), añadir un valor a un
+vocabulario de R77 (2 rojos — el de R77 y el de R81). Cada probe en un solo viaje con la
+restauración en un `trap` puesto **antes** de la mutación; `git status` limpio después.
+
+**Honestidad sobre el bucle rojo-verde:** tres tests nacieron verdes (las formas
+degeneradas del nombre, la guarda del límite y `aria-current` en la fila de identidad) —
+la implementación mínima ya las cumplía. Fijan comportamiento en vez de conducirlo, y por
+eso cada una lleva su probe: es lo que demuestra que muerden.
+
+### Lo que sólo se vio renderizando (y lo que casi me engaña a mí)
+
+Medido en Chrome contra el **build**, en un puerto libre explícito, con los bytes
+servidos comprobados sin marcadores de dev (0 ocurrencias de `@vite/client` /
+`__vite_ping`):
+
+| | 390×844 | 1230×900 | 1440×900 |
+| --- | --- | --- | --- |
+| `side-nav` | `display:none` | `flex`, 264 px | `flex`, 264 px |
+| `bottom-nav` | `block`, 61 px, 4 columnas de 97,5 px | `none` | `none` |
+| scroll horizontal | **no** | no | no |
+| objetivos < 44 px | **0** | 0 | 0 |
+| numerales 404 | 88 px, `brand-200`, `aria-hidden` | 96 px | 96 px |
+| tarjeta | — | 560 px, radio 24 px, filete 1 px `#e2e8f0`, sombra `rgba(0,0,0,.1)` | ídem |
+| anillos de foco | 2 px sólido, 2 px de separación — ver la corrección de abajo | ídem | ídem |
+
+**Dos defectos reales que ningún test podía ver, encontrados y arreglados:**
+
+1. **La barra inferior recortaba el anillo de foco por la ventana.** Con
+   `pb-[env(safe-area-inset-bottom)]` a secas, en un móvil **sin muesca** el inset vale 0
+   y los cuatro ítems perdían 4 px de anillo por el borde inferior. No lo recortaba
+   ningún `overflow` — eso es lo que R38 nombra y se cumplía —, lo recortaba la ventana,
+   que para quien tabula es lo mismo. Arreglado con un suelo de 4 px, que es exactamente
+   lo que alcanza el anillo: `pb-[max(env(safe-area-inset-bottom),0.25rem)]`.
+2. **El logotipo del raíl, el mismo fallo arriba.** Llevaba el `py-6` en el propio enlace,
+   así que su caja arrancaba en y=0 y el anillo se salía 4 px por encima. El relleno pasa
+   al contenedor, como ya lo hacía la cabecera de móvil.
+
+También se añadió `py-2` al contenedor con `overflow-y-auto` del raíl: un contenedor con
+`overflow` **sí** recorta el anillo de su primera y su última fila.
+
+> **CORRECCIÓN (review del paso 5, iteración 1).** Las dos afirmaciones de accesibilidad
+> de arriba estaban de más, y las dos las cazó la review:
+>
+> 1. **«ninguno recortado» era falso a 390 px.** Dos de las seis paradas de tabulación
+>    **sí** se recortaban, por los lados: el anillo de «Círculos» llegaba a **−4** y el
+>    de «Perfil» a **394** con `innerWidth` 390. El arreglo del borde inferior estaba
+>    bien y se sostiene; **el otro eje no se comprobó nunca**. La causa de que se colara
+>    es del instrumento: mi harness comparaba el anillo contra la ventana sólo por
+>    `top`/`bottom`, así que no podía verlo. Arreglado con `px-1` en la barra, y el
+>    harness compara ahora **los cuatro bordes**.
+> 2. **El `py-2` del raíl no arregla el recorte del `overflow`**, que es lo que esta
+>    frase daba por hecho. El diagnóstico era correcto y el remedio no: `py-2` es
+>    relleno *dentro* del contenido desplazable, así que sólo compra aire en los dos
+>    extremos del recorrido; en medio, el `scrollIntoView` del foco pega la caja al
+>    borde visible y los 4 px del anillo se van. Y sólo se ve **cuando el raíl
+>    desplaza**: a 1230×900 no desplaza, así que la medida pasaba en verde estando roto.
+>    Medido a **1230×560** (`scrollHeight` 460 > `clientHeight` 399): «Ayuda» llegaba a
+>    **495** contra un borde de recorte en **491**. Arreglado con `scroll-py-1`
+>    (`scroll-padding-block`), que es la propiedad que `scrollIntoView` respeta. El
+>    `py-2` se queda por el aire de los extremos, que sí es suyo.
+
+**Dos avisos sobre el propio instrumento, escritos para que nadie los repita:**
+
+- **Un falso positivo mío.** Leí `box-shadow` con `.slice(0, 60)` y la sombra parecía
+  transparente: `box-shadow` es una lista de **cinco** entradas y el corte caía antes de
+  la única que pinta. La sombra está bien (`rgba(0,0,0,.1) 0 1px 3px`). Casi reporto como
+  defecto un artefacto de mi propia medición.
+- **Dos corridas enteras fueron basura con pinta de medida.** Un Chrome zombi se quedó con
+  el puerto CDP y la emulación no se aplicó; y un servidor zombi (`EADDRINUSE`, con el
+  `kill` que no prendió) siguió sirviendo HTML viejo que apuntaba a un hash de CSS que el
+  rebuild había sustituido, así que la página se midió **sin hoja de estilos** y daba
+  `outline: 1px` y los dos `nav` en `display: block`. Desde entonces el harness lleva una
+  **guarda**: si `document.styleSheets` está vacío o la fuente del `body` no es Inter /
+  Jakarta, aborta. Puerto CDP dinámico y `pkill` explícito antes de cada corrida.
+
+**Hidratación limpia**, que es lo que valida haber elegido CSS y no JavaScript para la
+decisión de breakpoint (R51): tres navegaciones a los dos anchos → **0 mensajes de
+consola, 0 excepciones, 0 peticiones ≥400**.
+
+**Modo oscuro mirado** (§6 lo pedía para la review): el raíl pasa a `#111b27` sobre
+`#080f19`, el texto y los filetes acompañan. Los numerales se quedan en `brand-200`
+(`rgb(200,195,255)`) porque el fichero de tokens no declara override oscuro para esa
+primitiva — misma familia que la issue #13, y se lee bien.
+
+### Desviación declarada — el destino de las filas de círculo
+
+Las cuatro filas de círculo del raíl apuntan a **`/circles`**, no a `/circles/$id`.
+Razón: la fixture **no tiene `id` a propósito** (R48 — «nombre e imagen de portada y nada
+más»), que es justo el campo con el que la Parte 2 construiría esa URL. Las dos
+alternativas eran peores: inventar un `slug` desde el nombre **es** inventar el dato que
+R48 prohíbe, y castear un destino tipado es lo que D9 descarta. Las cuatro caen hoy en el
+404 diseñado, como todo enlace hacia delante. **Es una línea de cambiar** si el humano
+prefiere otra cosa; queda escrito para que sea decisión suya y no un descuido mío.
+
+### Lo que este paso NO ha hecho
+
+**El Grupo 9 no se ha empezado**: no existe `/login`, ni `/register`, ni
+`/invite/$token`, ni `/profile` — las cuatro caen en el 404, que es el comportamiento
+diseñado hasta que sus grupos lleguen. No hay estado de carga en ninguna ruta (R81) y no
+se ha inventado ningún `Skeleton`. Ninguna ruta comprueba sesión y ningún formulario
+valida (R67, R68). **No se ha tocado el mapa de iconos** (R35 sigue siendo T47 del Grupo
+14), ni `docs/design-tokens.json`, ni `tokens.generated.css`, ni el generador, ni
+`harness.config.yml`, ni `ci.yml`, ni los ficheros del tema, ni las fixtures, ni los
+assets. De la biblioteca de componentes no se ha modificado nada: `BottomNav` y `SideNav`
+son ficheros nuevos. Ni un commit, ni un push.
+
+### Side-finding (no bloqueante, no mío de arreglar aquí)
+
+**El 404 no tiene `<h1>`.** `EmptyState` pinta su título como `<h3>` fijo, y T27 manda que
+sea ese título el que lleve el mensaje de verdad, así que el encabezado más alto de la
+pantalla es un `h3`. No incumple WCAG 2.1 AA (`heading-order` de axe no se queja del
+primero; `page-has-heading-one` es *best-practice*), y por eso no he tocado
+`empty-state.component.tsx`, que es output revisado del Grupo 4 y ninguna tarea de este
+paso lo nombra. **Pero se repite**: los tres estados de `/invite/$token` (Grupo 11) usan
+`EmptyState` como pantalla entera igual que éste. Si se quiere cerrar, lo barato es un
+`prop` opcional de nivel de encabezado, y el sitio natural es el Grupo 11 o el barrido
+del Grupo 13 — que, ojo, **verifica y no implementa**.
+
+## Grupos 7 y 8 — arreglo tras la review, iteración 1 (paso 5/8)
+
+Cinco cosas, y **tres eran la misma familia de defecto**: un anillo de foco recortado por
+el borde que nadie midió. Nada de lo que la review confirmó se ha tocado.
+
+### 1 · `leading-none` era código muerto — `cn()` se lo comía
+
+`not-found.pod.tsx`. La base acababa en `leading-none …` y el tamaño llegaba **después**
+por `className`; `tailwind-merge` considera que `font-size` y `leading` son el mismo grupo
+en conflicto y deja ganar al argumento posterior, así que el interlineado desaparecía de
+la cadena sin que nada avisara. **Reproducido contra el módulo `cn` de verdad** (resuelto
+desde `apps/web`, sin reimplementar su configuración — el error que ya costó un ciclo en
+esta tarea):
+
+```
+ACTUAL    + text-[5.5rem]      => font-heading font-extrabold text-[…brand-200] text-[5.5rem]
+PROPUESTA + text-[5.5rem]/none => font-heading font-extrabold text-[…brand-200] text-[5.5rem]/none
+```
+
+Arreglado con la **forma con barra** — `text-[5.5rem]/none` y `text-[6rem]/none` —, que
+hace del tamaño y su interlineado **una sola clase** que ningún reordenamiento puede
+separar; `leading-none` sale de la base. El CSS construido emite
+`font-size:5.5rem;line-height:1`. Medido en el navegador, antes y después:
+
+| | caja antes | caja después |
+| --- | --- | --- |
+| móvil, 88 px de cifra | **132 px** (21 px de aire muerto) | **88 px** |
+| escritorio, 96 px | **144 px** | **96 px** |
+
+Es la misma familia que el rechazo del paso 3 (el `Button variant="link"` perdiendo su
+geometría). La review auditó los **nueve** `cn()` de los cuatro componentes nuevos y los
+otros ocho están limpios, así que éste era el último, no el primero.
+
+*Matiz de medida, por honestidad:* los 35 px de hueco que cita la review son de tinta a
+tinta; mi instrumento mide caja a caja y ahí el hueco sale 23,9 px en los dos casos,
+antes y después. Los dos números son correctos y describen cosas distintas: el aire
+muerto estaba **dentro** de la caja del `<p>`, y lo que el arreglo cambia es la caja
+(132 → 88). La frase del comentario —«que el bloque mida lo que la cifra»— ahora es
+verdad; antes no lo era.
+
+### 2 · La barra inferior recortaba el anillo por los lados
+
+`bottom-nav.component.tsx`. **Mi propio arreglo del borde inferior, sin aplicar al otro
+eje.** La barra es `inset-x-0` sin relleno horizontal y la lista es `grid-cols-4`, así
+que la columna 1 arrancaba en x=0 y la 4 terminaba en x=390. Y el comentario del fichero
+ya contenía el estándar que lo condena: «lo recortaba la ventana, que para quien tabula
+es lo mismo».
+
+Arreglado con un **suelo de 4 px horizontal** (`px-1`), que es exactamente lo que alcanza
+el anillo. El comentario cubre ahora **los tres bordes** que la ventana puede recortar,
+porque el razonamiento que ya tenía es el que lo exige.
+
+### 3 · El `overflow-y-auto` del raíl sí recortaba — y `py-2` era la propiedad equivocada
+
+`side-nav.component.tsx`. El diagnóstico anterior era correcto y el remedio no. `py-2` es
+relleno *dentro* del contenido desplazable: sólo compra aire en los extremos del
+recorrido. **`scroll-py-1` (`scroll-padding-block`) es la propiedad que `scrollIntoView`
+respeta**, y es la que va en el contenedor que desplaza. El `py-2` se queda por el aire
+de los extremos; el comentario dice ahora, sin rodeos, que no es él quien evita esto.
+
+### El control negativo, que es lo que hace que estos números valgan algo
+
+Un «0 recortados» no demuestra nada por sí solo: **el harness anterior decía exactamente
+eso estando roto**, porque comparaba el anillo contra la ventana sólo por `top`/`bottom`.
+Así que el harness nuevo compara **los cuatro bordes** (contra la ventana y contra el
+ancestro que recorta) y, antes de creerme el verde, se revirtieron los tres arreglos, se
+reconstruyó y se volvió a medir. El control reproduce **las tres cifras de la review,
+clavadas**:
+
+| Medida | Con los arreglos revertidos (control) | Con los arreglos |
+| --- | --- | --- |
+| 390×844 · «Círculos» | anillo `left` **−4** · recortado | `left` **0** · limpio |
+| 390×844 · «Perfil» | `right` **394** > 390 · recortado | `right` **390** · limpio |
+| 390×844 · paradas recortadas | **2 de 6** | **0 de 6** |
+| 1230×560 · «Ayuda» | `bottom` **495** > 491 · recortado por el scroller | `bottom` **491** · limpio |
+| 1230×560 · paradas recortadas | **1 de 14** | **0 de 14** |
+| 1230×900 · paradas recortadas | **0 de 12** ← *pasa estando roto* | **0 de 12** |
+| caja de los numerales | **132 px** / **144 px** | **88 px** / **96 px** |
+
+La fila de 1230×900 es la lección: **ese ancho no desplaza el raíl**, así que mide en
+verde con el defecto puesto. Por eso el ancho de la verificación es 1230×**560**.
+
+Geometría tras el arreglo: la barra queda con `padding-inline` 4 px/4 px y **cuatro
+columnas de 95,5 px** (muy por encima del mínimo de 44); el scroller del raíl a 1230×560
+desplaza de verdad (`scrollHeight` 460 > `clientHeight` 399) con `scroll-padding-block`
+4 px/4 px. Sin scroll horizontal a ningún ancho. Guarda de medida satisfecha en las tres
+visitas: **2 hojas / 72 reglas / `Inter`**, emulación confirmada, puerto CDP dinámico,
+puerto de aplicación pedido al sistema (52797; nunca 3000), build de producción con **0**
+marcadores de desarrollo en los bytes servidos.
+
+### 5 · La barra final de `conEstado`, que era un fallo silencioso plantado
+
+Era un consejo de la review y el humano pidió hacerlo, con razón. `fullPath` se construye
+como `cleanPath(padre + '/' + path)`, así que una ruta **índice** arrastra una barra
+final: si la Parte 2 escribe `_app/circles/index.tsx` —la forma probable, porque
+`/circles/$id` necesita el directorio— `fullPath` es `/circles/`, y `'/circles' ===
+'/circles/'` es `false`: «Mis círculos» **no se marcaría nunca**, en silencio, sin que
+ningún gate lo viera y sin nada que apuntara a este fichero. El código comparaba una
+plantilla de ruta con el destino de un enlace, dos vocabularios que sólo coinciden en las
+rutas hoja.
+
+Normalizados **los dos lados** en `esLaRutaActual`, con `/` a salvo (su barra es la ruta
+entera, no un sufijo). **Ciclo TDD de verdad**, no un arreglo a ciegas: `app-shell.pod.spec.tsx`
+(5 tests) nació en **rojo** en los dos casos con barra —`/circles/` y `/profile/`— y en
+verde en los tres que fijan lo que ya era correcto (la forma hoja, el `/$` del 404, y la
+ruta indefinida). El probe de mutación lo confirma: volver a la comparación cruda deja
+**2 tests rojos**. El test cubre el raíl **y** la barra de una vez, porque en jsdom no hay
+hoja de estilos y las dos navegaciones están en el DOM a la vez.
+
+Y con esto la frase «cuando la Parte 2 cree `/circles`, el mismo cálculo empieza a
+marcarlo sin tocar nada» **pasa a ser verdad** — el comentario dice ahora que lo es
+*gracias a* la normalización, no por sí sola.
+
+### Los gates, otra vez los siete, con la caché saltada
+
+`TURBO_FORCE=1` en todos. `typecheck` 3/3 · `format:check` «All matched files use
+Prettier code style!» · `test` **229/229** en 16 ficheros (+ db 11, console-runner 7) ·
+`build` nitro escrito · `design-tokens:validate` 147 tokens / 72 ficheros ·
+`design-tokens:contrast` 56 pares · `design-tokens:css:check` al día ·
+`pnpm audit --audit-level=moderate` sin vulnerabilidades. El probe de mutación restauró
+con un `trap` puesto **antes** de mutar; `git status` limpio después y ningún `.bak`
+abandonado, también tras el control negativo (que mutó tres ficheros y los devolvió).
+
+### Lo que NO se ha tocado en esta iteración
+
+Nada de lo que la review confirmó: ni el límite PODS, ni los dos conjuntos de
+navegación, ni los vocabularios de T28, ni la transición de R60, ni el mapa de iconos, ni
+los tokens, ni el generador, ni la configuración de gates, ni el tema, ni las fixtures,
+ni los assets, ni la biblioteca de componentes. **El Grupo 9 sigue sin empezar** y no se
+ha añadido ninguna tarea. Ficheros tocados: los tres de los arreglos, `app-shell.pod.tsx`,
+`routes/index.tsx` (sólo comentario), el `app-shell.pod.spec.tsx` nuevo y este fichero.
+Ni un commit, ni un push: todo en el índice.
+
 ## Group 1 — what the human sees at the checkpoint
 
 Nothing visual changed: this group delivers the contract the rest is built on. What to look at:
@@ -1375,28 +1754,37 @@ changes. Resolved step numbers do not shift. The pairing:
 | 5 | 7 + 8 | the shell and the first routes that use it |
 | 6 | 9 + 10 | login and register — the same split-screen shape |
 | 7 | 11 + 12 | invite and profile — one screen plus its states, twice |
-| 8 | 13 | the closer: smoke tests, a11y verification, gates |
+| 8 | 13 + 14 | the closer: smoke tests, a11y verification, gates — plus T47, the icon-map correction, which was added as Group 14 after this table was first written |
 
 - step 1/8 (anchor 5cc92b0) — review ×3 (2 rejects: R6's `$type` gate bypassed by a `{token.path}` reference; R6 again — the gate consulted the prototype chain, and nothing guarded its "never silently omit" half) — ledger: criteria 20/20 (basis: requirements), gates 7/7 (basis: config), passes 2/2 → checkpoint: OK
 - step 2/8 (anchor 6ea1697) — review ×2 (1 reject: R27's synchronous write is constrained by no test — the mutant survives — while progress.md claimed it covered) — ledger: criteria 8/8 (basis: requirements), gates 7/7 (basis: config), passes 2/2 → checkpoint: OK
 - step 3/8 (anchor 38d3a54) — review ×2 (1 reject: `Button variant="link"` loses its geometry to tailwind-merge; `DropdownMenuRadioItem`'s `outline-none` makes its focus ring dead code) — ledger: group 3 criteria 8/8 + group 4 criteria 7/7 (basis: requirements), gates 7/7 (basis: config), passes 2/2 → checkpoint: OK
 - step 4/8 (anchor 67930ad) — review ×1 — ledger: group 5 criteria 6/6 + group 6 criteria 1/1 (basis: requirements), gates 7/7 (basis: config), passes 2/2 → checkpoint: OK
+- step 5/8 (anchor b409329) — review ×2 (1 reject: `leading-none` eaten by tailwind-merge on the 404 numerals — the same defect class as step 3; focus rings clipped by the **window** on the bottom bar’s first and last columns, the step’s own bottom-edge fix not carried to the other axis; the rail’s `overflow-y-auto` clipping a ring mid-scroll, where `py-2` is the wrong property and `scroll-py-1` the right one; and a progress.md that claimed the last two were handled) — ledger: group 7 criteria 20/20 + group 8 criteria 13/13 (basis: requirements), gates 7/7 (basis: config), passes 2/2 → awaiting the human checkpoint
 
 ## Next action
 
-**Grupos 5 y 6 terminados** (T17–T20 y T21), a la primera: siete gates en verde, `audit`
-limpio, camino real ejercitado, todo en el índice y **sin commitear** → review y checkpoint
-humano. Dos cosas esperan decisión del humano en ese checkpoint, ninguna bloqueante:
+**Grupos 7 y 8 terminados** (T22–T28), a la primera: siete gates en verde con la caché de
+turbo saltada, `audit` limpio, hidratación sin un solo mensaje de consola, todo en el
+índice y **sin commitear** → review y checkpoint humano.
 
-1. **El peso de los assets.** 1,79 MiB, y once de los dieciséis JPEG pesan más de 65 KB sin
-   dibujarse nunca por encima de 358 px CSS. Si la respuesta es recomprimir, el momento es antes
-   del primer commit — ahora — porque después es un rewrite del historial.
-2. **La marca hardcodea dos colores que son tokens** (`brand.600`, `brand.300`) y un tercero que no
-   es ninguno, y `.svg` está fuera del escaneo anti-hardcode. Es el asset del diseño; no lo he
-   tocado.
+Lo que conviene hacer en el checkpoint, porque **es el primer paso que se usa en vez de
+leerse**:
 
-Con el OK, el Orchestrator commitea y despacha el **paso 5/8**, Grupos 7 + 8 (el shell y las
-primeras rutas). Si el humano pide cambios, la iteración entra sobre el índice tal cual está.
+1. `pnpm --filter @memora/web build` y servir `.output/server/index.mjs` en un puerto
+   libre (**nunca el 3000**). Abrir `/` — debe redirigir — y luego cualquier URL
+   inventada, a 390 px y a 1300 px.
+2. Tabular las dos navegaciones: el anillo de foco tiene que verse **entero**, también en
+   el último ítem de la barra inferior y en el logotipo del raíl. Ahí había dos defectos
+   reales y están arreglados.
+3. Mirar que las **dos listas de navegación no coinciden** y que eso es deliberado:
+   «Mis círculos» vs «Círculos», «Privacidad» sólo en el raíl, «Perfil» como fila de
+   identidad.
+4. Decidir el **destino de las filas de círculo** (hoy `/circles` para las cuatro) y, si
+   se quiere, el `<h1>` del 404 (side-finding de `EmptyState`).
+
+Con el OK, el Orchestrator commitea y despacha el **paso 6/8**, Grupos 9 + 10 (`/login` y
+`/register`). Si el humano pide cambios, la iteración entra sobre el índice tal cual está.
 
 ## Blockers
 
@@ -3032,3 +3420,472 @@ is not by itself evidence.
 **Asset weight settled, not deferred:** 1 880 200 bytes in 17 files stay at source size. Resizing to
 Part 1's render sizes would degrade Parts 2 and 3 — measured, not assumed: `Photo-M` renders
 `/_blob/abcac459…`, the same «Familia García» cover this part shows in a 264 px rail, full-bleed.
+
+## Review evidence — step 5
+
+Groups 7 and 8 (T22–T28), anchor `b409329`, work staged in the index, zero commits.
+Review iteration ×1 for this step (task-global rejection #5). **Verdict: REJECT.**
+
+### Gates — all seven green, re-run independently with the turbo cache bypassed
+
+`TURBO_FORCE=1` on every turbo-driven gate, so nothing was read from cache.
+
+| Gate | Result |
+| --- | --- |
+| `typecheck` | 3/3 packages pass |
+| `format:check` | «All matched files use Prettier code style!» |
+| `test` | 15 files, **224/224** in `@memora/web` (+ db 11, console-runner 7) |
+| `build` | nitro output written; only pre-existing radix `"use client"` advisories |
+| `design-tokens:validate` | 147 tokens, 71 files, no hardcoded values |
+| `design-tokens:contrast` | 56 pairs meet their WCAG floor |
+| `design-tokens:css:check` | `tokens.generated.css` up to date |
+| `pnpm audit --audit-level=moderate` | no known vulnerabilities |
+
+**Measurement hygiene on the gates themselves.** `typecheck` finished in ~0.3 s, which
+is implausible for `tsc` — so it was not taken on trust. `tsc --version` is **7.0.2**
+(the native port), which explains it, and `tsc --noEmit --listFiles` was used to confirm
+the program genuinely contains all nineteen new/changed files. The gate is real.
+
+Test arithmetic: the ten pre-existing spec files sum to exactly **186**, so the five new
+files add **38** (estado 21, mapper 9, repository 3, index 2, side-nav 3) — not the 26
+`progress.md` claims. Understated, so not a coverage overstatement; see finding 4.
+
+### Real run — production build, explicit free port, guarded
+
+Served `apps/web/.output/server/index.mjs` on **127.0.0.1:52101** (a port obtained from
+the OS, never 3000). Served bytes carry **0** occurrences of `@vite/client`,
+`__vite_ping` or `/@react-refresh`.
+
+Chrome driven over CDP with `--remote-debugging-port=0` (dynamic port read from
+`DevToolsActivePort`, so no zombie can hold it), and every visit asserts, before any
+number is believed: emulation applied (`innerWidth` equals the requested width), and
+`document.styleSheets` non-empty with ≥50 rules and `getComputedStyle(body).fontFamily`
+resolving to Inter. Every run reported **2 sheets / 72 rules / `Inter`**. No value that
+was judged was truncated.
+
+| | 390×844 | 1230×900 |
+| --- | --- | --- |
+| `side-nav` | `display:none`, 0 px | `flex`, **264 px** |
+| `bottom-nav` | `block`, 61 px, `padding-bottom: 4px` | `none` |
+| horizontal scroll | none (390/390) | none (1230/1230) |
+| targets under 44 px | **0** of 6 | **0** of 12 |
+| `aria-current` on the 404 | 0 | 0 |
+
+HTTP: `GET /` → **307**, `location: /login`. `/login`, `/register`, `/invite/abc123`,
+`/profile`, `/circles`, `/uploads`, `/help`, `/privacy` and `/nope/deep/path` → **200**,
+the designed 404 inside the shell with the URL intact.
+
+404 card at 1230: 560 px, radius 24 px, 1 px `rgb(226,232,240)`, `p-12`, background
+white; `box-shadow` read **in full** (six entries, the last two paint:
+`rgba(0,0,0,0.1) 0 1px 3px` and `rgba(0,0,0,0.1) 0 1px 2px -1px`) — confirming the
+earlier `.slice(0,60)` false positive was indeed an artefact. Dark mode: card and rail
+`#111b27`, body `#080f19`, numerals `rgb(200,195,255)`.
+
+R60 measured exactly: `transition-property: color, background-color`,
+`transition-duration: 0.15s`, `cubic-bezier(0.16, 1, 0.3, 1)` — §8 item 1 to the letter.
+Nothing in the four new components listens to `scroll`, `resize` or `matchMedia`; the bar
+does not move under scroll.
+
+### The PODS boundary, verified at the real SSR boundary
+
+The strongest evidence available, because `_app.tsx`'s loader data is serialized into the
+served HTML. In the bytes of `/circles`:
+
+- **0** occurrences of `email`, `sofia.martin@`, `full_name`, `avatar_url`, `cover_url`
+- **0** ISO date strings
+- present and correct: `initials`, `avatarUrl`, `coverUrl`×4, `"SM"`, «Sofía Martín»
+
+Both composites take plain props only and import nothing from `pods/` and nothing from
+the router (D3) — verified by reading their import blocks.
+
+### Focus-ring Tab walk — real `:focus-visible`, via CDP key events
+
+Not `el.focus()`: `Input.dispatchKeyEvent` Tab, so `:focus-visible` genuinely matches.
+The ring's outer box is the element rect inflated by `outline-offset + outline-width`
+(measured 2 px + 2 px, `rgb(108,99,255) solid`), compared against both the window and
+the nearest clipping ancestor.
+
+**390×844** — the two fixes hold where they were applied: all four bar items' rings end
+at `bottom = 844`, exactly flush with `innerHeight`, uncut; the wordmark's ring starts at
+`top = 20`. But: «Círculos» ring `left = -4` and «Perfil» ring `right = 394` against
+`innerWidth = 390`. See finding 2.
+
+**1230×900** — all twelve stops clean; the identity row's ring ends at 892 of 900.
+
+**1230×560** (the rail actually scrolls: `scrollHeight` 460 > `clientHeight` 399,
+scroller rect top 92 / bottom 491) — Tab stop «Ayuda»: ring `top` 443, **`bottom` 495**,
+i.e. 4 px past the scroller's clip edge. See finding 3.
+
+### Mutation probes — all six re-run independently, all six killed
+
+Hand-probe path (no `test:mutation` script declared). Each probe is one composite trip
+with the restore installed as an `EXIT` trap **before** the mutation; `git status` was
+verified clean after every one, and no `.bak` was stranded.
+
+| Mutant | Outcome |
+| --- | --- |
+| mapper leaks `email` into the ViewModel | **killed** — 3 red |
+| mapper stops renaming `cover_url` → `coverUrl` | **killed** — 3 red |
+| `aria-current` dropped from the identity row | **killed** — 1 red |
+| circles section made unconditional | **killed** — 1 red |
+| `parseEstado` throws outside the vocabulary | **killed** — 12 red |
+| `cargando` added to `ESTADOS_LOGIN` | **killed** — 2 red (R77 and R81) |
+
+So the three tests that were green on arrival do bite. The boundary guard in
+`app-shell.repository.spec.ts` is a real guard, not a copy of the type.
+
+(The standing nudge, declined four times already and not repeated as an argument: a
+`test:mutation` script would turn these six trips into one batch.)
+
+### The `cn()` / tailwind-merge audit
+
+Every `cn()` call in the four new components was replayed against the real `cn` module
+and checked for silently dropped classes. Eight of nine call sites are clean (both
+bottom-nav item states, the bottom-nav `<nav>`, both side-nav row states, the side-nav
+`<nav>`, the 404 mobile outer). One is not — see finding 1.
+
+### Findings
+
+1. **`not-found.pod.tsx:23–33` — `leading-none` is dead code.** `cn()` drops it:
+   tailwind-merge treats `font-size` as conflicting with `leading`, and the arbitrary
+   size arrives in a later argument. Measured: 88 px font → **line-height 132 px**
+   (box 132, ink 111, 21 px dead space), visual gap to the `EmptyState` **35 px instead
+   of 24 px**; desktop 96 px → 144 px. The comment at line 21 asserts the opposite.
+   Same defect class as step 3's reject. Fix: `text-[5.5rem]/none` and `text-[6rem]/none`
+   (preferred — cannot be reordered away), or move `leading-none` after the size.
+2. **`bottom-nav.component.tsx:72–89` — first and last columns' focus rings clipped by
+   the window at 390 px.** `<nav>` is `inset-x-0` with zero horizontal padding and the
+   `<ul>` is `grid-cols-4`, so column 1 starts at x=0 and column 4 ends at x=390; the
+   4 px ring overhangs both. This is the *same* bug the step found and fixed on the
+   bottom edge, by the same standard the file itself states at lines 62–68. Fix: a 4 px
+   horizontal floor on the bar (e.g. `px-1`); columns go 97.5 → ~95.5 px, still ≥44.
+3. **`side-nav.component.tsx:121` — the rail's `overflow-y-auto` does clip a ring once
+   the rail scrolls**, which is the only case where its `overflow` matters. `py-2` is
+   padding *inside* the scroll content, so it only buys room at the extremes of the
+   scroll range; mid-range, focus `scrollIntoView` parks the border box flush with the
+   visible edge. The comment at lines 117–120 claims this is handled. Fix:
+   `scroll-py-1` (`scroll-padding-block`) on the scroller — the property
+   `scrollIntoView` honours.
+4. **`progress.md` overstates two accessibility claims.** Its 390 px row says «anillos
+   de foco … **ninguno recortado**» (two of six are), and it presents the rail `py-2` as
+   having addressed the overflow clipping (the diagnosis is right, the remedy does not
+   work). Also, non-blocking: «26 nuevos» tests should be 38.
+
+### Not findings — checked and correct
+
+- **R55 / the two navigations**, item for item against §5's self-corrected anatomy:
+  «Mis círculos» not «Círculos»; «Privacidad» rail-only; no `user` item in the rail;
+  identity row is the profile entry; circles section conditional (which is what makes
+  `Profile-D` and `NotFound-D` both right); wordmark 34 px in the rail, 30 px in the
+  mobile 404 header; R53's 140 px reserve (`pb-[8.75rem]`).
+- **T28 vocabularies** exactly R77, 404 empty, unknown → default silently (21 tests,
+  including `constructor` and `__proto__`), no `cargando` anywhere (R81).
+- **R74**: `apps/web/src/components/` is absent — `home-page.tsx` was removed at
+  `c40033a` (step 3); this step delivers the redirect clause.
+- **Scope**: 19 files, nothing else. Icon map, token files, generator, gate config,
+  theme, fixtures, assets and the component library are untouched; Group 9 not started.
+- **`tasks.md` T22–T28 ticks are honest** — every one is implemented. No spec-side
+  defects: no parse problems, no dangling refs, no unknown risk class.
+
+### Answers to the questions put to this review
+
+- **`href` vs `to` (T26).** Confirmed independently: `href?: string` is the first field
+  of `RedirectOptions` (`redirect.d.ts:11`), and `router.js:574` sets `reloadDocument`
+  only `if (scheme)` — `/login` carries none, so client-side it stays a router
+  navigation, and server-side `redirect.js:20` defaults `statusCode` to 307 (measured).
+  **What is lost:** the typed check, substituted by a real constraint in
+  `routes/index.spec.ts`; and **basepath on the server path — yes, `href` skips it.**
+  `resolveRedirect` (`router.js:559`) takes `options.href` verbatim and never calls
+  `buildLocation`, so the `Location` header is not basepath-prefixed, whereas `to` would
+  go through `buildLocation(...).publicHref`. Client-side it is fine: `buildLocation`'s
+  `dest.href` branch re-parses through `executeRewriteInput(this.rewrite, …)`, and
+  `this.rewrite` *is* the basepath rewrite (`router.js:133`). `router.tsx` sets no
+  `basepath`, so this is latent, not live. Also: a `search`/`hash` passed next to `href`
+  would be silently overwritten from the parsed href. **And it is not a one-line change
+  in Group 9**: `redirect.js:22` sets the `Location` header *only* when `opts.href` is
+  present, so flipping to `to` turns `index.spec.ts`'s `Location` assertion to `null`.
+  Two lines — and the loud kind. The comment's «sin que cambie nada más» should say so.
+- **The active-item derivation.** Sound. `RouterState` in router-core 1.171.38 declares
+  only `{status, isLoading, matches, location, resolvedLocation}` — there is no
+  `pendingMatches`/`preloadMatches`, and preloads live in `router._preloads`, outside
+  `state`, so `defaultPreload: 'intent'` cannot poison `.at(-1)`. On the 404 the deepest
+  match is `/_app/$` (`fullPath: '/$'`), matching no `href` → nothing marked, correctly.
+  **The forward claim is conditional, though:** `fullPath` is
+  `cleanPath(parent.fullPath + '/' + path)` (`route.js:37`), so an *index* route carries
+  a trailing slash — which is why `routesByPath` must `trimPathRight` it
+  (`new-process-route-tree.js:263`). A Part 2 leaf `_app/circles.tsx` marks fine; a
+  directory `_app/circles/index.tsx` (likely, given `/circles/$id`) yields `/circles/`
+  and `'/circles' === '/circles/'` is false — «Mis círculos» would silently never mark.
+  Advisory: normalise both sides in `conEstado`, and «sin tocar nada» becomes true.
+- **R58's test does bite** (probe killed it). It asserts *exactly one* marked link, its
+  text and its `href`, so it also catches marking the wrong row. R58 is unobservable at
+  route level only because `/profile` arrives in Group 12 — the approved group order,
+  not an implementation gap.
+- **The `/circles` deviation (R48).** Neither the link nor R48 should change. R48 seeds
+  name + cover only and §5 item 5 repeats it; fabricating an `id` or a slug would invent
+  the field R48 excludes, and §3 already declares that every forward link lands on the
+  404. This is not a deviation from the spec — it is the spec's own consequence. The one
+  line to change lives in Part 2, and it is a constant in the pod, not in the composite.
+- **The missing `<h1>` on the 404.** Not a reject now; a **named obligation for Group
+  11**. `EmptyState`'s fixed `<h3>` is reviewed Group-4 output that no task in Groups 7–8
+  names; `page-has-heading-one` is axe best-practice, not a WCAG 2.1 AA failure, and the
+  served 404 has exactly two `<h3>` and no other heading, so there is no `heading-order`
+  violation either. The fix is a heading-level prop on `EmptyState`, which earns itself
+  once there is a second consumer — Group 11's three invite states. Group 13 verifies and
+  cannot implement. **`SideNav`'s `<p>` + `aria-labelledby` should stand**: a rail section
+  label is not a document heading, and once `EmptyState` can emit an `<h1>` the 404's
+  outline becomes a clean single `h1` — which is exactly what that choice protects. The
+  two decisions are consistent, not in tension.
+
+The worktree and index were left byte-identical to how this review found them.
+
+## Review evidence — step 5 (re-review, iteration 2)
+
+Groups 7 and 8 (T22–T28), anchor `b409329`, work staged in the index, zero commits. Fresh
+context: I am not the Reviewer that rejected iteration 1 and share none of its
+conversation. **Verdict: APPROVE.** All five rejection points re-verified as fixed by
+independent measurement with a negative control; two group-keyed ledgers written and
+validated green (`--step=7` 20/20 criteria, `--step=8` 13/13, gates 7/7, passes 2/2).
+
+### The seven declared gates, re-run by me with the turbo cache bypassed
+
+`TURBO_FORCE=1` on every turbo-driven gate.
+
+| Gate | Result |
+| --- | --- |
+| `typecheck` | 3/3 packages pass |
+| `format:check` | «All matched files use Prettier code style!» |
+| `test` | 16 files, **229/229** in `@memora/web` (+ db 11, console-runner 7) |
+| `build` | nitro output written; only pre-existing radix `"use client"` advisories |
+| `design-tokens:validate` | 147 tokens, **72** files, no hardcoded values |
+| `design-tokens:contrast` | 56 pairs meet their WCAG floor |
+| `design-tokens:css:check` | `tokens.generated.css` up to date |
+| `pnpm audit --audit-level=moderate` | no known vulnerabilities |
+
+`tsc --version` is **7.0.2** (the native port), which is why `typecheck` returns in under a
+second — checked, not trusted. Test arithmetic independently recomputed from the per-file
+counts: the ten pre-existing files sum to **186**, the six new ones to **43** (estado 21,
+mapper 9, repository 3, routes/index 2, side-nav 3, app-shell.pod 5) = **229**. The
+«229 / 43 nuevos» and «eran 38 antes» claims are exact.
+
+### Measurement hygiene, stated before any number
+
+Production build served from `apps/web/.output/server/index.mjs` on an **OS-assigned port**
+(53297; never 3000). Served bytes carry **0** occurrences of `@vite/client`, `__vite_ping`,
+`/@react-refresh` and `@vite/env`. Chrome headless over CDP with
+`--remote-debugging-port=0`, port read from `DevToolsActivePort`, under a **fresh throwaway
+profile** (no fixed port a zombie could hold; no orphan Chrome from the predecessor's
+session was present — the Implementer had already killed those four). Every visit asserted,
+**before any number was believed**: `innerWidth` equals the requested width,
+`document.styleSheets` non-empty with ≥50 rules, and `getComputedStyle(body).fontFamily`
+resolving to Inter. All visits reported **2 sheets / 72 rules / `Inter`**. Nothing I judged
+was truncated — `box-shadow` was read in full (six entries; the last two paint
+`rgba(0,0,0,0.1) 0 1px 3px` and `rgba(0,0,0,0.1) 0 1px 2px -1px`). Comments were read in
+view rather than greped blind: the `api-model` hit in `app-shell.repository.ts` is the
+literal **in its own comment**, not an import. The router claims were checked against the
+real module, not a reimplementation.
+
+### A · the two geometric fixes, re-measured with the negative control
+
+Tab walk by real `Input.dispatchKeyEvent` Tab (so `:focus-visible` genuinely matches), never
+`el.focus()`. The ring's outer box is the element rect inflated by
+`outline-offset + outline-width` — measured **2 px + 2 px, `rgb(108,99,255) solid`** on every
+stop — and compared on **all four edges** against the window **and** against every clipping
+ancestor (walking `overflow != visible`, skipping ancestors a `position: fixed` element
+escapes unless they create a containing block).
+
+Then the control: the three fixes reverted, `pnpm build` re-run, the same harness re-run,
+and the worktree restored by a trap installed before the mutation.
+
+| Measure | fixes reverted (control) | as shipped |
+| --- | --- | --- |
+| 390×844 · «Círculos» ring `left` | **−4** → clipped by the window | **0** → clean |
+| 390×844 · «Perfil» ring `right` | **394** > 390 → clipped | **390** → clean |
+| 390×844 · clipped stops | **2 of 6** | **0 of 6** |
+| 1230×560 · «Ayuda» ring `bottom` | **495** > 491 → clipped by the scroller | **491** → clean |
+| 1230×560 · clipped stops | **1 of 12** | **0 of 12** |
+| 1230×900 · clipped stops | **0 of 12** ← *passes while broken* | **0 of 12** |
+| bar `padding-inline` | 0 px / 0 px | **4 px / 4 px** |
+| bar columns | 97.5 px | **95.5 px** (≥ 44 on both axes; 95.5 × 56) |
+| numerals `line-height` / box | **132 px / 132** and **144 px / 144** | **88 / 88** and **96 / 96** |
+
+The control reproduces the previous pass's three numbers **to the decimal**, which is what
+makes my zeros mean something: a harness that reports «0 clipped» proves nothing until it
+has been shown to see the defect. The 1230×900 row is the lesson the step already learnt —
+that width does not scroll the rail (`scrollHeight` 739 = `clientHeight` 739), so it measures
+green with the defect in place. 1230×560 does scroll it (**460 > 399**).
+
+Bottom edge still flush: all four bar items' rings end at `bottom = 844`, exactly
+`innerHeight`, uncut; the bar's own rect is `0,783 → 390,844`, so background and hairline
+still run edge to edge despite `px-1`. No horizontal scroll at any width
+(`scrollWidth == clientWidth`: 390/390, 1230/1230, 1230/1230).
+
+### C · `scroll-py-1` is honoured, and it is not luck
+
+`scroll-padding-block: 4px / 4px` measured on the scroller (`auto` in the control). The
+decisive number is not «0 clipped» but **where** «Ayuda» lands: with the fix, keyboard focus
+parks it so the ring's outer edge is at **491** — *exactly* the scroller's clip edge — and
+without it at **495**, i.e. 4 px past. The delta is precisely the 4 px reserved, which is
+causation rather than coincidence. The mid-scroll case was genuinely exercised, not just the
+extremes: the scroller moved under the walk («Ayuda» rect top 447 → 443, «Privacidad» 439),
+so `py-2`'s end-of-range padding was not what carried it. `py-2` is correctly kept for the
+extremes and the comment now says, without hedging, that it is not what prevents this.
+
+### B · the trailing-slash normalisation, reviewed as new code and attacked
+
+`sinBarraFinal` / `esLaRutaActual` in `app-shell.pod.tsx:64–83`, with
+`app-shell.pod.spec.tsx` (5 tests).
+
+Router claims verified against the real module (`@tanstack/router-core@1.171.38`), not
+inferred: `fullPath = cleanPath(parent.fullPath + '/' + path)` (`route.js:37`) — so an index
+route does carry a trailing slash; `cleanPath` is `path.replace(/\/{2,}/g, '/')`
+(`path.js:10`) — so `fullPath` can never carry a doubled slash, which is what makes removing
+**one** slash sufficient; and router-core itself does `trimPathRight(route.fullPath)` for its
+own `routesByPath` (`new-process-route-tree.js:263`) — the cited precedent is real.
+
+Attacked, with the helper's real semantics exercised against the live item set:
+
+| `activePath` | marked hrefs |
+| --- | --- |
+| `/` | none — `sinBarraFinal('/')` returns `/`, **not** the empty string |
+| `//` | none (normalises to `/`) |
+| `/$` (the 404's match) | none — **the truth**, and covered by a test |
+| `/circles` | `/circles` |
+| `/circles/` | `/circles` |
+| `/circles//` | none (unreachable: `cleanPath` collapses it first) |
+| `''` | none |
+| `undefined` | none — guarded, and covered by a test |
+
+So `/` survives and does **not** start matching everything. Probes (one composite trip each,
+restore trapped before the mutation, `git status` verified clean after every one, no `.bak`
+stranded):
+
+| Mutant | Outcome |
+| --- | --- |
+| back to a crude `href === rutaActiva` | **killed** — 2 red (`/circles/` and `/profile/`), exactly as claimed |
+| over-trim: drop the `ruta.length > 1` guard | **survived** — 5 green |
+| normalise only `rutaActiva`, not both sides | **survived** — 5 green |
+
+Both survivors are **equivalent mutants**, measured rather than assumed: with no `href` in
+either item set equal to `/` or `''`, and none carrying a trailing slash, the marked set is
+byte-identical for all nine `activePath` candidates above. They are information, not defects
+— the length guard and the symmetric normalisation express intent for a future the item sets
+do not yet have (`_app` itself declares `fullPath: '/'` in `routeTree.gen.ts`, so an
+`activePath` of `/` is reachable in principle; it still marks nothing either way). The new
+spec does constrain the behaviour that matters, and it bites.
+
+### D · `progress.md` is now true
+
+- The 390 px row of the «lo que sólo se vio renderizando» table no longer claims «ninguno
+  recortado»; it points at the correction, and the `CORRECCIÓN (review del paso 5,
+  iteración 1)` block below states what was false and by how much (−4 / 394, two of six).
+  A correction, not a quiet rewrite — the prior claim is quoted in it.
+- The `py-2` sentence stands with the correction beneath it saying the diagnosis was right
+  and the remedy wrong. Accurate.
+- Counts: **229 / 43 new** verified by recomputation; the `## Active` section records the
+  old «224 (26 nuevos)» and names it «mal contado, no inflado, pero mal». No stale
+  overstatement is left standing as truth anywhere in the file (checked by searching for
+  each retired phrase: every remaining occurrence is inside a correction block or inside the
+  previous review's own evidence).
+- Both T26 footnotes are **next to T26's decision**, in the `CORRECCIÓN` block inside
+  «La trampa de orden de T26» (lines ~1348–1364) where the next reader will look: the
+  `href`-skips-`basepath` note on the server path (latent, not live — `router.tsx` declares
+  no `basepath`) and «son dos líneas, no una», with the reason the second one is a *good*
+  failure. The file comment in `routes/index.tsx` carries the same two notes.
+
+### E · what nobody had looked at — all clear
+
+- **Dark mode, both widths** (390×844 and 1230×900, via emulated `prefers-color-scheme` with
+  `data-theme="system"`): body `rgb(8,15,25)`; rail, bar and 404 card all `rgb(17,27,39)`;
+  numerals stay `brand-200` `rgb(200,195,255)` (no dark override declared for that
+  primitive — issue #13's family, and it reads fine). Line-height stays welded at 88/88 and
+  96/96 in dark too.
+- **The two 404 layouts against `NotFound-M` / `NotFound-D`.** Mobile: wordmark header with
+  a **30 px** mark (`size-[1.875rem]`), 88 px numerals, and exactly **one** CTA — the tab
+  walk at 390 finds precisely 6 stops (wordmark, CTA, four bar items), so there is no second
+  button hiding. Desktop: content **inside a card** measured **560 × 491.5**, radius 24 px,
+  1 px `rgb(226,232,240)`, padding 48 px, `shadow-sm`; numerals **96 px**; **two** buttons,
+  default «Volver a Mis círculos» with the `home` icon plus `ghost` «Ir a la ayuda»; no
+  wordmark header, because the rail carries it. Copy compared byte for byte against §10 in
+  the served HTML: «No encontramos esta página» ×2, the body line ×2, «Volver a Mis
+  círculos» ×2, «Ir a la ayuda» ×1 (desktop only).
+- **R53's 140 px reserve really keeps the bar off content.** The mobile wrapper computes
+  `padding-bottom: 140px`; the bar is 61 px tall with its top at 783; the CTA's bottom is
+  592.8, so 190 px of clearance, and the reserve sits on the `min-h-dvh` wrapper, so content
+  cannot grow into the last 140 px.
+- **`px-1` knocked nothing out of alignment.** The four columns stay *equal* (95.5 px each),
+  the bar's background and hairline still span 0 → 390, and the only change is a 4 px inset
+  on the two outer columns' content boxes. §5 asks for four equal columns ≥ 44 px plus the
+  safe-area inset; both hold with room.
+- **R55 re-checked in the served bytes** rather than in the source: «Privacidad» appears
+  exactly once (rail only), «Perfil» exactly once (bar only), «Mis círculos» in the rail
+  against «Círculos» in the bar. `aria-current` appears **0** times on the 404, which is the
+  honest answer while `/circles` matches the splat.
+
+### Spot-checks on what the previous pass confirmed — none disturbed
+
+Re-measured rather than carried forward, because the fixes touched four of the files: the
+PODS boundary at the real SSR payload (**0** occurrences of `email`, `sofia.martin@`,
+`full_name`, `avatar_url`, `cover_url`; **0** ISO date strings; `initials`, `avatarUrl`,
+`coverUrl`×4 and `"SM"` present); both composites' import blocks (nothing from `pods/`,
+nothing from the router — D3 holds); R60's transition measured exactly
+(`color, background-color` / `0.15s` / `cubic-bezier(0.16, 1, 0.3, 1)`, §8 item 1 to the
+letter — the `<nav>`'s computed `transition-property: all` at `0s` is the CSS **initial
+value**, not a utility, and `git grep transition-all apps/web/src` returns nothing);
+`git grep 'href="#"'` nothing; `git grep '#/pods' apps/web/src/pods` nothing;
+`apps/web/src/components/` absent (R74); no raw hex or `px` literal in the four new
+components outside comments. Scope: the same 21 paths, nothing else — icon map, token files,
+generator, gate config, theme, fixtures, assets and the component library all untouched, and
+Group 9 not started. `tasks.md`'s only change is the T22–T28 tick flips, which are
+done-marks, not a spec edit.
+
+### Quality pass — nothing blocking
+
+Tests are meaningful, not shape-copies: the boundary guard in `app-shell.repository.spec.ts`
+walks the whole ViewModel instead of enumerating fields (and asserts the walk saw something,
+so an empty ViewModel cannot pass vacuously), and it states honestly what it cannot catch (a
+lowercase single-word code). `estado.spec.ts` drives ten degenerate inputs including
+`constructor` and `__proto__`. `side-nav.spec.tsx` pins the rail's one real branch and the
+single-`aria-current` rule. No floating promise, no `any`, no non-null assertion, no unsafe
+cast, no swallowed error (`parseEstado`'s silence is R78, written down), no listener to clean
+up, no dead code. `mapper.spec.ts:24` uses `toMatchObject` where the file's other assertions
+use `toStrictEqual`, but the exhaustive case is covered by the repository spec's whole-object
+`toStrictEqual` and by the boundary walk — below the bar for a finding.
+
+The untested seam is router → pod (`useRouterState` → `activePath`): `_app.tsx` has no test
+of its own. That is the approved plan, not a gap — R98/R99 put one smoke test per route in
+T43 (Group 13) and the human excluded markup/component tests, so the derivation is verified
+by hand at review, which is what the measured `aria-current`-absent-on-the-404 result does.
+
+**Advisory (standing, declined four times, not re-argued):** a `test:mutation` script in
+`package.json` would turn these hand probes into one batch run.
+
+### Not re-litigated
+
+Assets at source size; D1; only Claro/Oscuro/Sistema; the darker control border; token-file
+gaps as issue #13 (the 404's `shadow-sm` is that interim by decision); R35 as Group 14/T47;
+no validation/session/auth/backend; the pure-logic-plus-smoke test strategy. The three
+findings the previous pass closed stay closed: the circle rows' `/circles` destination is
+R48's own consequence and correct; the missing `<h1>` is Group 11's named obligation, with
+`SideNav`'s `<p>` + `aria-labelledby` standing; the `href` redirect is sound with basepath
+skipping latent, not live.
+
+### One honest instrument note
+
+My walk counts **12** tab stops at 1230×560 where the previous pass reported 14; my harness
+dedupes by label+href+nav and stops on the first repeat. The clipped stop is the same one
+(«Ayuda») with the same numbers (495 vs 491 broken, 491 vs 491 fixed), and the control
+reproduces its figures exactly, so the discrepancy is in the counting convention, not in the
+measurement.
+
+### Ledger — one checkpoint, two groups, two files
+
+`.claude/state/tasks/11/review-ledger/step-7.json` and `step-8.json`, both validated against
+anchor `b409329`: step 7 → Group 7, **criteria 20/20**, gates 7/7, passes 2/2; step 8 →
+Group 8, **criteria 13/13**, gates 7/7, passes 2/2. `mutants.basis` is `no-declared-risk` on
+both, because no group in this part carries a `[risk: …]` tag — a statement `tasks.md` makes
+explicitly, not an omission. **No spec-side problems reported by either run.**
+
+The source worktree and index were left byte-identical to how this review found them (`git
+diff -- apps/web` empty, no `.bak` stranded), no orphan Chrome or server process survives
+this session, and the throwaway CDP profiles were removed.

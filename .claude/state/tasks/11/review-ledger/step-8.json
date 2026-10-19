@@ -1,0 +1,149 @@
+{
+  "version": 2,
+  "step": 8,
+  "criteria": [
+    {
+      "id": "R61",
+      "evidence": "Measured over HTTP against the production build, not asserted: GET / returns 307 with location: /login. routes/index.spec.ts drives the exported redirigirALogin and asserts isRedirect plus headers.get('Location') === '/login' — the one thing no compiler watches, since href is a bare string."
+    },
+    {
+      "id": "R62",
+      "evidence": "The two of the six this step owes: the / redirect (307) and the * 404. The other four arrive with Groups 9–12; /login, /register, /invite/abc123 and /profile all return 200 today rendering the designed 404 inside the shell, which is §3's declared pattern for a forward link, not a failure."
+    },
+    {
+      "id": "R67",
+      "evidence": "No route in the diff checks a session, permission or token: _app.tsx has only a loader calling the shell repository, _app/$.tsx has no loader, index.tsx has only beforeLoad throwing the redirect. Every URL probed (/profile, /circles, /uploads, /help, /privacy, /nope/deep/path) opens directly with 200 and no redirect."
+    },
+    {
+      "id": "R68",
+      "evidence": "No form exists in this step's surface, and nothing in estado.ts validates input in the rejecting sense: parseEstado narrows or returns undefined, never throws and never redirects. The designed error states are visitable scenarios by construction."
+    },
+    {
+      "id": "R70",
+      "evidence": "The 404 is a splat route child of the pathless layout rather than the router's defaultNotFoundComponent, which is what puts it inside the shell and keeps the unmatched URL in the address bar. Measured: /nope/deep/path returns 200, the rendered page carries the shell navigation at both widths (bottom-nav visible at 390x844, side-nav 264px at 1230), and the URL is unchanged."
+    },
+    {
+      "id": "R74",
+      "evidence": "apps/web/src/components/ is absent from the tree (home-page.tsx and its spec were removed at c40033a in step 3); this step delivers the second half — routes/index.tsx now has no component of its own, only beforeLoad."
+    },
+    {
+      "id": "R76",
+      "evidence": "estado.ts exposes parseEstado plus five per-route vocabularies and validateEstado, the one-line validateSearch each of Groups 9–12 will install. The 404's own vocabulary is empty, so _app/$.tsx carries no validateSearch at all — the absence is a declared decision, not an omission."
+    },
+    {
+      "id": "R77",
+      "evidence": "estado.spec.ts pins each vocabulary with toStrictEqual against the literal R77 table — /login ['error','enviando'], /register ['error'], /invite/$token ['caducada','invalida','ya-miembro'], /profile ['editando','error'], the 404 [] — so the set and its size are both fixed, and a group adding a value without amending R77 goes red. The Implementer's probe adding one value killed 2 tests."
+    },
+    {
+      "id": "R78",
+      "evidence": "Ten table-driven cases assert no throw and undefined: absent, empty string, misspelled, a value belonging to another route, a repeated parameter (array), numeric, null, an object, and 'constructor' / '__proto__' — the last two because a vocabulary is an array walked with find, which never consults Object.prototype. The Implementer's probe making parseEstado throw outside the vocabulary killed 12 tests."
+    },
+    {
+      "id": "R79",
+      "evidence": "The vocabularies name states only: no value in any of the five is a width or a breakpoint, and validateEstado reads nothing but search.estado. The 404 itself, this step's only ?estado=-bearing screen, renders both of its explicit arrangements at 390 and at 1230 (measured) with no state parameter involved."
+    },
+    {
+      "id": "R81",
+      "evidence": "estado.spec.ts filters all five vocabularies for /carga|cargando|loading/ and asserts the result is empty. No Skeleton import exists anywhere in the step's diff. The Implementer's probe adding 'cargando' to ESTADOS_LOGIN killed 2 tests (the R77 set assertion and this one)."
+    },
+    {
+      "id": "R89",
+      "evidence": "No horizontal scroll: documentElement.scrollWidth equals clientWidth at 390 (390/390), 1230x560 and 1230x900. The 44px floor holds on every target measured — the four bar columns are 95.5 x 56, the mobile CTA 350 x 48, the mobile wordmark 123.8 x 44, every rail row 239 x 44, and the desktop CTAs 200 x 44 and 113.1 x 44. The px-1 fix lowered the columns from 97.5 to 95.5, still far above the floor, and the bar's background and hairline still run edge to edge (rect 0..390)."
+    },
+    {
+      "id": "R92",
+      "evidence": "The numerals are <p aria-hidden=\"true\"> and carry no information; the EmptyState's title holds the real message. Measured after the fix: font-size 88px with line-height 88px and a box of exactly 88px on mobile, 96/96/96 on desktop — the leading-none that cn()/tailwind-merge was eating is now welded to the size as text-[5.5rem]/none and text-[6rem]/none. Negative control (leading-none put back in the base, sizes without the slash, rebuilt): line-height 132px and 144px, boxes 132 and 144 — the previous rejection reproduced exactly. Both brand-mark <img> carry alt=\"\" since the adjacent «memora» word names the link; the two CTAs are text links needing no aria-label."
+    }
+  ],
+  "gates": [
+    {
+      "kind": "script",
+      "script": "typecheck",
+      "evidence": "TURBO_FORCE=1, 3/3 packages pass. tsc --version is 7.0.2 (the native port), which is why it finishes in well under a second — the speed was checked rather than trusted."
+    },
+    {
+      "kind": "script",
+      "script": "format:check",
+      "evidence": "«All matched files use Prettier code style!»"
+    },
+    {
+      "kind": "script",
+      "script": "test",
+      "evidence": "TURBO_FORCE=1: 229/229 in 16 files in @memora/web, plus db 11 and console-runner 7. Pre-existing ten files sum to 186, so the six new files add 43 — the counts progress.md now claims."
+    },
+    {
+      "kind": "script",
+      "script": "build",
+      "evidence": "TURBO_FORCE=1, nitro output written; only the pre-existing radix \"use client\" directive advisories."
+    },
+    {
+      "kind": "script",
+      "script": "design-tokens:validate",
+      "evidence": "147 tokens, 72 files scanned, no hardcoded values. The two 404 numeral sizes are written in rem precisely so the anti-hardcode scan stays green; neither value has a token."
+    },
+    {
+      "kind": "script",
+      "script": "design-tokens:contrast",
+      "evidence": "«56 pair(s) meet their WCAG floor.»"
+    },
+    {
+      "kind": "script",
+      "script": "design-tokens:css:check",
+      "evidence": "«tokens.generated.css is up to date.»"
+    },
+    {
+      "kind": "script",
+      "script": "pnpm audit --audit-level=moderate",
+      "evidence": "Beyond the declared list, recorded because it ran: «No known vulnerabilities found»."
+    },
+    {
+      "kind": "real-run",
+      "evidence": "Production build served on an OS-assigned port (53297, never 3000), served bytes clean of all four dev markers. Chrome headless over CDP with --remote-debugging-port=0 under a throwaway profile; every visit guarded on innerWidth, populated styleSheets (2 sheets / 72 rules) and the body font resolving to Inter before any number was believed. HTTP: / → 307 Location /login; /login, /register, /invite/abc123, /profile, /circles, /uploads, /help, /privacy, /nope/deep/path → 200, the designed 404 inside the shell with the URL intact. 404 copy compared byte for byte against §10. Dark mode exercised at 390x844 and 1230x900: body rgb(8,15,25), card/rail/bar rgb(17,27,39), numerals rgb(200,195,255)."
+    }
+  ],
+  "mutants": {
+    "basis": "no-declared-risk"
+  },
+  "passes": [
+    {
+      "name": "senior-review",
+      "outcome": "none",
+      "examined": [
+        "apps/web/src/common/components/bottom-nav.component.tsx",
+        "apps/web/src/common/components/side-nav.component.tsx",
+        "apps/web/src/common/routing/estado.ts",
+        "apps/web/src/pods/app-shell/api/navigation.api-model.ts",
+        "apps/web/src/pods/app-shell/api/navigation.api.ts",
+        "apps/web/src/pods/app-shell/app-shell.mapper.ts",
+        "apps/web/src/pods/app-shell/app-shell.model.ts",
+        "apps/web/src/pods/app-shell/app-shell.pod.tsx",
+        "apps/web/src/pods/app-shell/app-shell.repository.ts",
+        "apps/web/src/pods/not-found/not-found.pod.tsx",
+        "apps/web/src/routeTree.gen.ts",
+        "apps/web/src/routes/_app.tsx",
+        "apps/web/src/routes/_app/$.tsx",
+        "apps/web/src/routes/index.tsx"
+      ]
+    },
+    {
+      "name": "spec-compliance-check",
+      "outcome": "none",
+      "examined": [
+        "apps/web/src/common/components/bottom-nav.component.tsx",
+        "apps/web/src/common/components/side-nav.component.tsx",
+        "apps/web/src/common/routing/estado.ts",
+        "apps/web/src/pods/app-shell/api/navigation.api-model.ts",
+        "apps/web/src/pods/app-shell/api/navigation.api.ts",
+        "apps/web/src/pods/app-shell/app-shell.mapper.ts",
+        "apps/web/src/pods/app-shell/app-shell.model.ts",
+        "apps/web/src/pods/app-shell/app-shell.pod.tsx",
+        "apps/web/src/pods/app-shell/app-shell.repository.ts",
+        "apps/web/src/pods/not-found/not-found.pod.tsx",
+        "apps/web/src/routeTree.gen.ts",
+        "apps/web/src/routes/_app.tsx",
+        "apps/web/src/routes/_app/$.tsx",
+        "apps/web/src/routes/index.tsx"
+      ]
+    }
+  ]
+}

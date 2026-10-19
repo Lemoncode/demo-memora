@@ -164,27 +164,27 @@ the vocabulary, the rationale says what it is.
 
 ## Group 7 — El shell: pod `app-shell`, navegación inferior y lateral _(isolates the structural seam every later part inherits, and the one place in this part where the PODS boundary is doing real work: the rail is data-driven, so the pod owns data the two composites only receive as props)_
 
-- [ ] T22 — Build the `app-shell` pod end to end: `api/navigation.api-model.ts` +
+- [x] T22 — Build the `app-shell` pod end to end: `api/navigation.api-model.ts` +
       `api/navigation.api.ts` reading the shared fixtures, a complete mapper (image paths
       resolved, initials derived, codes to enums), the `Navigation` ViewModel and the
       repository as the pod's only data-access entry point. Unit-test the mapper and the
       repository, asserting that nothing backend-shaped — no field name, no ISO string, no
       code — crosses the boundary. Relative imports inside the pod, `.pod.tsx` and
       `.component.tsx` suffixes, no cross-pod import (R40, R41, R42, R43, R44, R45, R46, R47)
-- [ ] T23 — Build `BottomNav`: four equal columns in fixed order — Círculos, Subidas,
+- [x] T23 — Build `BottomNav`: four equal columns in fixed order — Círculos, Subidas,
       Ayuda, Perfil — as a `card` bar on the bottom edge with a hairline top border, each
       an icon-over-label link at least 44 px tall plus the safe-area inset, a `<nav>` with
       an accessible name, real anchors, `aria-current="page"` on the active one and never
       colour alone, a focus ring the bar's `overflow` does not clip, no hiding on scroll
       and nothing animated but its colour (R38, R52, R53, R58, R59, R60)
-- [ ] T24 — Build `SideNav`: the 264 px `card` column with its right border in three
+- [x] T24 — Build `SideNav`: the 264 px `card` column with its right border in three
       parts — wordmark, the nav proper in three sections, and the bottom identity row that
       **is** the profile entry on desktop. The «Círculos» section renders one row per
       circle with its cover when circles exist and is omitted entirely when none do, which
       is what reconciles `Profile-D`'s rail with `NotFound-D`'s. The two item sets
       deliberately differ from the bottom bar's and are not made to match
       (R54, R55, R56, R57, R58, R59)
-- [ ] T25 — Add the pathless layout route `_app.tsx`: its loader calls the shell
+- [x] T25 — Add the pathless layout route `_app.tsx`: its loader calls the shell
       repository and it renders the pod around an `<Outlet/>`, choosing `BottomNav` below
       `nav:` and `SideNav` at and above it, never both. `/login`, `/register` and
       `/invite/$token` stay outside the layout, which is how the shell is absent there
@@ -192,16 +192,16 @@ the vocabulary, the rationale says what it is.
 
 ## Group 8 — Rutas base: `/` → `/login` y el 404 dentro del shell _(the first end-to-end runnable slice — the app redirects, routes and renders a designed screen — and the group that fixes the `?estado=` contract the four screen groups then follow)_
 
-- [ ] T26 — Turn `routes/index.tsx` into the redirect to `/login`, with no component of
+- [x] T26 — Turn `routes/index.tsx` into the redirect to `/login`, with no component of
       its own, retiring the last of task #1's «Hola Mundo» surface (R61, R74)
-- [ ] T27 — Build the `not-found` pod as a pure UI pod — no repository, no mapper, no api
+- [x] T27 — Build the `not-found` pod as a pure UI pod — no repository, no mapper, no api
       — and mount it on the splat route `_app/$.tsx`, so an unmatched path renders the
       designed 404 inside the shell at both widths with the unmatched URL still in the
       address bar: `NotFound-M`'s wordmark header, decorative numerals and single CTA, and
       `NotFound-D`'s card, 96 px numerals and two CTAs. The numerals are `aria-hidden`
       with the `EmptyState` title carrying the real message, there is no horizontal scroll
       at 390 px and every target clears 44 px (R62, R70, R89, R92)
-- [ ] T28 — Establish the `?estado=` contract: `parseEstado` plus each route's
+- [x] T28 — Establish the `?estado=` contract: `parseEstado` plus each route's
       `validateSearch`, with the per-route vocabularies — `/login` takes `error` and
       `enviando`, `/register` takes `error`, `/invite/$token` takes `caducada`, `invalida`
       and `ya-miembro`, `/profile` takes `editando` and `error`, the 404 takes none. A
