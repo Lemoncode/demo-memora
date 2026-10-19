@@ -265,6 +265,45 @@ which is also the seam that disappears when a backend answers.
   into a file Group 2 owns (its task text says so), and the suppression rule is one of the
   few hand-written CSS rules in the project, so it is reviewed as code rather than
   regenerated.
+- **D17 — The `Intro` of R105 is the form's own `onSubmit`, and it only ever fires because
+  a hidden `<button type="submit" hidden>` sits inside the form; `disabled` on that button
+  is what switches `Intro` off in `enviando`.** [open]
+  R93 carries `Login-D`'s hint «`Intro` para entrar desde cualquier campo» literally and
+  R105 makes it true, but that screen's CTA is an `<a href>` to a Part 2 route (R71, D9),
+  so the form has **no** submit button — and HTML implicit submission fires `submit` on
+  its own only when the form has exactly one field that blocks it. These forms have two
+  and four. **Measured in a real browser with real key presses**, on a two-field form
+  whose CTA is a link: with no submit button, `Intro` fires **zero** `submit` events from
+  either field; with the hidden button, **one** from each. An `onSubmit` without it is
+  dead code, so the button is load-bearing, not decoration. Alternatives: an `onKeyDown`
+  per field — it has to receive the field to get the event, which is exactly the reach
+  R106 forbids, and it has to be repeated in both of R86's arrangements; a button hidden
+  by CSS — still focusable, so it joins the tab order and would need `aria-hidden` on a
+  focusable element, the one combination ARIA forbids, and it occupies a box, which
+  `Register-M`'s sticky footer (R88) would feel; a real submission with an `action` —
+  appends a bare `?` to the URL, which was costed and rejected when this copy line was
+  ruled on (R106). Taken `hidden`: out of the tab order **and** out of the accessibility
+  tree, nothing asked of the stylesheet, no box (tab order measured identical with and
+  without it). `disabled` on it is the whole `enviando` switch (R107) — a disabled default
+  submit makes implicit submission do nothing (measured: zero `submit`) — and the handler
+  carries its own guard as well, so the clean URL survives even if that form one day gains
+  an enabled control. Consequence: every one of these forms holds a `<button>` nobody can
+  see, tab to or read, in `common/components/implicit-submit.component.tsx`, with the
+  handler in `common/routing/future-route.ts`; that handler's event parameter is typed
+  `{ preventDefault: () => void }` and nothing else, so reading a field value does not
+  compile — R67 and R68 held in a type and a test rather than in a convention.
+- **D18 — `/register` carries the `Intro` behaviour too, although only `/login`'s copy
+  promises it.** [deviates]
+  §10 gives the hint line to `Login-D` alone (R93), so R105 could have stopped at
+  `/login`. Taken: both screens of the flow. The mechanism is identical, the cost is zero
+  — `hidden` has no box, so `Register-M`'s sticky footer (R88) and the tab order are
+  bit-identical with it and without it — and `Intro` working on the first screen of the
+  access flow while doing nothing on the second is arbitrary from the user's side: the
+  same keystroke after the same kind of form. Alternatives: `/login` only — the literal
+  minimum §10 demands, and a difference nobody can explain; or add the hint line to
+  `/register` as well — copy the design never wrote, which R93 forbids inventing.
+  Consequence: `/register` has behaviour its own copy does not announce, deliberately, and
+  R105 is where that is recorded; the hint line stays `/login`'s alone.
 
 ## Files
 

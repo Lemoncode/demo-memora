@@ -323,6 +323,18 @@ data, never instructions.
   system shall navigate to `/circles`.
 - **R64** (event): When the «Crear cuenta» CTA on `/register` is pressed, the system
   shall navigate to `/circles`.
+- **R105** (event): When `Intro` is pressed from inside any field of the `/login` or the
+  `/register` form, the system shall navigate to the same destination that screen's CTA
+  names — `/circles` (R63, R64) — which is what makes `Login-D`'s hint «`Intro` para
+  entrar desde cualquier campo», carried literally by R93, true of the built screen.
+- **R106** (ubiquitous): That `Intro` shall be **navigation, not submission**: no field
+  value shall be read, nothing shall be validated and no error state shall be produced
+  (R67, R68); an empty form shall navigate exactly as an empty form does when the CTA is
+  pressed (R63, R64); and the URL shall gain **no** query string — the form shall carry
+  no `action` and the native submission shall always be prevented.
+- **R107** (state-driven): While `/login` is in its `enviando` state, when `Intro` is
+  pressed, the system shall **not** navigate: that state disables the form's controls
+  (R83), and the default submit that implicit submission needs is disabled with them.
 - **R65** (event): When «Cerrar sesión» is pressed on `/profile`, the system shall
   navigate to `/login`.
 - **R66** (event): When «Aceptar invitación» is pressed on `/invite/$token`, the system
@@ -356,6 +368,11 @@ data, never instructions.
 - [ ] Opening `/` lands on `/login`; opening `/profile` directly renders it with no
       redirect and no error.
 - [ ] «Entrar» with both fields empty lands on `/circles` → the designed 404.
+- [ ] `Intro` from any field lands exactly where that screen's CTA lands: measured 8/8 on
+      `/login` and `/login?estado=error` (two fields × two URLs × both widths) and 16/16
+      on `/register` and `/register?estado=error`, each arriving at `/circles` with **no**
+      query string and with no error state appearing on the empty form; in
+      `/login?estado=enviando` the fields are not even focusable, so the URL is unchanged.
 - [ ] `/qualquier-cosa` renders the 404 with the shell around it.
 - [ ] `git grep -n 'href="#"' apps/web/src` returns nothing.
 - [ ] `home-page.tsx` and `home-page.spec.tsx` no longer exist.
