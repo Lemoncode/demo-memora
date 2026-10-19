@@ -170,14 +170,34 @@ which is also the seam that disappears when a backend answers.
   behind a single named component, so every cross-part link is greppable and Parts 2–3
   convert them mechanically. Consequence: clicking «Círculos» costs a full page load until
   Part 2 lands, and it still arrives at the designed 404.
-- **D10 — An unrecognised `?estado=` value renders the route's default state, silently.**
-  [open]
+- **D10 — An unrecognised `?estado=` value is discarded and the route is re-requested in
+  its canonical form, which renders the default state.** [open]
   The PRD gives each route a vocabulary but not the behaviour for a value outside it.
-  Alternatives: throw, redirect to the clean URL, or 404. Taken the silent fallback: the
-  parameter exists so a reviewer can type states by hand, and punishing a typo with an
+  Alternatives: throw, 404, or fall back to the route's default state. Taken the fallback:
+  the parameter exists so a reviewer can type states by hand, and punishing a typo with an
   error screen defeats that; a guard-free app whose every screen opens by URL (R67) should
-  not start failing on a query string. Consequence: a misspelt state looks like the
-  default state, which is the intended trade.
+  not meet a query string with a failure. **How that fallback reaches the screen was
+  measured at D001** (2026-10-19, real HTTP against the production build, verified twice
+  independently): TanStack Router builds the canonical search from
+  `{ ...location.search }` overlaid with what `validateSearch` returns
+  (`@tanstack/router-core@1.171.38`, `router.js:789-791`). Unrelated keys survive that
+  overlay — `/login?foo=bar` and `/login?estado=error&foo=bar` are 200 — but
+  `validateEstado` returns `{ estado: undefined }` for anything outside the vocabulary, so
+  the canonical search stops matching the URL's and the router navigates to the canonical
+  form: `?estado=pepe`, an empty `?estado=` and a repeated `?estado=` each answer **307 to
+  the bare route**, which then renders the default state. It is not avoidable while the
+  route-level type narrows, because the comparison is against the **already-validated**
+  search: any validator that changes the value changes the URL — verified, not assumed,
+  which is why the requirement was amended rather than the code. Rejected alternative:
+  have `validateSearch` pass the raw value through and narrow in each pod's `business`
+  (where R76 resolves the vocabulary anyway, and where the scenario resolution already
+  accepts `unknown`) — that keeps the hop off the wire and R78's original letter, but costs
+  the narrow per-route type, so `<Link to="/login" search={{ estado: 'errro' }}>` would
+  compile. Casting was rejected outright: a type reading `'error' | 'enviando'` while
+  holding `'pepe'` is exactly the latent trap this task has already refused twice.
+  Consequence: a misspelt, empty or repeated state costs one redirect and rewrites the
+  address bar to the canonical URL; the screen that renders is the route's default state,
+  with no throw, no error screen and no guard, and every screen still opens by URL (R67).
 - **D11 — The theme is persisted in `localStorage` and applied by a small inline script in
   `__root.tsx` before first paint.** [open]
   The PRD fixes three themes and the selector's location but not persistence, and the app
@@ -414,8 +434,11 @@ which is also the seam that disappears when a backend answers.
 
 ## Edge cases
 
-- `?estado=` absent, empty, misspelt or repeated → the route's default state, no throw
-  and no redirect (R78)
+- `?estado=` absent, empty, misspelt or repeated → the route's default state, no throw and
+  no error screen (R78), with an asymmetry worth knowing: **absent** answers 200, and so
+  does an **unrelated key** (`?foo=bar`, `?estado=error&foo=bar`), which survives
+  untouched, while **empty, misspelt and repeated** canonicalise with a **307** to the bare
+  route before that default state renders (D10)
 - Stored theme missing, corrupt, or `localStorage` throwing (private mode, blocked site
   data) → «Sistema» (R24)
 - OS flips `prefers-color-scheme` while the app is open and the theme is «Sistema» → the

@@ -518,6 +518,10 @@
       "radius": { "$type": "dimension", "$value": "{semantic.radius.control}" },
       "height": { "$type": "dimension", "$value": "3rem" }
     },
+    "login-scrim": {
+      "$description": "Top-down scrim over /login's photo collage (task #11, ui-handoff \u00a79, R90). It is LOAD-BEARING, not decoration: it is what keeps the glass pill legible over a light photograph, which is why it is a declared colour rather than an inline value. The alpha is baked into the token, exactly as glass.background bakes its own, because Tailwind silently DROPS an opacity modifier from a var()-based gradient stop (from-[var(--x)]/35 compiles to the bare var, giving an opaque scrim) - measured against the real compiler. No contrast pair is declared: what sits underneath is an arbitrary photograph, which no token pair can express - the same unmeasurable class as component.photo-badge.*, recorded in \u00a79 instead.",
+      "from": { "$type": "color", "$value": "#00000059" }
+    },
     "photo-badge": {
       "$description": "Badge laid over a photograph. The ground is image data, not a token, so the pair cannot be measured here — the implementation keeps the scrim opacity the design system fixes (black 50% under white text, white 50% under black text).",
       "dark-background": { "$type": "color", "$value": "#00000080" },

@@ -158,8 +158,14 @@ pinned to the bottom edge with a 32 px top radius and the heaviest shadow in the
 (`shadow-xl`), holding h1 «Hola de nuevo», a one-line intro, the two fields, a full-width primary
 CTA and the «crea una» footer line. **The eye lands on the photos, then on the h1 inside the
 sheet** — the sheet's radius and shadow are what separate the two zones, so neither may be
-flattened. **The scrim is load-bearing too, not decoration**: it is what keeps the glass pill legible
-over a light photo (§9).
+flattened. **The scrim is structural, not decoration — but not for the reason this contract first
+gave.** It was written here that the scrim is what keeps the glass pill legible over a light photo.
+**That was wrong, and measured so when Group 9 built the screen**: with the scrim removed, the pill's
+worst-pixel contrast moves by about ±0.5 and in light mode it *improves* (15.59 vs 15.05, a lighter
+photo under dark text). What carries legibility is the **glass** (82 % opaque, §9). The scrim carries
+**depth and the separation of the two zones** (R90), which is a real job — so it stays, and it may not
+be flattened. But nobody should defend it with a contrast number that isn't its own, nor optimise it
+away believing it is merely decorative.
 
 **Desktop (`Login-D`).** A two-column split that wraps (`flex-wrap`, bases 560 px / 480 px). Left: a
 4-column photo mosaic with spanning tiles (`radius 24px`, 12 px gaps, inset 24 px) and a glass quote
@@ -504,8 +510,12 @@ No entrance animation, no parallax on the collages, no scroll-driven effects.
   black photo → `#d1d1d1`): `ink.primary` 11.69, `ink.secondary` 4.96 (the 14 px line — clears 4.5
   with little room), `link` at 22 px bold = large text 3.75 against a 3:1 floor. Dark over a white
   photo (`#2d333c`): 12.16 / 8.57 / 5.65. **It passes** — recorded so REVIEW does not rediscover it,
-  and so the `Login-M` **scrim is treated as load-bearing**, not decorative. Same unmeasurable class
-  as `component.photo-badge.*`, which Part 2 inherits.
+  and so the `Login-M` **scrim is treated as structural**, not decorative — though for depth and zone
+  separation (R90), **not** for contrast: Group 9 measured the pill at **15.05** light / **14.78** dark
+  with the scrim and **15.59** / **14.07** without, so the glass is what carries legibility. Same
+  unmeasurable class as `component.photo-badge.*`, which Part 2 inherits — and the same lesson: these
+  pairs are invisible to `design-tokens:contrast`, so they are measured on real painted pixels or not
+  at all.
 - **The three unexposed themes.** `matcha`, `caramelo` and `espresso` are **out of this delivery**:
   not in `styles.css`, not in the token file. Not merely unused — `espresso` has a primary button at
   **3.20:1** (white on `#8f5d31`). **Measure before exposing any of them.**

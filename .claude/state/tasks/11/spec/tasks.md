@@ -205,18 +205,19 @@ the vocabulary, the rationale says what it is.
       `validateSearch`, with the per-route vocabularies — `/login` takes `error` and
       `enviando`, `/register` takes `error`, `/invite/$token` takes `caducada`, `invalida`
       and `ya-miembro`, `/profile` takes `editando` and `error`, the 404 takes none. A
-      value outside the vocabulary yields the route's default state without throwing and
-      without redirecting; the parameter names a state and never a breakpoint, so each
-      state renders at both widths; no route of this part gets a loading state; no route
-      checks a session and no form validates (R67, R68, R76, R77, R78, R79, R81)
+      value outside the vocabulary is discarded and the route is re-requested in its
+      canonical form, rendering that route's default state without throwing; the parameter
+      names a state and never a breakpoint, so each state renders at both widths; no route
+      of this part gets a loading state; no route checks a session and no form validates
+      (R67, R68, R76, R77, R78, R79, R81)
 
 ## Group 9 — `/login` y sus estados _(the first full screen, and the one that proves the hardest visual case in the part: the rotated collage, the scrim the accessibility measurement treats as load-bearing, and a desktop that is a different surface rather than a wider one)_
 
-- [ ] T29 — Build the `login` pod's data path: api, api-model, complete mapper,
+- [x] T29 — Build the `login` pod's data path: api, api-model, complete mapper,
       `business` scenario resolution and the repository returning a `LoginScreen`
       ViewModel. Unit-test the mapper, the repository and the scenario resolution,
       including a value outside the vocabulary (R76, R97)
-- [ ] T30 — Build both arrangements. `Login-M`: the rotated, scaled, `aria-hidden` collage
+- [x] T30 — Build both arrangements. `Login-M`: the rotated, scaled, `aria-hidden` collage
       under its top-down scrim, the glass pill over it, and the opaque sheet pinned to the
       bottom edge with its 32 px top radius and heaviest shadow — the two zones stay
       separated and the scrim is not flattened into decoration. `Login-D`: the two-column
@@ -225,7 +226,7 @@ the vocabulary, the rationale says what it is.
       horizontal scroll at 390 px, «Entrar» navigates to `/circles` with an empty form,
       and «¿La has olvidado?» is a real link to its future route
       (R62, R63, R71, R86, R87, R89, R90, R91, R92, R93, R96)
-- [ ] T31 — Build the two states. `error`: the form-level `Alert` plus field-level
+- [x] T31 — Build the two states. `error`: the form-level `Alert` plus field-level
       messages under fields wired with **both** `aria-invalid` and `aria-describedby`, on
       mobile as `Login-M-Error` draws it and on desktop carried into `Login-D`'s form
       card. `enviando`: `aria-busy` on the form, controls disabled and the CTA in its
@@ -234,22 +235,22 @@ the vocabulary, the rationale says what it is.
 
 ## Group 10 — `/register` y su estado de error _(its own group because the desktop is a second split-screen with its own mosaic, its own quote card and its own copy — the single mistake the first version of the design contract made — and because its error state is deliberately richer than mobile's)_
 
-- [ ] T32 — Build the `register` pod's data path: api, api-model, complete mapper,
+- [x] T32 — Build the `register` pod's data path: api, api-model, complete mapper,
       `business` scenario resolution and the repository. Unit-test all three (R76, R97)
-- [ ] T33 — Build `Register-M`: the full-screen `card` ground with its compact header
+- [x] T33 — Build `Register-M`: the full-screen `card` ground with its compact header
       (44 px back button with an `aria-label`, title, «Ya tengo cuenta»), the four
       bottom-aligned fields each with a real `<label for>`, and the sticky-footer CTA with
       the terms line. The artboard's fake on-screen keyboard is a design-time device and
       is never built — the intent is met by the bottom alignment and a footer that
       survives a shrunken viewport. No horizontal scroll at 390 px, and «Crear cuenta»
       navigates to `/circles` (R64, R88, R89, R91, R92, R93)
-- [ ] T34 — Build `Register-D` as the split screen it is, not a centred form: its **own**
+- [x] T34 — Build `Register-D` as the split screen it is, not a centred form: its **own**
       four-column mosaic with its own spans, its **own** glass quote card with its own
       copy, and on the right the wordmark, the h1 «Crea tu cuenta», the «Inicia sesión»
       subline and a bordered form card whose two password fields sit in a two-column grid.
       The mosaic is `aria-hidden` decoration, no back button and no sticky footer
       (R86, R89, R92, R93, R96)
-- [ ] T35 — Build `?estado=error`, and only there: mobile shows one invalid field with no
+- [x] T35 — Build `?estado=error`, and only there: mobile shows one invalid field with no
       `Alert`; desktop shows the «Revisa 2 campos» `Alert`, two invalid fields, a
       **form-level** password message under the two-field grid and a field message carrying
       an **inline link**. The default `/register` carries no error at all. Every invalid

@@ -368,9 +368,10 @@ data, never instructions.
 - **R77** (ubiquitous): The vocabulary shall be exactly: `/login` — `error`, `enviando`;
   `/register` — `error`; `/invite/$token` — `caducada`, `invalida`, `ya-miembro`;
   `/profile` — `editando`, `error`; the 404 — none. Absent means the default state.
-- **R78** (unwanted): If `?estado=` carries a value the route's vocabulary does not hold,
-  then the system shall render that route's **default** state without throwing and
-  without redirecting.
+- **R78** (unwanted): If `?estado=` carries a value the route's vocabulary does not hold
+  — unknown, empty or repeated — then the system shall discard that value, re-request the
+  route in its **canonical** form (a 307 to the same route without the parameter) and
+  render that route's **default** state, without throwing and without an error screen.
 - **R79** (ubiquitous): `?estado=` shall name a *state*, never a breakpoint: every state
   shall render at both widths, using that breakpoint's artboard as the layout reference.
 - **R80** (ubiquitous): The default `/register` shall carry **no** error, and
@@ -395,7 +396,8 @@ data, never instructions.
 ### Acceptance criteria
 
 - [ ] Each value in R77's table renders its artboard's state at 390 px and at 1440 px.
-- [ ] `/login?estado=pepe` renders the default `/login`.
+- [ ] `/login?estado=pepe` answers 307 to `/login` and then renders its default state,
+      while `/login?foo=bar` answers 200 with the unrelated key untouched.
 - [ ] `/register` with no parameter shows four empty, valid fields.
 - [ ] No `Skeleton` appears in any of the six screens.
 

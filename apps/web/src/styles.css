@@ -49,6 +49,28 @@
     @apply border-border outline-ring/50;
   }
 
+  /* **El anillo de foco no lo recorta la ventana cuando el teclado desplaza la página**
+     (R38, §9).
+
+     `scrollIntoView` —lo que el navegador hace al tabular a un control que queda fuera
+     de la vista— alinea el **borde** del elemento con el borde del viewport, y no sabe
+     nada del `outline`: el anillo sobresale entonces sus 4 px (2 de separación + 2 de
+     trazo) por debajo de la ventana. Medido en Chrome contra el build de producción: a
+     390×560 el anillo del campo de email de `/login` llegaba a 563,7 con la ventana en
+     560, y a 1230×560 el del enlace «política de privacidad» de `Register-D` a 563,6.
+
+     `scroll-padding-block` es **la propiedad que `scrollIntoView` sí honra** — la misma
+     lección que el paso 5 aprendió con el raíl, aquí aplicada al desplazador del
+     documento, que es `html` y no un contenedor cualquiera. Por eso vive en este
+     fichero y no en una pantalla: ninguna pantalla es dueña del *scroller* del
+     documento, y puesto aquí vale para las seis rutas y para las que traigan las
+     Partes 2 y 3.
+
+     Los 4 px son exactamente el alcance del anillo, no una holgura elegida a ojo. */
+  html {
+    @apply scroll-py-1;
+  }
+
   body {
     @apply bg-background text-foreground font-body antialiased;
   }

@@ -151,6 +151,7 @@
   --component-field-border-invalid: var(--semantic-color-destructive-border);
   --component-field-radius: var(--semantic-radius-control);
   --component-field-height: 3rem;
+  --component-login-scrim-from: #00000059;
   --component-photo-badge-dark-background: #00000080;
   --component-photo-badge-dark-foreground: var(--primitive-color-static-white);
   --component-photo-badge-light-background: #ffffff80;

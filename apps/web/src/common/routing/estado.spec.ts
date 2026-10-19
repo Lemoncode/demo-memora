@@ -19,10 +19,15 @@ describe('parseEstado · un valor del vocabulario', () => {
 });
 
 /**
- * R78 y D10: un valor fuera del vocabulario da el estado **por omisión**, sin lanzar y
- * sin redirigir. Es el caso que el contrato razona explícitamente — el parámetro existe
- * para que alguien teclee un estado a mano, y castigar una errata con una pantalla de
- * error se lo come.
+ * R78 y D10: un valor fuera del vocabulario se **descarta** y la pantalla que acaba
+ * viéndose es la del estado **por omisión**, sin lanzar y sin pantalla de error. Es el
+ * caso que el contrato razona explícitamente — el parámetro existe para que alguien
+ * teclee un estado a mano, y castigar una errata con una pantalla de error se lo come.
+ *
+ * Esta función devuelve `undefined` y ahí acaba su trabajo. Lo que pasa **después** con
+ * la URL es del router y está medido en D001: al cambiar el valor de la clave, la ruta se
+ * vuelve a pedir en su forma canónica (307) y es esa segunda petición la que pinta el
+ * estado por omisión. Aquí no se puede ver, y por eso se mide en el camino real.
  */
 describe('parseEstado · cualquier otra cosa (R78, D10)', () => {
   it.each([

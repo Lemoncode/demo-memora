@@ -7,43 +7,72 @@
 
 ## Active
 
-**Status**: implementing — **Grupos 7 y 8** (el shell: pod `app-shell`, `BottomNav`,
-`SideNav`; y las rutas base: `/` → `/login` y el 404 dentro del shell), paso 5 de 8,
-step-by-step, auto-commit **off** (save-points en el índice de git, cero commits).
+**Status**: implementing — **Grupos 9 y 10** (`/login` y sus estados; `/register` y su
+estado de error), paso 6 de 8, step-by-step, auto-commit **off** (save-points en el
+índice de git, cero commits).
 
-**Active subtask**: ninguna — **Grupos 7 y 8 completos (T22–T25, T26–T28)** y
-**arreglados tras la review (iteración 1 de 3)**, sin discoveries. La review **rechazó**
-el paso por cinco cosas, tres de ellas la misma familia: un anillo de foco recortado por
-un borde que no se midió. Las cinco están arregladas y la sección «arreglo tras la
-review» de abajo lleva los números vueltos a medir, **con control negativo** (revertir
-los arreglos y comprobar que el instrumento los ve, porque el harness anterior decía
-«ninguno recortado» estando roto).
+**Active subtask**: ninguna — **Grupos 9 y 10 completos (T29–T35)**, ocho gates en verde
+y el camino real medido contra el build de producción, más las **dos resoluciones del
+checkpoint** ya aplicadas (abajo).
 
-Los siete gates en verde con la caché de turbo saltada, `pnpm audit` limpio, y el camino
-real ejercitado contra el build de producción en un puerto libre explícito y en Chrome a
-390×844, 1230×560 y 1230×900 — **1230×560 es el ancho que importa**: a 1230×900 el raíl no
-desplaza y el defecto del `overflow` medía en verde. **229 tests en `@memora/web`, 43
-nuevos** (`estado` 21, `mapper` 9, `repository` 3, `index` 2, `side-nav` 3,
-`app-shell.pod` 5). **Corregido tras la review**: donde esto decía «224 (26 nuevos)», los
-nuevos eran **38** y no 26 — mal contado, no inflado, pero mal. Todo en el índice y **sin
-commitear**, a la espera del checkpoint humano. El **Grupo 9 no se ha empezado**.
+**`D001` está resuelta: el humano eligió la opción (B)** y la decisión está en
+`discoveries.md`. El 307 a la URL canónica **es el comportamiento querido**, así que se
+enmendó el requisito y **no se tocó el código**: `validateEstado` conserva su tipo
+estrecho por ruta, y ni `common/routing/estado.ts` ni su spec cambian de comportamiento.
+Lo que sí he barrido son **los comentarios que seguían prometiendo «sin redirigir»**, que
+desde la enmienda eran falsos (lista en la sección del paso 6). El Spec Author movió R78,
+su criterio de aceptación, D10 y los casos límite de `design.md`; yo no he escrito nada
+en la spec.
 
-**Este es el primer paso que se puede abrir y pulsar.** `GET /` devuelve **307** con
-`Location: /login`; el shell se pinta a los dos anchos (barra inferior por debajo de
-1230 px, raíl de 264 px por encima, nunca las dos); y cualquier URL que no empareja —
-`/login`, `/register`, `/invite/...`, `/profile`, `/circles` — da el **404 diseñado dentro
-del shell** con la URL intacta en la barra de direcciones, que es el patrón que §3 fija
-hasta que los Grupos 9 a 12 creen esas pantallas.
+Lo construido, en una línea: los dos pods completos con su camino de datos
+(api → api-model → business → mapper → repositorio), `/login` con sus estados `error` y
+`enviando`, `/register` con su `error`, **cada pantalla en dos disposiciones explícitas**,
+y el seguimiento de T26 (`href` → `to`) ya cobrado. **272 tests en `@memora/web`, 43
+nuevos**, contados por fichero más abajo: los 229 del paso 5, más 37 de los dos pods
+nuevos, más uno que gana `routes/index.spec.ts` al reescribir su aserción, más **5** de
+`future-route.spec.ts`, que es lo que trae la segunda resolución del checkpoint. (Escribí
+«279 / 50» de memoria en el primer borrador de esta sección: estaba **inflado**, y lo
+corregí a 267/38 contando de verdad. Éste es el tercer recuento, también contado y no
+recordado: `vitest --reporter=verbose`, fichero por fichero.)
 
-Dos cosas que el checkpoint debería mirar, ninguna bloqueante, ambas detalladas en la
-sección «Grupos 7 y 8» de abajo: el **destino de las filas de círculo** del raíl (apuntan
-a `/circles` porque la fixture no tiene `id` a propósito, R48) y que **R58 no es
-observable en el navegador hasta el Grupo 12** — `aria-current` en la fila de identidad
-está construido y testeado, pero hoy `/profile` pinta el 404 y marcar algo ahí sería
-mentir.
+**La segunda resolución del checkpoint: «`Intro` para entrar desde cualquier campo» ya es
+verdad.** La copia de §10 se queda y el comportamiento se construye: los formularios
+llevan `onSubmit` y navegan a `/circles` **sin mirar ni un campo**. Está en `/login` en
+las **dos** disposiciones y también en `/register`, y medido con pulsaciones de tecla de
+verdad: las doce parejas campo×vista navegan, en `enviando` no pasa nada, y la URL nunca
+gana una interrogación. Detalle y control negativo, abajo.
 
-Group 1 (T1–T5) is done, reviewed over three rounds and committed at `6ea1697`; its record
-below is kept verbatim.
+**Cuatro defectos propios encontrados midiendo, no leyendo, y arreglados** — ninguno lo
+habría visto un gate ni la suite:
+
+1. **El scrim salía opaco.** Tailwind **se come en silencio** el modificador de opacidad
+   sobre una parada de degradado basada en `var()`: la clase se genera igual, pero sin
+   alfa. El 35 % se hornea ahora en un token (`component.login-scrim.from`), como ya hace
+   `glass.background`.
+2. **Dos anillos de foco recortados por la ventana** a 390×560 y 1230×560, por
+   `scrollIntoView`, que alinea el borde del elemento y no sabe nada del `outline`.
+3. **El pie pegajoso de `Register-M` tapaba el campo enfocado** a 390×460/400/340 — no lo
+   recorta nada, lo **pinta encima**, así que ni R38 al pie de la letra ni el arnés del
+   paso 5 lo habrían visto.
+4. **El anillo de «¿La has olvidado?» se veía abierto por abajo**, en las ocho ventanas
+   medidas y en las dos disposiciones. Lo encontró la **re-medida** que pidió el
+   checkpoint, y **mi pasada anterior lo dio por bueno**: el «0 con problema» sobre 152
+   paradas era falso en este elemento. Arreglo: `relative z-10` en el enlace.
+
+A 390×560 `/register` **no se desplaza** y el defecto 3 no aparece: es la lección del paso
+5 otra vez, y por eso bajé hasta 340 px de alto.
+
+Todo en el índice y **sin commitear**, a la espera del checkpoint humano. El **Grupo 11
+no se ha empezado**.
+
+**Lo que este paso añade a lo que ya se podía pulsar**: `/` sigue devolviendo **307** con
+`Location: /login`, pero ahora `/login` **es una pantalla** en vez de caer en el 404, y
+`/register` también. Los enlaces entre las dos son `Link` **tipados** (las rutas existen);
+los que apuntan a `/circles`, `/privacy` y `/password-recovery` siguen siendo `FutureLink`
+y aterrizan en el 404 diseñado, que es lo que §3 fija.
+
+Grupos 1 a 8 están hechos, revisados y commiteados (paso 5 en `3982753`); sus registros de
+abajo se mantienen literales.
 
 Design definition closed earlier: `ui-handoff.md` is at `Status: completed` (v2). The UI Designer
 **rejected v1** — it described only mobile for four of six screens and got the desktop shell
@@ -1362,6 +1391,28 @@ patrón que §3 fija para todo enlace hacia delante.
 > `search` o un `hash` puestos junto a un `href` se sobrescriben con lo que traiga el
 > propio `href`.)
 
+> **RESUELTO en el paso 6 (Grupo 9), y por eso esta factura ya no se lleva encima.**
+> El Grupo 9 creó `/login`, así que el destino **pasa a `to`** y el apaño desaparece:
+> `routes/index.tsx` dice hoy `redirect({ to: '/login', replace: true })`.
+>
+> Las dos notas de arriba se cobraron exactamente como estaban previstas, y se dejan
+> escritas porque la predicción acertó, no para seguir vigilándolas:
+>
+> - **«Son dos líneas, no una»** — al cambiar a `to`, la aserción
+>   `headers.get('Location')` se puso en **rojo** devolviendo `null`, medido. La aserción
+>   se reescribió contra `options.to`, que es lo que `to` sí fija aquí; la cabecera se
+>   comprueba ahora donde existe de verdad, en el camino real (`GET /` → **307** con
+>   `Location: /login`, vuelto a medir contra el build de producción).
+> - **El `basepath` ya no se salta.** Con `to`, el destino pasa por
+>   `buildLocation(...).publicHref`, así que el día que alguien declare un `basepath` la
+>   redirección lo respeta. Lo mismo retira la otra trampa: ya no hay un `href` que
+>   pueda sobrescribir un `search` o un `hash` puestos a su lado.
+>
+> Lo que **sí** queda vivo de `href` es `FutureLink`, que es otra cosa: un **enlace** a
+> una ruta que no existe, no una redirección. Los enlaces a `/login` y `/register` que
+> este paso escribe **no** son `FutureLink`: son `Link` tipados, porque las dos rutas ya
+> existen.
+
 ### T25 y T27 están acoplados mecánicamente (medido)
 
 Una ruta de layout sin path **y sin hijos** colapsa a `fullPath: '/'` y choca con
@@ -1760,35 +1811,572 @@ changes. Resolved step numbers do not shift. The pairing:
 - step 2/8 (anchor 6ea1697) — review ×2 (1 reject: R27's synchronous write is constrained by no test — the mutant survives — while progress.md claimed it covered) — ledger: criteria 8/8 (basis: requirements), gates 7/7 (basis: config), passes 2/2 → checkpoint: OK
 - step 3/8 (anchor 38d3a54) — review ×2 (1 reject: `Button variant="link"` loses its geometry to tailwind-merge; `DropdownMenuRadioItem`'s `outline-none` makes its focus ring dead code) — ledger: group 3 criteria 8/8 + group 4 criteria 7/7 (basis: requirements), gates 7/7 (basis: config), passes 2/2 → checkpoint: OK
 - step 4/8 (anchor 67930ad) — review ×1 — ledger: group 5 criteria 6/6 + group 6 criteria 1/1 (basis: requirements), gates 7/7 (basis: config), passes 2/2 → checkpoint: OK
-- step 5/8 (anchor b409329) — review ×2 (1 reject: `leading-none` eaten by tailwind-merge on the 404 numerals — the same defect class as step 3; focus rings clipped by the **window** on the bottom bar’s first and last columns, the step’s own bottom-edge fix not carried to the other axis; the rail’s `overflow-y-auto` clipping a ring mid-scroll, where `py-2` is the wrong property and `scroll-py-1` the right one; and a progress.md that claimed the last two were handled) — ledger: group 7 criteria 20/20 + group 8 criteria 13/13 (basis: requirements), gates 7/7 (basis: config), passes 2/2 → awaiting the human checkpoint
+- step 5/8 (anchor b409329) — review ×2 (1 reject: `leading-none` eaten by tailwind-merge on the 404 numerals — the same defect class as step 3; focus rings clipped by the **window** on the bottom bar’s first and last columns, the step’s own bottom-edge fix not carried to the other axis; the rail’s `overflow-y-auto` clipping a ring mid-scroll, where `py-2` is the wrong property and `scroll-py-1` the right one; and a progress.md that claimed the last two were handled) — ledger: group 7 criteria 20/20 + group 8 criteria 13/13 (basis: requirements), gates 7/7 (basis: config), passes 2/2 → checkpoint: OK
 
 ## Next action
 
-**Grupos 7 y 8 terminados** (T22–T28), a la primera: siete gates en verde con la caché de
-turbo saltada, `audit` limpio, hidratación sin un solo mensaje de consola, todo en el
+**Grupos 9 y 10 terminados** (T29–T35) **y las dos resoluciones del checkpoint
+aplicadas**: ocho gates en verde con la caché de turbo saltada y los códigos de salida
+tomados uno a uno, el camino real medido contra el build de producción en Chrome a ocho
+ventanas y en oscuro, **227 paradas de tabulación** con los anillos verificados sobre los
+píxeles pintados, contraste medido igual y **11 mutantes muertos de 11**. Todo en el
 índice y **sin commitear** → review y checkpoint humano.
 
-Lo que conviene hacer en el checkpoint, porque **es el primer paso que se usa en vez de
-leerse**:
+**`D001` está resuelta** (opción B, en `discoveries.md`): el 307 a la URL canónica es el
+comportamiento querido, la spec se enmendó y el código no cambia. Lo que he hecho yo es
+barrer los **seis comentarios** que seguían prometiendo «sin redirigir».
 
-1. `pnpm --filter @memora/web build` y servir `.output/server/index.mjs` en un puerto
-   libre (**nunca el 3000**). Abrir `/` — debe redirigir — y luego cualquier URL
-   inventada, a 390 px y a 1300 px.
-2. Tabular las dos navegaciones: el anillo de foco tiene que verse **entero**, también en
-   el último ítem de la barra inferior y en el logotipo del raíl. Ahí había dos defectos
-   reales y están arreglados.
-3. Mirar que las **dos listas de navegación no coinciden** y que eso es deliberado:
-   «Mis círculos» vs «Círculos», «Privacidad» sólo en el raíl, «Perfil» como fila de
-   identidad.
-4. Decidir el **destino de las filas de círculo** (hoy `/circles` para las cuatro) y, si
-   se quiere, el `<h1>` del 404 (side-finding de `EmptyState`).
+Lo que queda para el checkpoint está en «Lo que el checkpoint debería mirar», al final de
+la sección de los Grupos 9 y 10: abrir las dos pantallas a los dos anchos **y en oscuro**
+(el oscuro no tiene artboard en esta parte y el caso difícil es justo el collage con su
+scrim), confirmar el nombre `/password-recovery` y comprobar que `Register-D` **no** es
+`Login-D` más ancho. Y una cosa nueva que mirar con los ojos: **el anillo de «¿La has
+olvidado?» ahora pinta por encima del campo de contraseña** y su borde inferior cae 8 px
+dentro de él — es lo que lo cierra (defecto 4), y la alternativa era dejarlo abierto por
+abajo.
 
-Con el OK, el Orchestrator commitea y despacha el **paso 6/8**, Grupos 9 + 10 (`/login` y
-`/register`). Si el humano pide cambios, la iteración entra sobre el índice tal cual está.
+Con el OK, el Orchestrator commitea y despacha el **paso 7/8**, Grupos 11 + 12
+(`/invite/$token` y `/profile`). Si el humano pide cambios, la iteración entra sobre el
+índice tal cual está.
 
 ## Blockers
 
-None.
+Ninguno. `D001` (T1) está **resuelta** — opción (B): el 307 de un `?estado=` desconocido
+es el comportamiento querido y R78 lo dice ya así. Los Grupos 11 y 12 heredan ese
+contrato tal cual: `validateEstado` no cambia, y sus rutas lo estrenarán sabiendo que un
+valor fuera del vocabulario canonicaliza la URL mientras que **ausente** responde 200.
+
+## Grupos 9 y 10 — `/login` y `/register` (paso 6 de 8)
+
+T29–T35, ancla `3982753`, todo en el índice y **cero commits**. Sin iteraciones de review
+todavía. `D001` (ver `discoveries.md`) se levantó al verificar y **ya está resuelta**.
+
+### Las dos resoluciones del checkpoint, aplicadas
+
+**1 · `D001` → opción (B): se enmendó el requisito, no el código.** El 307 a la forma
+canónica es el comportamiento querido. `validateEstado` conserva el tipo estrecho por
+ruta —que es lo que caza en compilación un estado mal escrito en las cuatro pantallas— y
+**no se ha tocado una línea de comportamiento** en `common/routing/estado.ts` ni en su
+spec. Lo que sí se ha barrido, porque desde la enmienda era **falso**, es la prosa que
+prometía «sin redirigir»:
+
+| Fichero | Qué decía |
+| --- | --- |
+| `common/routing/estado.ts` (×2) | «sin lanzar y sin redirigir (R78)» y «no lanza, no redirige» |
+| `common/routing/estado.spec.ts` | la cabecera del `describe` de R78/D10 |
+| `pods/login/login.business.ts` | «lo que R78 promete — … sin redirigir» |
+| `pods/register/register.business.ts` | lo mismo, por simetría |
+| `pods/login/login.business.spec.ts` | «sin lanzar y sin redirigir», citado como promesa del pod |
+| `routes/login.tsx` | «el repositorio resuelve el estado por omisión sin lanzar y sin redirigir» |
+
+Los seis dicen ahora lo mismo que R78 enmendada, y **con el matiz que el Spec Author
+afiló**: el 307 es de tres de los cuatro casos —vacío, mal escrito y repetido—, mientras
+que **ausente es R77 y responde 200**, igual que una clave ajena. La mitad que sigue
+siendo del pod (estado por omisión, sin lanzar, sin pantalla de error) se nombra como tal;
+el 307 se atribuye al router, que es de quien es. Las aserciones y los nombres de los
+tests **no se han tocado**: lo que afirman sigue siendo cierto a nivel de función.
+
+Verificado contra el build de producción, con cabeceras HTTP de verdad, que es donde esto
+se ve:
+
+| URL | respuesta |
+| --- | --- |
+| `/login`, `/login?estado=error`, `/login?estado=enviando` | 200 |
+| `/login?foo=bar`, `/login?estado=error&foo=bar` | **200**, la clave ajena intacta |
+| `/login?estado=pepe`, `?estado=` vacío, `?estado=` repetido | **307 → `/login`** |
+| `/register?estado=pepe`, `/register?estado=` | **307 → `/register`** |
+| `/` | 307 → `/login` |
+
+Las dos mitades del criterio de aceptación enmendado —el 307 de `?estado=pepe` y el 200 de
+`?foo=bar`— quedan así medidas, que era justo el agujero que produjo `D001`.
+
+**2 · «`Intro` para entrar desde cualquier campo» pasa a ser verdad.**
+
+- **El `onSubmit` vive en `common/routing/future-route.ts`**, no en cada pod. Es una
+  función (`submitToFutureRoute`) con su propio spec de 5 tests, y la navegación de verdad
+  está detrás de un objeto (`futureRouteNavigation.go`) para que un test pueda fingirla —
+  la misma forma que los `api/` de los pods (D13). Comparte prefijo con
+  `future-link.component.tsx` a propósito: D9 pide que las Partes 2 y 3 encuentren de un
+  `grep` todo lo que hoy apunta a una ruta que no existe, y ahora son **dos** caminos.
+- **La restricción va en el tipo, no en un comentario.** El manejador recibe un evento
+  cuyo único miembro es `preventDefault`, así que **mirar un campo no compila** sin
+  ampliar la firma a la vista de cualquiera. R67/R68 son la promesa más fácil de romper
+  sin que se note, y ésta es la única guarda que tenían.
+- **Hacía falta un botón de envío oculto, y esto está medido, no supuesto.** El envío
+  implícito del HTML no llama al `onSubmit` por su cuenta: con un botón de envío por
+  omisión, `Intro` lo pulsa; sin él, sólo envía si hay **exactamente un** campo que
+  bloquea el envío implícito. Estas pantallas tienen dos y cuatro campos y su CTA es un
+  `<a>`, así que **sin botón de envío el `onSubmit` habría sido código muerto**: medido
+  en Chrome con teclas de verdad, cero `submit` desde cualquiera de los dos campos.
+  `ImplicitSubmit` (en `common/components/`) es ese botón: `hidden`, con lo que no es
+  punto de tabulación, no está en el árbol de accesibilidad, **no ocupa caja** —ni toca la
+  geometría del pie pegajoso de `Register-M`— y no necesita un `aria-hidden` sobre algo
+  enfocable, que es lo que ARIA prohíbe.
+- **`/register` también lo lleva, y es una decisión.** Su copia no promete nada, pero el
+  mecanismo es el mismo y aquí **no cuesta**: ni geometría, ni paradas de tabulación, ni
+  una línea de lógica distinta. Que `/login` lo tuviera y `/register` no sería una
+  diferencia entre dos pantallas del mismo flujo que nada justifica.
+- **`enviando` tiene dos interruptores, los dos deliberados.** El botón oculto va
+  `disabled` (medido: con el botón por omisión deshabilitado, el envío implícito no hace
+  **nada**) y el manejador tiene además su propia guarda, que es la que sostiene la
+  promesa si ese formulario ganara algún día un control habilitado. De hecho en
+  `enviando` ni siquiera se puede llegar: los campos están deshabilitados y no se enfocan.
+- **No hay `action` y el defecto se impide siempre**, así que la URL **no gana una
+  interrogación** — que es exactamente lo que se descartó al costar esta línea de copia.
+
+Medido con `Input.dispatchKeyEvent`, a 390×844 y 1440×900, por campo:
+
+| Vista | resultado |
+| --- | --- |
+| `/login` y `/login?estado=error`, los 2 campos × 2 anchos | **8/8 → `/circles`**, sin interrogación |
+| `/register` y `/register?estado=error`, los 4 campos × 2 anchos | **16/16 → `/circles`** |
+| `/login?estado=enviando`, 2 campos × 2 anchos | **no enfocables**; la URL no cambia |
+| control tabulado de verdad (Tab hasta el campo, luego `Intro`) | `/login` → `/circles` en los dos anchos |
+
+**Control negativo, porque un «16/16» no vale hasta que el instrumento demuestra que ve
+la ausencia**: quitado `ImplicitSubmit` de los dos formularios de `/login` y reconstruido,
+`Intro` deja de navegar en `/login` —se queda en la misma URL, conservando su
+`?estado=`— mientras `/register`, intacto, sigue navegando. La diferencia entre las dos
+pantallas en la misma pasada es la prueba de que lo que mide es el mecanismo y no la
+suerte.
+
+**Y una lección de arnés que me ha costado un mutante encallado**: el `trap` de restaurar
+llevaba **rutas relativas** y el propio probe hacía `cd` al directorio del arnés, así que
+al salir no restauró nada. Lo vi en el `git status` de después —que es justo para lo que
+se mira— y restauré a mano desde el `.bak`. Las rutas del `trap` van absolutas.
+
+### Defecto 4, que encontró la re-medida: el anillo de «¿La has olvidado?»
+
+El checkpoint pidió re-medir «en vez de dar por inerte el envoltorio». El envoltorio
+resultó inerte; **lo que no estaba bien era algo que mi pasada anterior dio por bueno**.
+
+La caja pintada del enlace mide **44 px** dentro de una fila de **20** —ése es el
+`-my-3 py-3` del artboard, que sube el objetivo de pulsación sin mover nada—, así que
+sobresale **12 px por abajo**, justo donde empieza el campo de contraseña: opaco y
+**posterior en el documento**. Chrome pinta el `outline` con su elemento y no al final de
+la pila, así que el fondo del campo tapaba los **8 px** de abajo del anillo. Medido:
+`caja 578,7–622,7` · `anillo abajo 626,7` · `campo arriba 618,7` · **solape 8,0**.
+
+Arreglo: `relative z-10` en el enlace. No mueve nada (sin desplazamientos, `relative` deja
+el elemento donde estaba), no cambia el recorrido de tabulación y no toca ninguna otra
+geometría. Crecer hacia arriba no era salida: ahí está el campo de email a 16 px y el
+solape sería mayor.
+
+**Y por qué la pasada anterior no lo vio, que es la parte que importa.** Preguntaba «¿qué
+pinta encima?» con `elementFromPoint`, y para un `outline` esa pregunta **no se contesta
+sola**: `elementFromPoint` dice quién recibe el toque, no qué píxel se pinta. El
+instrumento ahora mira **los píxeles pintados**: recorta el anillo, lo decodifica en la
+propia página con `OffscreenCanvas` y cuenta píxeles del color del anillo en los cuatro
+bordes. Con el arreglo, «¿La has olvidado?» pasa de **4 %** a **100 %** de borde inferior.
+
+Dos trampas del propio instrumento, dichas para que nadie se las crea al revés:
+
+- **Un recorte ajustado al anillo pierde el borde de abajo** por el redondeo de
+  coordenadas fraccionarias; el recorte lleva 3 px de margen por lado y la banda se busca
+  desde dentro.
+- **Una cobertura por debajo del 100 % no es oclusión: suele ser radio de esquina.** Los
+  campos dan 64 % (esquinas de ~10 px) y el botón de volver de `Register-M` da 31 % en los
+  cuatro bordes a la vez — que es la firma de un **círculo**. Los dos se confirmaron
+  dibujando el mapa de píxeles: anillos cerrados. La firma de la oclusión de verdad es
+  otra: **un solo borde** hundido (4 % de 129 px).
+
+### El paseo de tabulación, re-medido entero
+
+**227 paradas en 40 vistas** (5 pantallas × 8 ventanas: 390×844/560/460/400/340 y
+1230×900 / 1440×900 / 1230×560), con Tab de verdad e **identidad por elemento** —no por
+`tag|id|href|texto`, que es la clave que colisionaba con los dos «Inicia sesión» de
+`Register-D` y truncaba el paseo—:
+
+- **0** anillos fuera de la ventana y **0** recortados por un ancestro;
+- **0** paradas dentro de algo oculto: `ImplicitSubmit` **no es punto de tabulación** en
+  ninguna de las 40 vistas, que es la mitad de su contrato;
+- el recorrido es **idéntico** al de antes del `<form>` con `onSubmit` — 5 paradas en
+  `/login`, 2 en `enviando`, 8 en `/register`, **9** en `Register-D` con error;
+- todos los anillos cerrados en píxeles pintados, con el 100 % de «¿La has olvidado?» tras
+  el arreglo del defecto 4.
+
+### Qué se ha construido
+
+**Camino de datos, un pod por pantalla** (R40–R47), con la misma forma que `app-shell`:
+
+- `pods/login/`: `api/login.api-model.ts` + `api/login.api.ts`, `login.model.ts`,
+  `login.business.ts` (resolución de escenario), `login.mapper.ts`, `login.repository.ts`.
+- `pods/register/`: lo mismo, con **dos juegos de valores por ancho**.
+- Lo único que estas dos pantallas tienen como dato son los valores con los que los
+  artboards de `error` dibujan sus campos marcados, y salen del fixture compartido (R49).
+  El `api/` existe igualmente porque **es el seam que un backend sustituye** (D13).
+- **`camelCase` en los dos api-model**, y escrito en su cabecera por qué: vienen de
+  `form-demo-values.mock.ts`, el único fichero del dataset en `camelCase` porque **no es
+  una respuesta de transporte** — ningún backend devuelve «lo que la persona ha escrito».
+  Renombrar por simetría habría sido inventarse una forma que nadie tiene.
+- **Lo que el mapper hace de verdad aquí no es renombrar, es derivar**: con qué valor
+  arranca cada campo y **cuál va marcado**. Ése es el trabajo, y tiene un modo de fallo
+  grave y silencioso: que un valor de demostración se escape al estado por omisión, que es
+  justo lo que R69/R80 prohíben. Dos mutantes lo atacan y los dos mueren.
+- `register.mapper.ts` lleva la asimetría de T35 **escrita como dato en un solo sitio**
+  (`CAMPOS_MARCADOS`): móvil marca `passwordRepeat`; escritorio marca `email` y
+  `password` y deja `passwordRepeat` válida. Igualar los dos lados es el error que la v1
+  del contrato de diseño cometió con estas pantallas, así que hay un test que afirma que
+  los conjuntos marcados **son distintos** y otro que ata el «Revisa **2** campos» del
+  `Alert` a que escritorio marque exactamente dos.
+
+**Las pantallas, dos disposiciones explícitas cada una** (R86, §7), no un árbol que
+refluye:
+
+- `Login-M`: collage rotado −4° y escalado 1,12 (`aria-hidden`, siete fotos) dentro de una
+  caja con `overflow-hidden` —que es **lo que impide el scroll horizontal a 390 px** y
+  dentro de la cual no hay nada enfocable, así que no puede recortar ningún anillo—, el
+  **scrim** encima, la pastilla de cristal sobre él, y la hoja opaca pegada al borde
+  inferior con su radio de 32 px (`radius-3xl`) y `shadow-xl`. El `-mt-6` mete la hoja por
+  encima del collage para que el radio y la sombra **separen las dos zonas**, que es lo que
+  §4 pide no aplanar.
+- `Login-D`: split que envuelve (bases 560/480 px), mosaico de 4 columnas con las **mismas**
+  siete fotos y otros vanos, tarjeta de cristal abajo a la izquierda con la cláusula en
+  color `link`, y el formulario **dentro de una tarjeta con filete** — no sobre la página,
+  que es la diferencia real con móvil.
+- `Register-M`: suelo `card` entero, cabecera compacta (botón de volver de 44 px con
+  `aria-label`, título, «Ya tengo cuenta»), cuatro campos **alineados abajo** y pie
+  pegajoso con el CTA y la línea de términos.
+- `Register-D`: **su propio** mosaico (siete imágenes distintas, otros vanos), **su propia**
+  tarjeta de cristal con **su propia** copia, y a la derecha el logotipo, «Crea tu cuenta»,
+  la sublínea «¿Ya tienes una? Inicia sesión» y el formulario con las dos contraseñas en
+  rejilla de dos columnas. Sin botón de volver y sin pie pegajoso.
+
+**Los estados, pedidos por la URL y nunca por una comprobación** (R68, R76). Medido en el
+DOM servido: `error` en móvil marca los dos campos de `/login` y **sólo uno** en
+`/register` (sin `Alert`); en escritorio `/register` lleva el `Alert` «Revisa 2 campos»,
+**dos** campos marcados, el mensaje de contraseña a nivel de **formulario** bajo la rejilla
+y un mensaje de campo con un **enlace dentro**. `enviando` pone `aria-busy="true"` en el
+formulario, deshabilita los dos campos y cambia el CTA a «Entrando…» — y se nota en el
+paseo de tabulación, que baja de 5 paradas a **2**, porque los controles deshabilitados
+no se tabulan. **Ningún spinner sobre la pantalla** y **ningún estado de carga** (R81,
+R83).
+
+### Lo que NO se ha construido, a propósito
+
+- **El teclado de pantalla** de `Register-M`: recurso de diseño (§«tres cosas»), su
+  intención se cumple con los campos alineados abajo y el pie que sobrevive a un viewport
+  encogido (R88).
+- **La atenuación al 55 %** del primer campo de `Register-M`. El artboard la dibuja para
+  representar «desplazado fuera del alcance»; hacerlo de verdad exige un efecto gobernado
+  por el *scroll*, que **§8 y R94 prohíben expresamente** («no scroll-driven effect»). Es
+  el mismo tipo de cosa que el teclado: dibujo del estado, no estado.
+- Ningún test de markup ni de navegación (R99); los smoke por ruta son T43.
+
+### Decisiones tomadas en este paso (y lo que se añadió fuera de los dos pods)
+
+1. **`component.login-scrim.from` en `docs/design-tokens.json`** (148 tokens; `contrast`
+   sigue en 56 parejas, que es lo correcto: lo que hay debajo del texto es una
+   **fotografía**, y eso no lo expresa ninguna pareja de tokens). Es la única forma de
+   tener el scrim con su 35 % sin un literal de color en el fuente — ver el defecto 1 de
+   abajo. Sigue el precedente exacto de `glass.background`, que ya hornea su alfa.
+   Regenerado con `pnpm design-tokens:css`; `design-tokens:css:check` en verde.
+2. **`common/components/field-message.component.tsx`**: el mensaje de error de campo (punto
+   `danger` `aria-hidden` + texto, con `id` **obligatorio**). Vive en `common/` porque lo
+   necesitan `/login`, `/register` y `/profile`, y un pod no importa de otro (R46) — el
+   mismo razonamiento que D12 hizo con los formateadores. Recibe `props` planas.
+3. **`html { @apply scroll-py-1 }` en `styles.css`** — arreglo del defecto 2. Va ahí porque
+   el desplazador del documento no es de ninguna pantalla, y en la capa escrita a mano que
+   D2 reservó justo para reglas así.
+4. **La guarda `focus-ring.spec.ts` se amplía a `src/pods`**. Nació mirando sólo
+   `common/components`, que era todo lo que había; desde este paso las pantallas traen sus
+   propios controles y ahí el fallo es idéntico. No cambia lo que afirma, sólo dónde.
+   Probado con un `outline-none` plantado en un pod: la guarda lo caza.
+5. **El título de la cabecera de `Register-M` va como `<h1>`** y no como el `<p>` del
+   artboard, con el mismo vestido (16 px, peso 700, `font-body` para vencer al
+   `font-heading` que la capa base pone a los encabezados). Es el título de la pantalla y
+   es el papel que `Register-D` ya le da a «Crea tu cuenta»; visualmente no cambia nada.
+   Medido: **exactamente un `<h1>` visible** en cada vista.
+6. **El logotipo de `Login-D` no es un enlace.** El artboard lo dibuja con `href="#"`, que
+   es precisamente lo que R71 no admite, y en `/login` no hay destino honesto. Va como
+   texto. El de `Register-D` **sí** es enlace, a `/login`, que es lo que su artboard dibuja.
+7. **«¿La has olvidado?» apunta a `/password-recovery`.** La pantalla no tiene diseño en
+   ningún sitio del canvas (issue **#12**) y §3 sólo dice «su ruta futura», así que el
+   nombre lo he elegido yo, en el vocabulario inglés que ya usan las demás rutas. Es una
+   cadena en un sitio; si se prefiere otro nombre, es un cambio de una línea.
+8. **Enlaces a `/login` y `/register`: `Link` tipados, no `FutureLink`.** Las dos rutas
+   existen desde este paso, así que el compilador vigila el destino y la navegación es del
+   router sin recarga de página. `FutureLink` queda sólo para `/circles`, `/privacy` y
+   `/password-recovery`.
+9. **`estado` pasa a ser una clave opcional** en el tipo que devuelve `validateEstado`
+   (`{ estado?: T }` en vez de `{ estado: T | undefined }`). No es cosmético: con la clave
+   obligatoria, TanStack **exige `search` en todo enlace y en toda redirección** a estas
+   rutas, y el `?estado=` se habría vuelto vírico por toda la aplicación (lo encontré
+   porque `redirect({ to: '/login' })` dejó de compilar). El valor devuelto en tiempo de
+   ejecución no cambia. Y además dice la verdad de R77: «ausente» es la ausencia de la
+   clave.
+10. **El validador va a una `const`, no en línea.** Con
+    `validateSearch: validateEstado(ESTADOS_LOGIN)` dentro del objeto de opciones,
+    TypeScript tiene que inferir a la vez el genérico de `validateEstado` y el validador de
+    la ruta, **la inferencia de dentro pierde** y el esquema de la *search* se queda en
+    `{}`, con lo que `search.estado` en `loaderDeps` no compila. Medido con cinco variantes;
+    queda escrito en el JSDoc de `validateEstado` para que los Grupos 11 y 12 no lo
+    repitan.
+11. **`loaderDeps` no es ceremonia**: sin él el `loader` no ve la *search* y
+    `/login?estado=error` reutilizaría los datos ya cargados sin cambiar de pantalla.
+12. **`key={screen.scenario}` en los formularios.** Los campos son no controlados
+    (`defaultValue`), así que sin remontar, al ir de `/login` a `/login?estado=error` el
+    `<input>` se queda con el valor anterior: la pantalla diría «error» con los campos
+    vacíos. Es lo que hace que recorrer estados tecleando la URL —para lo que `?estado=`
+    existe— muestre de verdad lo que se pide.
+13. **`common/routing/future-route.ts` y `common/components/implicit-submit.component.tsx`**,
+    los dos ficheros que trae la resolución de «`Intro`» — su porqué está arriba, en «Las
+    dos resoluciones del checkpoint». Van en `common/` por lo mismo que `field-message`:
+    los necesitan los dos pods y un pod no importa de otro (R46).
+14. **`relative z-10` en «¿La has olvidado?»**, el arreglo del defecto 4.
+
+### T26, cobrado: `href` → `to`
+
+`routes/index.tsx` dice hoy `redirect({ to: '/login', replace: true })`. El cambio costó
+**las dos líneas previstas** y la segunda avisó sola: `headers.get('Location')` pasó a
+`null` y el test se puso **rojo**, que es el test haciendo su trabajo. La aserción se
+reescribió contra `options.to` (lo que `to` sí fija aquí) y la cabecera se comprueba donde
+existe de verdad: `GET /` → **307** con `Location: /login`, medido contra el build. El
+comentario del fichero ya no explica un apaño que no está, y la nota del `basepath` está
+retirada de «salvedad viva» a «resuelta, y por esto ya no se lleva encima» en su sitio de
+siempre, dentro de «La trampa de orden de T26».
+
+Con `to`, el destino pasa por `buildLocation(...).publicHref`, así que un `basepath` futuro
+se respeta; y desaparece la otra trampa de `href` (un `search` o un `hash` a su lado se
+sobrescribían). El test sigue teniendo trabajo: `to` está tipado, así que una errata la
+caza el compilador, pero **cuál** de las rutas es el destino no lo caza nadie —`/register`
+y `/$` compilan igual— ni que `replace` esté puesto. Los dos mutantes correspondientes
+mueren.
+
+### Los tres defectos propios, encontrados midiendo
+
+Ninguno lo habría visto un gate, la suite ni una lectura del código.
+
+**1 · El scrim salía opaco.** `from-[var(--token)]/35` compila a
+`--tw-gradient-from: var(--token)` **a secas**: Tailwind se come el modificador de opacidad
+y la clase se genera igual, así que nada lo delata. Es el mismo fallo mudo que el
+interlineado comido por tailwind-merge del paso 5, con otro traje. Probé las cuatro formas
+que había contra el compilador de verdad: la variable entre corchetes y la forma corta de
+variable **pierden el alfa**; la variable anunciada como color **borra la clase entera**; y
+una mezcla de color dentro de un valor arbitrario **la reescribe Tailwind quitándole la
+mezcla**. La única que aplica alfa es un color del catálogo de Tailwind, que convertiría a
+Tailwind en fuente paralela del contrato (R1). Arreglo: el alfa se hornea en el token.
+
+De paso, dos cosas que conviene saber de este escáner y de este rastreador:
+
+- **El escáner anti-hardcode no separa comentarios**: un valor hexadecimal o un `rgba()`
+  escritos **en prosa** ponen `design-tokens:validate` en rojo. Me pasó en dos ficheros y
+  están reescritos sin el literal.
+- **El rastreador de Tailwind lee los comentarios**: mi primer comentario explicaba el
+  defecto escribiendo las cuatro formas tal cual, y Tailwind **generó las cuatro utilidades
+  muertas** en la hoja construida. Reescrito sin formas literales; comprobado que en el CSS
+  construido queda **una sola** clase `from-*`, la del scrim. (Comprobé también que esto no
+  le pasa al código ya aprobado: las clases que sólo parecían estar en comentarios —
+  `leading-none`, `border-destructive`, `h-auto`— están de verdad en cadenas `cn()`.)
+
+**2 · Dos anillos de foco recortados por la ventana**, a 390×560 (campo de email de
+`/login`, anillo abajo **563,7** con la ventana en **560**) y a 1230×560 (enlace «política
+de privacidad» de `Register-D`, **563,6**). La causa no es un `overflow`: es
+`scrollIntoView`, que alinea el **borde del elemento** con el borde del viewport y no sabe
+nada del `outline`. Arreglo: `scroll-padding-block` de 4 px —exactamente el alcance del
+anillo— en `html`, que es el desplazador del documento.
+
+**3 · El pie pegajoso de `Register-M` tapaba el campo enfocado.** Medido a 390×460, 390×400
+y 390×340: al tabular al último campo, `scrollIntoView` lo alinea con el borde inferior de
+la ventana, o sea **detrás del pie** (95 px de alto). No lo recorta nada y la ventana lo
+contiene, así que **ni R38 leída al pie de la letra ni el arnés de anillos del paso 5 lo
+habrían visto**: hay que preguntar *qué pinta encima*, y eso es una tercera categoría que
+este arnés ahora mira. Arreglo: `scroll-margin-bottom` en los campos —la propiedad que
+`scrollIntoView` honra **en el destino**, porque el `scroll-padding` del arreglo 2 vive en
+el desplazador y lo comparten las seis rutas— de 6,5 rem más el inset de área segura, y
+sólo por debajo de `nav:`.
+
+**A 390×560 `/register` no se desplaza y el defecto 3 no aparece.** Es literalmente la
+lección del paso 5 («elige un viewport donde el defecto pueda aparecer»), y por eso bajé a
+460, 400 y 340 px de alto.
+
+### Y dos fallos de instrumento, encontrados antes de creerme los números
+
+- **El paseo de tabulación se cortaba.** Deduplicaba por `tag|id|href|texto`, y
+  `Register-D` en error tiene **dos** enlaces «Inicia sesión» al mismo `/login` (la
+  sublínea y el de dentro del mensaje de campo): la clave colisionaba y el paseo paraba en
+  la **cuarta** parada, dejando sin mirar el CTA y el enlace de términos. Con identidad por
+  elemento, esa vista da **9** paradas. El «0 recortados» de la primera pasada era, en esa
+  vista, un 0 sobre media pantalla.
+- **La medida de contraste estaba contaminada.** Apagaba el color **sólo del elemento
+  medido**, así que los glifos de un hijo con su propio color —la cláusula en `link` dentro
+  del titular— seguían pintados dentro del recorte y entraban como «peor píxel» (daban 1,00
+  y 2,15, que es lo que un titular ilegible mediría). Apagando **todo el texto del
+  contenedor** el fondo es lo que se quería medir: cristal sobre fotografía, sin una letra.
+
+### Contraste real, sobre los píxeles pintados
+
+Capturo el recorte del texto con **todo el texto del contenedor apagado**, decodifico el
+PNG en la propia página con `OffscreenCanvas` y calculo el ratio **píxel a píxel** contra
+el color computado del texto. Doy el **peor píxel**, no la media, y todo **pasa por el peor
+píxel**:
+
+| Escena | texto | suelo | peor px | mediana |
+| --- | --- | --- | --- | --- |
+| pastilla de cristal sobre collage+scrim, 390, claro | `ink.primary` 18 px/800 | 4,5 | **15,05** | 15,15 |
+| ídem, **sin el scrim** (sonda) | igual | 4,5 | **15,59** | 15,72 |
+| pastilla, 390, **oscuro** | `ink.inverse` | 4,5 | **14,78** | 15,14 |
+| ídem, **sin el scrim**, oscuro | igual | 4,5 | **14,07** | 14,46 |
+| cita `Login-D` sobre mosaico, 1440, claro | `ink.primary` 22 px/700 (grande) | 3 | **12,95** | 14,56 |
+| la cláusula en `link`, claro | `link` 22 px/700 (grande) | 3 | **4,15** | 4,68 |
+| línea secundaria `Login-D`, claro | `ink.secondary` 14 px | 4,5 | **5,71** | 6,13 |
+| cita `Login-D`, **oscuro** | `ink.inverse` | 3 | **12,99** | 15,75 |
+| la cláusula en `link`, **oscuro** | `link` oscuro | 3 | **6,03** | 7,31 |
+| línea secundaria `Login-D`, **oscuro** | | 4,5 | **10,40** | 11,36 |
+| cita `Register-D`, claro | `ink.primary` | 3 | **12,28** | 14,13 |
+| línea secundaria `Register-D`, claro | | 4,5 | **5,26** | 6,14 |
+| cita `Register-D`, **oscuro** | | 3 | **13,69** | 16,70 |
+| línea secundaria `Register-D`, **oscuro** | | 4,5 | **10,45** | 11,32 |
+
+La sonda busca el `link` de la tarjeta de `Register-D` y lo reporta **ausente**, lo cual es
+correcto y de paso prueba que está leyendo los elementos que cree: esa tarjeta **no tiñe
+ninguna oración**, a diferencia de la de login. Es una diferencia del diseño, no un olvido.
+
+**Una observación honesta sobre el scrim, que matiza §9 sin contradecir R90.** (**El
+Orchestrator ya ha corregido §9 en los dos sitios donde lo afirmaba**, con estos números
+citados ahí: el cristal es quien sostiene la legibilidad y el scrim es profundidad y
+separación de zonas. Ese diff del handoff es suyo, no mío. El comentario de cabecera de
+`login.pod.tsx`, que repetía la frase vieja, sí era mío y está corregido.) §9 decía que
+el scrim «es lo que mantiene legible la pastilla de cristal sobre una foto clara». Medido
+con **estas** fotos, no es así: quitarlo mueve el número **±0,5** (en claro incluso
+*mejora*, 15,59 contra 15,05, porque deja pasar una foto más clara bajo texto oscuro; en
+oscuro empeora, 14,07 contra 14,78). Lo que sostiene la legibilidad es **el cristal**, que
+es 82 % opaco y casi no deja pasar la foto. El scrim sigue siendo estructural por lo que
+R90 dice —separa las zonas y quita competencia visual al pie del collage— y **no lo he
+tocado**; lo que no es cierto es que sea lo que rescata el contraste. Dicho aquí para que
+nadie «optimice» el scrim creyendo que es decorativo, ni lo defienda con un número que no
+es el suyo.
+
+### Higiene de medida, antes de cualquier número
+
+Build de producción servido desde `.output/server/index.mjs` en un puerto **que da el SO**
+(60497 / 60656 / 60590 en las distintas pasadas; nunca el 3000, y hay una comprobación que
+aborta si el SO diera justo ése). Los bytes servidos llevan **0** apariciones de
+`@vite/client`, `__vite_ping`, `/@react-refresh` y `@vite/env`. Chrome por CDP con
+`--remote-debugging-port=0`, puerto leído de `DevToolsActivePort` y **perfil de usar y
+tirar** distinto en cada arranque, así que ningún zombi puede retener el puerto. **Antes de
+creer cualquier número**, cada visita afirma: `innerWidth` igual al pedido,
+`document.styleSheets` no vacío con ≥50 reglas, y la fuente del `body` resolviendo a Inter.
+Las 24 visitas dieron **2 hojas / 90 reglas / Inter**. Nada de lo que se juzga va truncado
+(el `box-shadow` y el `outline` se leen enteros). Al terminar no sobrevive ningún Chrome ni
+ningún servidor, y los perfiles temporales se borran.
+
+Anchuras y alturas, con el por qué: **390×844** (suelo de teléfono, R89), **390×560 /
+460 / 400 / 340** (donde la pantalla **sí** se desplaza y el pie pegajoso puede tapar —
+a 844 y a 560 `/register` no se desplaza y los defectos 2 y 3 no aparecen), **1230×900**
+(el breakpoint `nav:` exacto, primera anchura de escritorio), **1440×900** (la del artboard)
+y **1230×560** (escritorio bajo, donde salió el segundo anillo recortado).
+
+### Medido en el camino real
+
+| | 390×844 | 1230×900 | 1440×900 |
+| --- | --- | --- | --- |
+| scroll horizontal | ninguno (390/390) | ninguno (1230/1230) | ninguno (1440/1440) |
+| navegación visible en `/login` y `/register` | **ninguna** | **ninguna** | **ninguna** |
+| `<h1>` visibles | 1 | 1 | 1 |
+| ids duplicados | 0 | 0 | 0 |
+| elementos enfocables dentro de `aria-hidden` | 0 | 0 | 0 |
+| imágenes sin `alt` / roturas | 0 / 0 | 0 / 0 | 0 / 0 |
+
+HTTP: `/` → **307** `Location: /login`. `/login`, `/login?estado=error`,
+`/login?estado=enviando`, `/register`, `/register?estado=error` → **200**. `/circles`,
+`/privacy` y `/password-recovery` → **200** con el 404 diseñado y la URL intacta.
+
+**Paseo de tabulación: 152 paradas en 24 vistas, 0 con problema** — y ese «0» **era falso
+en un elemento**: el anillo de «¿La has olvidado?» estaba tapado por abajo y esta pasada
+no lo vio, porque preguntaba «qué pinta encima» con `elementFromPoint`, que para un
+`outline` contesta otra cosa. Está arriba, en «Defecto 4», con la re-medida de 227
+paradas que lo sustituye. Lo que sigue describe esta pasada tal como fue. Tab de verdad
+(`Input.dispatchKeyEvent`, no `el.focus()`, para que `:focus-visible` empareje), el anillo
+medido como el rect inflado por `outline-offset + outline-width` —**2 px + 2 px,
+`rgb(108,99,255) solid`** en todas las paradas— y comparado en **los cuatro bordes** contra
+la ventana **y** contra todo antecesor que recorta, más la pregunta de **qué pinta encima**.
+
+**Control negativo, porque un 0 no significa nada hasta que el instrumento demuestra que ve
+el defecto**: revertido `scroll-py-1` y vuelto a construir, el arnés reproduce los dos
+anillos recortados **con los mismos decimales** (563,7 y 563,6). El arreglo 3 tiene su
+control en la pasada anterior del mismo arnés, que lo reportó en tres alturas. Todas las
+sondas con el restore en un `trap` instalado **antes** de la mutación; `git status`
+comprobado después de cada una y ningún `.bak` ni `.pristine` colgando.
+
+**El `cn()` replayado contra el módulo de verdad**: 25 llamadas no triviales nombrando la
+clase que debe sobrevivir, **0 clases comidas**. Y luego comprobado que cada utilidad llega
+al **CSS construido**, que es la otra mitad de la lección del paso 5 — incluidos los dos
+interlineados pegados al tamaño con la barra, que compilan como
+`font-size:1.75rem;line-height:1.15` y `font-size:2.25rem;line-height:1.1`. (Aquí mi propio
+`grep` dio dos falsos negativos: el CSS escapa el punto, así que buscar `0.8125rem` no
+encuentra `0\.8125rem`. Las clases estaban.)
+
+### Mutantes probados: 11 elegidos, **11 muertos**
+
+Sin `test:mutation` declarado, así que camino a mano; el grupo no declara `[risk: …]`, luego
+ninguno es obligatorio y los diez van por juicio.
+
+| Mutante | Resultado |
+| --- | --- |
+| el mapper de login filtra los valores de demostración al estado por omisión (R69) | **muerto** — 2 rojos |
+| `invalid` derivado de «tiene valor» (valida, y pierde el campo vacío marcado) | **muerto** — 2 rojos |
+| los dos anchos de register marcan **lo mismo** (la simetría que T35 prohíbe) | **muerto** — 3 rojos |
+| escritorio marca **tres** campos mientras el `Alert` dice «2 campos» | **muerto** — 3 rojos |
+| objeto literal en vez de `Map` en el vocabulario (fuga por `Object.prototype`) | **muerto** — 1 rojo |
+| `cargando` entra en el vocabulario de `/login` (R81) | **muerto** — 1 rojo |
+| cualquier cadena resuelve a `error` en `/register` | **muerto** — 3 rojos |
+| el repositorio devuelve la respuesta del api **sin** pasar por el mapper (R41) | **muerto** — 6 rojos |
+| la redirección de `/` apunta a `/register` (destino que también compila) | **muerto** — 1 rojo |
+| se pierde `replace` en la redirección | **muerto** — 1 rojo |
+| `outline-none` plantado en un pod (la guarda ampliada) | **muerto** — 1 rojo |
+| **el `onSubmit` de `Intro` exige un campo no vacío** (R67, R68) | **muerto** — 3 rojos |
+
+El último es el que pidió el checkpoint por su nombre, y es el que importa: si navegar
+desde `Intro` empezara a depender de lo escrito, esta parte habría empezado a validar por
+la puerta de atrás. Ampliando la firma del manejador para mirar
+`currentTarget.querySelector('input').value`, caen los dos tests que navegan con los
+campos vacíos **y** el que llama al manejador con un evento que no trae formulario. Sin
+esos tests, la restricción no la sostendría nada.
+
+### Tests: 272 en `@memora/web`, 43 nuevos
+
+Contados con `--reporter=verbose`, por fichero: `login.business` 7, `login.mapper` 5,
+`login.repository` 6, `register.business` 7, `register.mapper` 7, `register.repository` 5
+= **37**, más **1** que gana `routes/index.spec.ts` (2 → 3) al partir su aserción
+reescrita, más **5** de `future-route.spec.ts`, que llega con la resolución de «`Intro`».
+229 + 43 = **272**, en 23 ficheros. (`focus-ring.spec.ts` sigue siendo 1 test; se amplió
+su alcance, no su número.) Con los otros dos paquetes, **290** en el monorepo: `@memora/db`
+11 y `console-runner` 7.
+
+### Objetivos por debajo de 44 px: los cinco que quedan son enlaces dentro de texto
+
+Medido en las 24 vistas, quedan **cinco**, y los cinco son enlaces **dentro de una frase**:
+«Crea una» (65×19), «términos y la privacidad» (139×15), «política de privacidad» (124×15)
+e «Inicia sesión» (96×20 en la sublínea y 78×16 dentro del mensaje de campo). Los cinco los
+dibuja el artboard como texto en línea, y es la exención explícita de WCAG 2.5.5 para
+objetivos en línea; el proyecto ya tomó la misma postura en el Grupo 3 al dar a
+`Button variant="link"` geometría de texto y no de bloque.
+
+Los dos que el artboard **sí** engorda a 44 px están engordados: «¿La has olvidado?» con el
+`-my-3 py-3` que el propio artboard escribe, y «Ya tengo cuenta» con su `p-3`. Y el
+**único** caso que no era texto en línea —el logotipo de `Register-D`, que medía 36 px de
+alto— lleva ahora el objetivo táctil mínimo y un `self-start` para que no se estire a los
+440 px de la columna: el mismo tratamiento que la cabecera del 404 ya llevaba.
+
+### Lo que el checkpoint debería mirar
+
+1. ~~**Decidir `D001`**~~ — **resuelto**: opción (B), el 307 es el comportamiento querido
+   y la spec se enmendó. El código no cambia; los comentarios que decían lo contrario, sí.
+2. **Abrir las dos pantallas a los dos anchos y en oscuro.** El oscuro no tiene artboard en
+   esta parte (§6 pide mirarlo con los ojos) y el caso difícil es justo éste: el collage con
+   su scrim y la pastilla de cristal. Los números dicen que pasa con holgura; lo que ningún
+   número dice es si **se ve bien**.
+3. **El nombre `/password-recovery`** (decisión 7): lo he elegido yo, es una cadena y la
+   pantalla es la issue #12.
+4. ~~**La línea «`Intro` para entrar desde cualquier campo»**~~ — **resuelto**: la copia
+   se queda y el comportamiento se construye. `Intro` navega desde cualquier campo en
+   `/login` (las dos disposiciones) y en `/register`, sin mirar ningún campo y sin
+   ensuciar la URL. El `action="/circles"` que yo proponía como alternativa era justo lo
+   que se descartó, y no está: el defecto nativo se impide siempre.
+5. Que **`Register-D` no es `Login-D` más ancho**: su mosaico son siete imágenes distintas
+   con otros vanos, y su tarjeta de cristal dice otra cosa («un lugar íntimo…» frente a
+   «todos vuestros recuerdos…»), que es el error de hecho que la v1 del contrato cometió.
 
 ## Review evidence — step 1
 

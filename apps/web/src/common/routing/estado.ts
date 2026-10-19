@@ -20,8 +20,17 @@
 
 /**
  * El valor de `?estado=`, o `undefined` para **cualquier otra cosa**: ausente, vacío,
- * mal escrito, repetido (TanStack entrega entonces un array) o de otro tipo. Sin lanzar
- * y sin redirigir (R78): el repositorio de la ruta resuelve su estado por omisión.
+ * mal escrito, repetido (TanStack entrega entonces un array) o de otro tipo. El
+ * repositorio de la ruta resuelve su estado por omisión, sin lanzar y sin pantalla de
+ * error (R78).
+ *
+ * **Y con un 307 por medio en tres de los cuatro casos, que es el comportamiento
+ * querido** (R78 y D10, enmendados tras medirlo en D001). Devolver `undefined` **cambia
+ * el valor** de la clave, así que la *search* canónica deja de coincidir con la de la URL
+ * y el router vuelve a pedir la ruta en su forma canónica: `?estado=` vacío, mal escrito
+ * o repetido responden **307 a la ruta sin el parámetro**, y es ahí donde se pinta el
+ * estado por omisión. **Ausente es otra cosa**: es la ausencia de la clave (R77) y
+ * responde 200, igual que una clave ajena (`?foo=bar`), que sobrevive intacta.
  *
  * `find` y no `includes` a propósito: devuelve ya el tipo estrecho del vocabulario, así
  * que no hace falta ninguna aserción de tipo para estrecharlo — y comparar contra
@@ -60,20 +69,44 @@ export type EstadoProfile = (typeof ESTADOS_PROFILE)[number];
  * El `validateSearch` de una ruta, a partir de su vocabulario.
  *
  * Es el único sitio donde se decide la forma de la *search* de estas pantallas, para que
- * las cuatro rutas de los Grupos 9 a 12 no la escriban cuatro veces:
+ * las cuatro rutas de los Grupos 9 a 12 no la escriban cuatro veces. **Dos cosas de la
+ * forma de usarlo, las dos medidas cuando el Grupo 9 lo estrenó:**
  *
  * ```ts
+ * // El validador va a una `const`, **no** en línea dentro del objeto de opciones.
+ * const validarSearch = validateEstado(ESTADOS_LOGIN);
+ *
  * export const Route = createFileRoute('/login')({
- *   validateSearch: validateEstado(ESTADOS_LOGIN),
- *   …
+ *   validateSearch: validarSearch,
+ *   loaderDeps: ({ search }) => ({ estado: search.estado }),
+ *   loader: ({ deps }) => loginRepository.getScreen(deps.estado),
  * });
  * ```
  *
- * No valida nada más: no lanza, no redirige y no toca el resto de la *search* — lo que
- * no es `estado` simplemente no es asunto de este contrato.
+ * **Por qué la `const`.** Escrito en línea — `validateSearch: validateEstado(ESTADOS_LOGIN)`
+ * — TypeScript tiene que inferir a la vez el genérico de esta función y el validador de la
+ * ruta, y la inferencia de dentro **pierde**: el esquema de la *search* se queda en `{}` y
+ * `search.estado` dentro de `loaderDeps` no compila. Con la llamada fuera, el tipo ya es
+ * concreto cuando la ruta se comprueba. (Fijar el genérico a mano también lo arregla, pero
+ * duplica el vocabulario en dos sitios, que es justo lo que estas constantes evitan.)
+ *
+ * **Por qué `estado` es opcional y no `T | undefined`.** La clave **declarada pero
+ * opcional** es lo que hace que `<Link to="/login">` y `redirect({ to: '/login' })` no
+ * tengan que pasar `search`: con `{ estado: T | undefined }` la clave es obligatoria, así
+ * que TanStack exige la *search* en **todo** enlace a la ruta y el `?estado=` se volvería
+ * vírico por toda la aplicación. Y además dice la verdad del contrato: «ausente es el
+ * estado por omisión» (R77) describe la ausencia de la clave, no una clave con valor
+ * `undefined`. El valor que se devuelve en tiempo de ejecución no cambia.
+ *
+ * No valida nada más: no lanza y no toca el resto de la *search* — lo que no es `estado`
+ * simplemente no es asunto de este contrato, y por eso `?foo=bar` llega intacto y
+ * responde 200. **Redirigir no lo hace esta función: lo hace el router**, porque
+ * devolver `undefined` cambia el valor de la clave; es el 307 a la forma canónica que
+ * R78 y D10 recogen desde D001, y no se puede evitar conservando el estrechamiento por
+ * ruta — la comparación del router es contra la *search* ya validada.
  */
 export const validateEstado =
   <T extends string>(vocabulario: readonly T[]) =>
-  (search: Record<string, unknown>): { estado: T | undefined } => ({
+  (search: Record<string, unknown>): { estado?: T } => ({
     estado: parseEstado(vocabulario, search.estado),
   });

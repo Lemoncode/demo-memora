@@ -16,10 +16,14 @@ import { describe, expect, it } from 'vitest';
 //
 // Ningún test de DOM puede cazar esto (jsdom no computa Tailwind) y el escáner
 // anti-hardcode mira colores y dimensiones. Esta guarda es lo único que lo vigila.
+// **Alcance: `common/components` y `pods/`.** La guarda nació mirando sólo los
+// compuestos compartidos, que era todo lo que había; desde el Grupo 9 las pantallas
+// traen sus propios enlaces y controles, y ahí el fallo es idéntico y el gate seguiría
+// verde igual. Ampliarlo no cambia lo que la guarda afirma, sólo dónde lo afirma.
+const RAÍCES = ['src/common/components', 'src/pods'] as const;
+
 describe('El anillo de foco no se puede apagar sin querer', () => {
   it('ningún componente mezcla `outline-none` con las utilidades de foco', () => {
-    const raiz = resolve(process.cwd(), 'src/common/components');
-
     // Se mira el **código**, no la prosa: un comentario que explique el peligro
     // nombrándolo no es una violación. Se quitan los bloques `/* … */` y las líneas
     // que empiezan por `//` o `*`, que es como las escribe Prettier en este árbol; no
@@ -32,11 +36,29 @@ describe('El anillo de foco no se puede apagar sin querer', () => {
         .filter((linea) => !/^\s*(\/\/|\*)/.test(linea))
         .join('\n');
 
-    const culpables = readdirSync(raiz, { recursive: true, encoding: 'utf8' })
-      .filter((fichero) => /\.tsx?$/.test(fichero) && !fichero.endsWith('.spec.ts'))
-      .filter((fichero) =>
-        soloCodigo(readFileSync(resolve(raiz, fichero), 'utf8')).includes('outline-none'),
-      );
+    const culpables = RAÍCES.flatMap((relativa) => {
+      const raiz = resolve(process.cwd(), relativa);
+
+      return readdirSync(raiz, { recursive: true, encoding: 'utf8' })
+        .filter((fichero) => /\.tsx?$/.test(fichero) && !/\.spec\.tsx?$/.test(fichero))
+        .filter((fichero) =>
+          soloCodigo(readFileSync(resolve(raiz, fichero), 'utf8')).includes(
+            'outline-none',
+          ),
+        )
+        .map((fichero) => `${relativa}/${fichero}`);
+    });
+
+    // Que la guarda ha mirado algo: sin esto, una raíz mal escrita o un filtro que no
+    // empareja nada daría una lista vacía y se leería como cumplimiento.
+    expect(
+      RAÍCES.flatMap((relativa) =>
+        readdirSync(resolve(process.cwd(), relativa), {
+          recursive: true,
+          encoding: 'utf8',
+        }).filter((fichero) => /\.tsx?$/.test(fichero)),
+      ).length,
+    ).toBeGreaterThan(20);
 
     expect(culpables).toStrictEqual([]);
   });
